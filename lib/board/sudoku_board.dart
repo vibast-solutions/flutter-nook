@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../chrome/note_marks.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/sudoku/sudoku_state.dart';
@@ -38,6 +39,13 @@ class SudokuBoard extends StatelessWidget {
   /// The key of the cell at [index], so tests can reach a known cell without
   /// depending on how it happens to look at the time.
   static Key cellKey(int index) => ValueKey<String>('sudoku-cell-$index');
+
+  /// The key of the answer drawn in the cell at [index], if it holds one.
+  static Key valueKey(int index) => ValueKey<String>('sudoku-value-$index');
+
+  /// The key of the pencil marks drawn in the cell at [index], if it shows
+  /// them.
+  static Key notesKey(int index) => ValueKey<String>('sudoku-notes-$index');
 
   @override
   Widget build(BuildContext context) {
@@ -179,15 +187,24 @@ class _SudokuCell extends StatelessWidget {
             color: background,
             border: Border(right: right, bottom: bottom),
           ),
-          child: value == 0
-              ? null
-              : Text(
+          child: value != 0
+              ? Text(
                   '$value',
+                  key: SudokuBoard.valueKey(index),
                   style: NookType.cellDigit(
                     given ? colors.ink : colors.clay,
                     extent * 0.5,
                   ),
-                ),
+                )
+              : game.showsNotes(index)
+              ? _CellNotes(
+                  key: SudokuBoard.notesKey(index),
+                  marks: game.notesAt(index),
+                  digits: size,
+                  columns: game.spec.boxWidth,
+                  extent: extent,
+                )
+              : null,
         ),
       ),
     );
@@ -203,8 +220,69 @@ class _SudokuCell extends StatelessWidget {
   }) {
     final String position = 'Row ${row + 1}, column ${column + 1}';
     if (value == 0) {
+      final NoteMarks marks = game.notesAt(index);
+      if (marks.isNotEmpty) {
+        return '$position, notes ${marks.digits.join(', ')}';
+      }
       return '$position, empty';
     }
     return '$position, $value, ${given ? 'given' : 'your answer'}';
+  }
+}
+
+/// The pencil marks in one cell, laid out where their digits would sit.
+///
+/// A mark keeps the same place whatever else is noted — a 7 is always bottom
+/// left of a 9x9's marks — so a player reads the block by position rather than
+/// by hunting through it. The block is shaped like the puzzle's own box, which
+/// gives a 9x9 the 3x3 of the designs and a 4x4 a sensible 2x2.
+class _CellNotes extends StatelessWidget {
+  const _CellNotes({
+    required this.marks,
+    required this.digits,
+    required this.columns,
+    required this.extent,
+    super.key,
+  });
+
+  final NoteMarks marks;
+  final int digits;
+  final int columns;
+  final double extent;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    final int rows = (digits / columns).ceil();
+    final TextStyle style = NookType.cellNote(colors.noteInk, extent * 0.24);
+
+    return SizedBox(
+      width: extent * 0.9,
+      height: extent * 0.82,
+      child: Column(
+        children: <Widget>[
+          for (int row = 0; row < rows; row++)
+            Expanded(
+              child: Row(
+                children: <Widget>[
+                  for (int column = 0; column < columns; column++)
+                    Expanded(
+                      child: Center(
+                        child: _mark(row * columns + column + 1, style),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mark(int digit, TextStyle style) {
+    if (digit > digits || !marks.contains(digit)) {
+      return const SizedBox.shrink();
+    }
+    return Text('$digit', style: style);
   }
 }

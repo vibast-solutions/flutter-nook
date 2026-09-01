@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../chrome/move_history.dart';
+import '../../chrome/note_marks.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
@@ -87,12 +88,13 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
     state = AsyncData<SudokuGameState>(game.copyWith(selectedIndex: index));
   }
 
-  /// Writes [digit] into the selected cell.
+  /// Writes [digit] into the selected cell, or pencils it in when the pad is
+  /// in notes mode.
   ///
   /// Tapping the digit already in the cell clears it, which is the quickest
-  /// way to take back a single mistake without reaching for erase.
-  /// Does nothing when there is no selection, the cell is a given, or the
-  /// puzzle is already solved.
+  /// way to take back a single mistake without reaching for erase; in notes
+  /// mode the same tap rubs the mark out. Does nothing when there is no
+  /// selection, the cell is a given, or the puzzle is already solved.
   void enter(int digit) {
     final SudokuGameState? game = state.value;
     if (game == null || digit < 1 || digit > game.size) {
@@ -102,10 +104,25 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
     if (index == null) {
       return;
     }
-    _write(game, index, game.cells[index] == digit ? 0 : digit);
+    if (game.notesMode) {
+      // A mark and an answer never share a cell, so pencilling into a filled
+      // cell puts the answer back in doubt rather than hiding under the marks.
+      final NoteMarks marks = game.notesAt(index).toggled(digit);
+      _write(game, index, value: 0, notes: marks.mask);
+      return;
+    }
+    final int value = game.cells[index] == digit ? 0 : digit;
+    // An answer settles the cell, so the working that led to it goes; clearing
+    // one leaves the (already empty) marks alone.
+    _write(
+      game,
+      index,
+      value: value,
+      notes: value == 0 ? game.notes[index] : 0,
+    );
   }
 
-  /// Empties the selected cell.
+  /// Empties the selected cell, marks and all.
   ///
   /// Does nothing on a given, on a cell that is already empty, or when nothing
   /// is selected — in each of those there is no move to make, so none is
@@ -116,7 +133,21 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
     if (game == null || index == null) {
       return;
     }
-    _write(game, index, 0);
+    _write(game, index, value: 0, notes: 0);
+  }
+
+  /// Switches the pad between writing answers and pencilling marks.
+  ///
+  /// Not a move: it changes what the next tap means, not the board, so there
+  /// is nothing here for undo to take back.
+  void toggleNotes() {
+    final SudokuGameState? game = state.value;
+    if (game == null || game.isSolved) {
+      return;
+    }
+    state = AsyncData<SudokuGameState>(
+      game.copyWith(notesMode: !game.notesMode),
+    );
   }
 
   /// Takes back the last move, and puts the player back on the cell it
@@ -132,30 +163,48 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
     final BoardMove move = game.history.last!;
     final List<int> cells = List<int>.of(game.cells)
       ..[move.index] = move.before;
+    final List<int> notes = List<int>.of(game.notes)
+      ..[move.index] = move.notesBefore;
     state = AsyncData<SudokuGameState>(
       game.copyWith(
         cells: cells,
+        notes: notes,
         selectedIndex: move.index,
         history: game.history.pop(),
       ),
     );
   }
 
-  /// Puts [value] in the cell at [index] and records the move.
+  /// Puts [value] and [notes] in the cell at [index] and records the move.
   ///
   /// The one place the board is written to, so there is one place a move can
-  /// be missed from the history rather than one per control.
-  void _write(SudokuGameState game, int index, int value) {
+  /// be missed from the history rather than one per control. An answer and the
+  /// marks around it change together and come back together.
+  void _write(
+    SudokuGameState game,
+    int index, {
+    required int value,
+    required int notes,
+  }) {
     final int before = game.cells[index];
-    if (game.isSolved || game.isGiven(index) || value == before) {
+    final int notesBefore = game.notes[index];
+    if (game.isSolved ||
+        game.isGiven(index) ||
+        (value == before && notes == notesBefore)) {
       return;
     }
-    final List<int> cells = List<int>.of(game.cells)..[index] = value;
     state = AsyncData<SudokuGameState>(
       game.copyWith(
-        cells: cells,
+        cells: List<int>.of(game.cells)..[index] = value,
+        notes: List<int>.of(game.notes)..[index] = notes,
         history: game.history.push(
-          BoardMove(index: index, before: before, after: value),
+          BoardMove(
+            index: index,
+            before: before,
+            after: value,
+            notesBefore: notesBefore,
+            notesAfter: notes,
+          ),
         ),
       ),
     );

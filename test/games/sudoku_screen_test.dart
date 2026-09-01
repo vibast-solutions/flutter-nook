@@ -47,14 +47,38 @@ List<String?> boardDigits(WidgetTester tester) {
 
 /// The digit currently drawn in the cell at [index], or `null` if it is empty.
 String? digitIn(WidgetTester tester, int index) {
-  final Finder text = find.descendant(
-    of: find.byKey(SudokuBoard.cellKey(index)),
-    matching: find.byType(Text),
-  );
+  final Finder text = find.byKey(SudokuBoard.valueKey(index));
   if (text.evaluate().isEmpty) {
     return null;
   }
   return tester.widget<Text>(text).data;
+}
+
+/// The pencil marks drawn in the cell at [index], smallest first.
+List<int> notesIn(WidgetTester tester, int index) {
+  final Finder marks = find.descendant(
+    of: find.byKey(SudokuBoard.notesKey(index)),
+    matching: find.byType(Text),
+  );
+  return <int>[
+    for (final Text mark in tester.widgetList<Text>(marks))
+      int.parse(mark.data!),
+  ];
+}
+
+/// The colour a pencil mark in the cell at [index] is drawn in.
+Color noteColour(WidgetTester tester, int index) {
+  return tester
+      .widget<Text>(
+        find
+            .descendant(
+              of: find.byKey(SudokuBoard.notesKey(index)),
+              matching: find.byType(Text),
+            )
+            .first,
+      )
+      .style!
+      .color!;
 }
 
 /// The colour the cell at [index] is filled with.
@@ -395,6 +419,228 @@ void main() {
       await tapAction(tester, 'Erase');
 
       expect(find.text('Solved'), findsOneWidget, reason: 'still solved');
+    });
+  });
+
+  group('pencil notes', () {
+    testWidgets('the toggle says which mode the pad is in', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      expect(find.text('Notes off'), findsOneWidget);
+      expect(actionBackground(tester, 'Notes'), colors.surface);
+
+      await tapAction(tester, 'Notes');
+
+      expect(find.text('Notes on'), findsOneWidget);
+      expect(
+        actionBackground(tester, 'Notes'),
+        colors.clay,
+        reason:
+            'notes mode changes what every later tap means, so it is the '
+            'loudest thing in the row while it is on',
+      );
+
+      await tapAction(tester, 'Notes');
+
+      expect(find.text('Notes off'), findsOneWidget);
+      expect(actionBackground(tester, 'Notes'), colors.surface);
+    });
+
+    testWidgets('digits go in as marks and the same tap rubs them out', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 1);
+      await tapDigit(tester, 4);
+
+      expect(notesIn(tester, 0), <int>[1, 4]);
+      expect(digitIn(tester, 0), isNull, reason: 'no answer went down');
+
+      await tapDigit(tester, 1);
+
+      expect(notesIn(tester, 0), <int>[4]);
+    });
+
+    testWidgets('marks are drawn apart from answers', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 2);
+
+      expect(noteColour(tester, 0), colors.noteInk);
+      expect(
+        noteColour(tester, 0),
+        isNot(colors.clay),
+        reason: 'a mark must not read as an answer',
+      );
+    });
+
+    testWidgets('marks stay where their digit belongs', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 4);
+      final Offset four = tester.getCenter(find.text('4').last);
+
+      await tapDigit(tester, 1);
+
+      expect(
+        tester.getCenter(find.text('4').last),
+        four,
+        reason: 'a later mark does not shuffle the ones already there',
+      );
+    });
+
+    testWidgets('an answer clears the marks, and undo brings them back', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 1);
+      await tapDigit(tester, 3);
+      expect(notesIn(tester, 0), <int>[1, 3]);
+
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 1);
+      expect(digitIn(tester, 0), '1');
+      expect(
+        find.byKey(SudokuBoard.notesKey(0)),
+        findsNothing,
+        reason: 'a cell shows an answer or its marks, never both',
+      );
+
+      await tapAction(tester, 'Undo');
+
+      expect(digitIn(tester, 0), isNull);
+      expect(notesIn(tester, 0), <int>[1, 3]);
+    });
+
+    testWidgets('pencilling into a filled cell puts the answer back in doubt', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 3);
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 1);
+
+      expect(digitIn(tester, 0), isNull);
+      expect(notesIn(tester, 0), <int>[1]);
+
+      await tapAction(tester, 'Undo');
+
+      expect(digitIn(tester, 0), '3');
+      expect(find.byKey(SudokuBoard.notesKey(0)), findsNothing);
+    });
+
+    testWidgets('erase clears the marks', (WidgetTester tester) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 2);
+      await tapDigit(tester, 3);
+
+      await tapAction(tester, 'Erase');
+
+      expect(find.byKey(SudokuBoard.notesKey(0)), findsNothing);
+
+      await tapAction(tester, 'Undo');
+      expect(notesIn(tester, 0), <int>[2, 3]);
+    });
+
+    testWidgets('a mark is taken back one at a time', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 1);
+      await tapDigit(tester, 2);
+      await tapDigit(tester, 3);
+
+      await tapAction(tester, 'Undo');
+      expect(notesIn(tester, 0), <int>[1, 2]);
+
+      await tapAction(tester, 'Undo');
+      expect(notesIn(tester, 0), <int>[1]);
+
+      await tapAction(tester, 'Undo');
+      expect(find.byKey(SudokuBoard.notesKey(0)), findsNothing);
+      expect(
+        actionBackground(tester, 'Undo'),
+        colors.disabledSurface,
+        reason: 'the marks were the whole history',
+      );
+    });
+
+    testWidgets('a given cell takes no marks', (WidgetTester tester) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 6); // A given 1.
+      await tapAction(tester, 'Notes');
+      await tapDigit(tester, 3);
+
+      expect(digitIn(tester, 6), '1');
+      expect(find.byKey(SudokuBoard.notesKey(6)), findsNothing);
+      expect(
+        actionBackground(tester, 'Undo'),
+        colors.disabledSurface,
+        reason: 'nothing happened, so there is nothing to undo',
+      );
+    });
+
+    testWidgets('the mode stays on as the player moves around the board', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapAction(tester, 'Notes');
+      await tapCell(tester, 0);
+      await tapDigit(tester, 2);
+      await tapCell(tester, 15);
+      await tapDigit(tester, 2);
+
+      expect(notesIn(tester, 0), <int>[2]);
+      expect(notesIn(tester, 15), <int>[2]);
+      expect(find.text('Notes on'), findsOneWidget);
+    });
+
+    testWidgets('the toggle switches off with the rest once solved', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      final SudokuPuzzle puzzle = fixedMiniPuzzle();
+      for (int i = 0; i < puzzle.givens.length; i++) {
+        if (puzzle.givens[i] == 0) {
+          await tapCell(tester, i);
+          await tapDigit(tester, puzzle.solution[i]);
+        }
+      }
+      await tester.pumpAndSettle();
+
+      expect(actionBackground(tester, 'Notes'), colors.disabledSurface);
+
+      await tapAction(tester, 'Notes');
+
+      expect(find.text('Notes off'), findsOneWidget);
+      expect(find.text('Solved'), findsOneWidget);
     });
   });
 

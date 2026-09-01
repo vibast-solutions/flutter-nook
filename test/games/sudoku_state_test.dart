@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nook/chrome/note_marks.dart';
 import 'package:nook/games/sudoku/sudoku_state.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
@@ -102,6 +103,42 @@ void main() {
         cells: List<int>.of(puzzle.solution),
       );
       expect(done.isSolved, isTrue);
+    });
+
+    test('starts with nothing pencilled in and the pad writing answers', () {
+      final SudokuGameState game = _fresh();
+
+      expect(game.notesMode, isFalse);
+      expect(game.notes, List<int>.filled(16, 0));
+      expect(game.notesAt(0).isEmpty, isTrue);
+      expect(game.showsNotes(0), isFalse);
+    });
+
+    test('a cell shows its marks only while it holds no answer', () {
+      final SudokuGameState noted = _fresh().copyWith(
+        notes: List<int>.filled(16, 0)..[0] = NoteMarks.of(<int>[1, 3]).mask,
+      );
+
+      expect(noted.showsNotes(0), isTrue);
+      expect(noted.notesAt(0).digits, <int>[1, 3]);
+
+      final SudokuGameState answered = noted.copyWith(
+        cells: List<int>.of(noted.cells)..[0] = 2,
+      );
+      expect(
+        answered.showsNotes(0),
+        isFalse,
+        reason: 'the answer is what the cell shows',
+      );
+      expect(answered.notesAt(0).digits, <int>[
+        1,
+        3,
+      ], reason: 'and the marks are still there to be restored by an undo');
+    });
+
+    test('notes cannot be modified through the state', () {
+      final SudokuGameState game = _fresh();
+      expect(() => game.notes[0] = 1, throwsUnsupportedError);
     });
 
     test('cells cannot be modified through the state', () {
