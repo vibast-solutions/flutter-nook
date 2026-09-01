@@ -68,6 +68,10 @@ abstract final class NookType {
   static TextStyle cellDigit(Color color, double size) =>
       nookText(size: size, weight: 800, color: color, height: 1);
 
+  /// One pencil mark inside a board cell. [size] scales with the cell.
+  static TextStyle cellNote(Color color, double size) =>
+      nookText(size: size, weight: 700, color: color, height: 1);
+
   /// The large digit on a number-pad key.
   static TextStyle padDigit(Color color, double size) =>
       nookText(size: size, weight: 800, color: color, height: 1);

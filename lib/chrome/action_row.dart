@@ -14,6 +14,7 @@ class BoardAction {
     required this.icon,
     required this.onTap,
     this.unavailableReason,
+    this.isOn,
   });
 
   /// The word under the icon.
@@ -31,6 +32,14 @@ class BoardAction {
   /// the same thing reaches a player using a screen reader.
   final String? unavailableReason;
 
+  /// Whether this control is a switch, and whether it is currently on.
+  ///
+  /// `null` for the controls that simply do something when tapped. A switch
+  /// changes what every later tap of the pad means, so it says so twice over:
+  /// it fills with the accent, and its label spells out `on` or `off`. A
+  /// player who cannot tell will write marks they meant as answers.
+  final bool? isOn;
+
   /// Whether the action can be used right now.
   bool get isEnabled => onTap != null;
 }
@@ -38,8 +47,8 @@ class BoardAction {
 /// The row of controls between a board and its number pad.
 ///
 /// Shared rather than Sudoku's own: Stars and Duo get the same row, and the
-/// remaining Sudoku controls — notes (VIB-72) and hints (VIB-76) — are further
-/// entries in the same list rather than a second row.
+/// remaining Sudoku control — hints (VIB-76) — is a further entry in the same
+/// list rather than a second row.
 class BoardActionRow extends StatelessWidget {
   const BoardActionRow({required this.actions, super.key});
 
@@ -73,6 +82,28 @@ class _ActionTile extends StatelessWidget {
     final NookColors colors = Theme.of(context).nook;
     final bool enabled = action.isEnabled;
     final String? reason = action.unavailableReason;
+    final bool? isOn = action.isOn;
+    final bool lit = enabled && (isOn ?? false);
+
+    // A switch that is on is filled with the accent and reads back out of it;
+    // everything else sits on a surface. Unavailable wins over both, because a
+    // control that cannot be used should not look like the loudest thing on
+    // the screen.
+    final Color background = !enabled
+        ? colors.disabledSurface
+        : lit
+        ? colors.clay
+        : colors.surface;
+    final Color edge = !enabled
+        ? colors.disabledLine
+        : lit
+        ? colors.clay
+        : colors.line;
+    final Color content = !enabled
+        ? colors.disabledInk
+        : lit
+        ? colors.surface
+        : colors.inkMuted;
 
     return Semantics(
       label: enabled || reason == null
@@ -80,13 +111,14 @@ class _ActionTile extends StatelessWidget {
           : '${action.label}, $reason',
       button: true,
       enabled: enabled,
+      toggled: isOn,
       excludeSemantics: true,
       child: Material(
         key: BoardActionRow.keyFor(action.label),
-        color: enabled ? colors.surface : colors.disabledSurface,
+        color: background,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(NookRadius.key),
-          side: BorderSide(color: enabled ? colors.line : colors.disabledLine),
+          side: BorderSide(color: edge),
         ),
         child: InkWell(
           borderRadius: const BorderRadius.all(NookRadius.key),
@@ -96,17 +128,13 @@ class _ActionTile extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(
-                  action.icon,
-                  size: 19,
-                  color: enabled ? colors.inkMuted : colors.disabledInk,
-                ),
+                Icon(action.icon, size: 19, color: content),
                 const SizedBox(height: 3),
                 Text(
-                  action.label,
-                  style: NookType.actionLabel(
-                    enabled ? colors.inkMuted : colors.disabledInk,
-                  ),
+                  isOn == null
+                      ? action.label
+                      : '${action.label} ${isOn ? 'on' : 'off'}',
+                  style: NookType.actionLabel(content),
                 ),
               ],
             ),
