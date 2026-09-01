@@ -61,6 +61,31 @@ void main() {
       });
     });
 
+    testWidgets('the action row says why a control cannot be used', (
+      WidgetTester tester,
+    ) async {
+      await withSemantics(tester, () async {
+        await pumpSudokuGame(tester);
+
+        expect(
+          find.bySemanticsLabel('Undo, nothing to take back'),
+          findsOneWidget,
+        );
+        expect(find.bySemanticsLabel('Erase'), findsOneWidget);
+
+        await tester.tap(find.bySemanticsLabel('Row 1, column 1, empty'));
+        await tester.pump();
+        await tester.tap(find.bySemanticsLabel('1, 2 left to place'));
+        await tester.pump();
+
+        expect(find.bySemanticsLabel('Undo'), findsOneWidget);
+        expect(
+          find.bySemanticsLabel('Undo, nothing to take back'),
+          findsNothing,
+        );
+      });
+    });
+
     testWidgets('the board itself is announced', (WidgetTester tester) async {
       await withSemantics(tester, () async {
         await pumpSudokuGame(tester);

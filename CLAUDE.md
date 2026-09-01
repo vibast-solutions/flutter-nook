@@ -16,7 +16,7 @@ packages/puzzle_engine/   pure Dart, no Flutter — solvers, generators, difficu
 lib/                      the app
   design/                 tokens, themes, typography
   board/                  shared board widgets, selection, gestures
-  chrome/                 timer, undo, notes, hints (not built yet)
+  chrome/                 controls around a board: undo and erase, later timer/notes/hints
   games/                  per-game state and screens (thin)
   home/                   the game list
   store/                  persistence (Drift/SQLite) (not built yet)
@@ -34,6 +34,10 @@ when the ticket that needs them comes up, not before.
 - **Every generated puzzle has exactly one solution and is solvable without guessing.** This is verified in tests, not assumed.
 - **Difficulty is rated by the techniques a human solver needs**, never by clue count.
 - **Boards are built from widgets, not CustomPainter** — accessibility semantics, hit testing and per-cell animation come free.
+- **Every move a player makes goes through one write** that records it in the
+  shared `MoveHistory` (`chrome/move_history.dart`). A game never grows an undo
+  stack of its own, and a move is three plain integers — it has to survive
+  being written to disk when a game is saved and resumed.
 - Generation runs on a background isolate; the UI never blocks.
 - Region colours are always paired with a texture, so colour-blind players can read the board.
 - Hit targets are never below 44 logical pixels (`kMinTapTarget`).

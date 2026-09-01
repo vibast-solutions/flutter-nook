@@ -76,6 +76,10 @@ abstract final class NookType {
   static TextStyle padCount(Color color) =>
       nookText(size: 10, weight: 700, color: color);
 
+  /// The word under an icon in the board's action row.
+  static TextStyle actionLabel(Color color) =>
+      nookText(size: 11, weight: 700, color: color);
+
   /// The quiet line at the bottom of a screen.
   static TextStyle footnote(Color color) =>
       nookText(size: 12, weight: 600, color: color);

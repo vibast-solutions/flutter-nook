@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../board/number_pad.dart';
 import '../../board/sudoku_board.dart';
+import '../../chrome/action_row.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import 'sudoku_controller.dart';
@@ -219,7 +220,30 @@ class _Playing extends ConsumerWidget {
           child: Column(
             children: <Widget>[
               SudokuBoard(game: game, edge: edge, onSelect: controller.select),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
+              BoardActionRow(
+                actions: <BoardAction>[
+                  BoardAction(
+                    label: 'Undo',
+                    icon: Icons.undo_rounded,
+                    onTap: game.canUndo ? controller.undo : null,
+                    unavailableReason: game.isSolved
+                        ? 'the puzzle is done'
+                        : 'nothing to take back',
+                  ),
+                  BoardAction(
+                    // The designs draw an eraser; the bundled icon set has no
+                    // eraser, and this is the glyph every keyboard already
+                    // uses for taking a character back out.
+                    label: 'Erase',
+                    icon: Icons.backspace_rounded,
+                    onTap: game.isSolved ? null : controller.erase,
+                    unavailableReason: 'the puzzle is done',
+                  ),
+                  // Notes (VIB-72) and hint (VIB-76) join this row.
+                ],
+              ),
+              const SizedBox(height: 14),
               NumberPad(
                 digits: game.size,
                 remaining: game.remaining,
