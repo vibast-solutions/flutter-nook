@@ -1,0 +1,393 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nook/board/number_pad.dart';
+import 'package:nook/board/sudoku_board.dart';
+import 'package:nook/design/theme.dart';
+import 'package:nook/design/tokens.dart';
+import 'package:nook/games/sudoku/sudoku_controller.dart';
+import 'package:nook/games/sudoku/sudoku_screen.dart';
+import 'package:nook/games/sudoku/sudoku_variant.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
+
+import '../support/sudoku_fixture.dart';
+
+/// Taps the board cell at [index].
+Future<void> tapCell(WidgetTester tester, int index) async {
+  await tester.tap(find.byKey(SudokuBoard.cellKey(index)));
+  await tester.pump();
+}
+
+/// Taps the number-pad key for [digit].
+Future<void> tapDigit(WidgetTester tester, int digit) async {
+  await tester.tap(find.byKey(NumberPad.keyFor(digit)));
+  await tester.pump();
+}
+
+/// The digit currently drawn in the cell at [index], or `null` if it is empty.
+String? digitIn(WidgetTester tester, int index) {
+  final Finder text = find.descendant(
+    of: find.byKey(SudokuBoard.cellKey(index)),
+    matching: find.byType(Text),
+  );
+  if (text.evaluate().isEmpty) {
+    return null;
+  }
+  return tester.widget<Text>(text).data;
+}
+
+/// The colour the cell at [index] is filled with.
+Color cellBackground(WidgetTester tester, int index) {
+  final Container container = tester.widget<Container>(
+    find.descendant(
+      of: find.byKey(SudokuBoard.cellKey(index)),
+      matching: find.byType(Container),
+    ),
+  );
+  return (container.decoration! as BoxDecoration).color!;
+}
+
+/// The colour the large digit on the pad key for [digit] is drawn in.
+Color padDigitColour(WidgetTester tester, int digit) {
+  final Text text = tester.widget<Text>(
+    find
+        .descendant(
+          of: find.byKey(NumberPad.keyFor(digit)),
+          matching: find.byType(Text),
+        )
+        .first,
+  );
+  return text.style!.color!;
+}
+
+void main() {
+  const NookColors colors = NookColors.softClay;
+
+  group('playing a 4x4', () {
+    testWidgets('shows the puzzle it was given', (WidgetTester tester) async {
+      await pumpSudokuGame(tester);
+
+      expect(find.text('Sudoku Mini'), findsOneWidget);
+      expect(find.text('4x4'), findsOneWidget);
+      // The six givens are on the board, and the ten empty cells are empty.
+      expect(digitIn(tester, 6), '1');
+      expect(digitIn(tester, 7), '2');
+      expect(digitIn(tester, 0), isNull);
+      expect(digitIn(tester, 15), isNull);
+    });
+
+    testWidgets('selecting a cell highlights it and its peers', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+
+      expect(cellBackground(tester, 0), colors.cellSelected);
+      expect(cellBackground(tester, 1), colors.cellPeer, reason: 'same box');
+      expect(cellBackground(tester, 3), colors.cellPeer, reason: 'same row');
+      expect(
+        cellBackground(tester, 12),
+        colors.cellPeer,
+        reason: 'same column',
+      );
+      expect(
+        cellBackground(tester, 15),
+        colors.surface,
+        reason: 'shares nothing with cell 0',
+      );
+    });
+
+    testWidgets('cells holding the selected digit are picked out', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      // Cell 6 holds a 1; so does cell 9, which shares no unit with it.
+      await tapCell(tester, 6);
+
+      expect(cellBackground(tester, 6), colors.cellSelected);
+      expect(cellBackground(tester, 9), colors.cellMatching);
+    });
+
+    testWidgets('entering a digit writes it into the selected cell', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+
+      expect(digitIn(tester, 0), '1');
+    });
+
+    testWidgets('a wrong digit can be corrected by entering another', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 3); // Wrong: cell 0 is a 1.
+      expect(digitIn(tester, 0), '3');
+
+      await tapDigit(tester, 1);
+      expect(digitIn(tester, 0), '1');
+    });
+
+    testWidgets('tapping the digit already in the cell clears it', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 2);
+      expect(digitIn(tester, 0), '2');
+
+      await tapDigit(tester, 2);
+      expect(digitIn(tester, 0), isNull);
+    });
+
+    testWidgets('nothing is entered while no cell is selected', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapDigit(tester, 1);
+
+      final SudokuPuzzle puzzle = fixedMiniPuzzle();
+      for (int i = 0; i < puzzle.givens.length; i++) {
+        final int given = puzzle.givens[i];
+        expect(digitIn(tester, i), given == 0 ? isNull : '$given');
+      }
+    });
+
+    testWidgets('a given cell can be selected but never changed', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 6); // A given 1.
+
+      expect(
+        cellBackground(tester, 6),
+        colors.cellSelected,
+        reason: 'selecting a given still highlights the board',
+      );
+
+      await tapDigit(tester, 4);
+      expect(digitIn(tester, 6), '1', reason: 'the given did not move');
+
+      await tapDigit(tester, 1);
+      expect(digitIn(tester, 6), '1', reason: 'and it cannot be cleared');
+    });
+
+    testWidgets('the player\'s digits are drawn differently from the givens', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+
+      Color colourOf(int index) => tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(SudokuBoard.cellKey(index)),
+              matching: find.byType(Text),
+            ),
+          )
+          .style!
+          .color!;
+
+      expect(colourOf(6), colors.ink, reason: 'a given');
+      expect(colourOf(0), colors.clay, reason: 'the player');
+    });
+  });
+
+  group('the number pad', () {
+    testWidgets('counts what is left of each digit', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      // Two 1s, 2s and 3s are given; no 4 is.
+      expect(find.text('2 left'), findsNWidgets(3));
+      expect(find.text('4 left'), findsOneWidget);
+    });
+
+    testWidgets('the count follows what the player enters', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 3);
+      await tapDigit(tester, 4);
+
+      expect(find.text('3 left'), findsOneWidget);
+    });
+
+    testWidgets('a fully placed digit greys out but stays usable', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      // Place the two missing 1s.
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+      await tapCell(tester, 10); // Cell 10 wants a 4; a 1 here is wrong.
+      await tapDigit(tester, 1);
+
+      expect(find.text('done'), findsOneWidget);
+      expect(padDigitColour(tester, 1), colors.disabledInk);
+      expect(padDigitColour(tester, 4), colors.ink);
+
+      // Still tappable: with a 1 in the wrong place and the count at zero,
+      // tapping 1 again is the only way to take it back.
+      await tapDigit(tester, 1);
+      expect(digitIn(tester, 10), isNull);
+      expect(find.text('1 left'), findsOneWidget);
+    });
+  });
+
+  group('finishing', () {
+    testWidgets('completing the grid reaches the solved state', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      expect(find.text('Solved'), findsNothing);
+      expect(find.text('Tap a cell, then a number'), findsOneWidget);
+
+      final SudokuPuzzle puzzle = fixedMiniPuzzle();
+      for (int i = 0; i < puzzle.givens.length; i++) {
+        if (puzzle.givens[i] != 0) {
+          continue;
+        }
+        await tapCell(tester, i);
+        await tapDigit(tester, puzzle.solution[i]);
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('Solved'), findsOneWidget);
+      expect(find.text('Tap a cell, then a number'), findsNothing);
+    });
+
+    testWidgets('a grid that is full but wrong is not solved', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      final SudokuPuzzle puzzle = fixedMiniPuzzle();
+      final List<int> empties = <int>[
+        for (int i = 0; i < puzzle.givens.length; i++)
+          if (puzzle.givens[i] == 0) i,
+      ];
+      // Fill everything but the last two cells correctly, then swap those two
+      // so the board ends up full and wrong rather than full and right.
+      final int a = empties[empties.length - 2];
+      final int b = empties.last;
+      for (final int i in empties) {
+        final int digit = i == a
+            ? puzzle.solution[b]
+            : i == b
+            ? puzzle.solution[a]
+            : puzzle.solution[i];
+        await tapCell(tester, i);
+        await tapDigit(tester, digit);
+      }
+      await tester.pumpAndSettle();
+
+      expect(
+        puzzle.solution[a],
+        isNot(puzzle.solution[b]),
+        reason: 'the swap has to actually change something',
+      );
+
+      expect(find.text('Solved'), findsNothing);
+    });
+
+    testWidgets('a new puzzle can be started from the solved state', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      final SudokuPuzzle puzzle = fixedMiniPuzzle();
+      for (int i = 0; i < puzzle.givens.length; i++) {
+        if (puzzle.givens[i] == 0) {
+          await tapCell(tester, i);
+          await tapDigit(tester, puzzle.solution[i]);
+        }
+      }
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('New puzzle'));
+      await tester.pumpAndSettle();
+
+      // The fixture is handed back, so the board resets to its givens.
+      expect(find.text('Solved'), findsNothing);
+      expect(digitIn(tester, 0), isNull);
+      expect(digitIn(tester, 6), '1');
+    });
+  });
+
+  group('generation', () {
+    testWidgets('shows progress while the puzzle is being made', (
+      WidgetTester tester,
+    ) async {
+      await setPhoneSurface(tester);
+      final Completer<SudokuPuzzle> pending = Completer<SudokuPuzzle>();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sudokuPuzzleSourceProvider.overrideWithValue(
+              (SudokuSpec spec, int seed) => pending.future,
+            ),
+          ],
+          child: MaterialApp(
+            theme: buildNookTheme(NookColors.softClay),
+            home: const SudokuGamePage(variant: SudokuVariant.mini),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Making you a puzzle'), findsOneWidget);
+
+      pending.complete(fixedMiniPuzzle());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Making you a puzzle'), findsNothing);
+      expect(digitIn(tester, 6), '1');
+    });
+
+    test('the shipped source really generates on another isolate', () async {
+      // The fixture-based tests above never touch the engine, so this is the
+      // one place the isolate hop and the generator are exercised together.
+      final SudokuPuzzle puzzle = await generateSudokuOffThread(
+        SudokuSpec.mini,
+        4242,
+      );
+
+      expect(puzzle.seed, 4242);
+      expect(puzzle.givens, hasLength(16));
+      expect(puzzle.givenCount, greaterThan(0));
+      expect(puzzle.givenCount, lessThan(16));
+      expect(
+        SudokuSolver(SudokuSpec.mini).countSolutions(puzzle.givens, limit: 2),
+        1,
+      );
+    });
+
+    test('that is what the app uses unless a test says otherwise', () {
+      final ProviderContainer container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(sudokuPuzzleSourceProvider),
+        same(generateSudokuOffThread),
+      );
+    });
+  });
+}

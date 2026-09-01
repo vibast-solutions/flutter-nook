@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+
+import '../design/tokens.dart';
+import '../design/typography.dart';
+
+/// The row of digits under the board, each showing how many of it are left to
+/// place.
+///
+/// A digit that has been placed as often as the grid can hold it is greyed but
+/// stays tappable. Disabling it would be a trap: with four 3s down and one of
+/// them wrong, the count reads zero, and the way to take the wrong one back is
+/// to tap that same 3 again.
+class NumberPad extends StatelessWidget {
+  const NumberPad({
+    required this.digits,
+    required this.remaining,
+    required this.onDigit,
+    super.key,
+  });
+
+  /// The largest digit on the pad; keys run from 1 to this.
+  final int digits;
+
+  /// How many of [digit] are still to be placed.
+  final int Function(int digit) remaining;
+
+  /// Called with the tapped digit.
+  final ValueChanged<int> onDigit;
+
+  /// Nine keys wrap onto two rows; four or six fit on one.
+  static const int _maxPerRow = 5;
+
+  /// The key of the pad key for [digit].
+  static Key keyFor(int digit) => ValueKey<String>('pad-key-$digit');
+
+  @override
+  Widget build(BuildContext context) {
+    final int columns = digits <= _maxPerRow ? digits : _maxPerRow;
+    final List<Widget> rows = <Widget>[];
+    for (int start = 1; start <= digits; start += columns) {
+      final int end = (start + columns - 1).clamp(start, digits);
+      rows.add(
+        Row(
+          children: <Widget>[
+            for (int digit = start; digit <= end; digit++) ...<Widget>[
+              if (digit != start) const SizedBox(width: 9),
+              Expanded(
+                child: _PadKey(
+                  digit: digit,
+                  remaining: remaining(digit),
+                  onTap: onDigit,
+                ),
+              ),
+            ],
+            // Keeps a short final row aligned with the one above it.
+            for (
+              int filler = end + 1;
+              filler < start + columns;
+              filler++
+            ) ...<Widget>[
+              const SizedBox(width: 9),
+              const Expanded(child: SizedBox.shrink()),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        for (int i = 0; i < rows.length; i++) ...<Widget>[
+          if (i != 0) const SizedBox(height: 9),
+          rows[i],
+        ],
+      ],
+    );
+  }
+}
+
+class _PadKey extends StatelessWidget {
+  const _PadKey({
+    required this.digit,
+    required this.remaining,
+    required this.onTap,
+  });
+
+  final int digit;
+  final int remaining;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    final bool spent = remaining == 0;
+    final String caption = spent ? 'done' : '$remaining left';
+
+    return Semantics(
+      label: spent ? '$digit, all placed' : '$digit, $remaining left to place',
+      button: true,
+      excludeSemantics: true,
+      child: Material(
+        key: NumberPad.keyFor(digit),
+        color: spent ? colors.disabledSurface : colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.all(NookRadius.key),
+          side: BorderSide(color: spent ? colors.disabledLine : colors.line),
+        ),
+        child: InkWell(
+          borderRadius: const BorderRadius.all(NookRadius.key),
+          onTap: () => onTap(digit),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 60),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  '$digit',
+                  style: NookType.padDigit(
+                    spent ? colors.disabledInk : colors.ink,
+                    25,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  caption,
+                  style: NookType.padCount(
+                    spent ? colors.disabledInkFaint : colors.inkFaint,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
