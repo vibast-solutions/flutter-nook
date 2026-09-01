@@ -1,0 +1,40 @@
+name: nook
+description: "A free puzzle collection. No ads, no tracking, no account."
+publish_to: 'none'
+
+# version: <marketing version>+<build number>
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State. Chosen for being testable without widgets — see the technical design.
+  flutter_riverpod: ^3.0.0
+
+  # The rules: solvers and generators, pure Dart and Flutter-free on purpose.
+  puzzle_engine:
+    path: packages/puzzle_engine
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Bundled rather than fetched: Nook makes no network requests, and a font
+  # downloaded on first launch would break that and look wrong offline.
+  # Both families are licensed under the SIL Open Font License; the licences
+  # are in assets/fonts alongside them.
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Variable.ttf
+    - family: Fredoka
+      fonts:
+        - asset: assets/fonts/Fredoka-Variable.ttf

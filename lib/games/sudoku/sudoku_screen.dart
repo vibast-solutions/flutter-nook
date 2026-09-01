@@ -1,0 +1,306 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../board/number_pad.dart';
+import '../../board/sudoku_board.dart';
+import '../../design/tokens.dart';
+import '../../design/typography.dart';
+import 'sudoku_controller.dart';
+import 'sudoku_state.dart';
+import 'sudoku_variant.dart';
+
+/// The screen a player lands on after picking a Sudoku.
+///
+/// It owns the scope the game lives in: the variant is injected here, so the
+/// controller below never has to ask which grid it is playing.
+class SudokuGamePage extends StatelessWidget {
+  const SudokuGamePage({required this.variant, super.key});
+
+  /// Which Sudoku to play.
+  final SudokuVariant variant;
+
+  /// Builds a route to this page.
+  static Route<void> route(SudokuVariant variant) {
+    return MaterialPageRoute<void>(
+      builder: (BuildContext context) => SudokuGamePage(variant: variant),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ProviderScope(
+      overrides: [sudokuVariantProvider.overrideWithValue(variant)],
+      child: const _SudokuScreen(),
+    );
+  }
+}
+
+class _SudokuScreen extends ConsumerWidget {
+  const _SudokuScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final NookColors colors = Theme.of(context).nook;
+    final SudokuVariant variant = ref.watch(sudokuVariantProvider);
+    final AsyncValue<SudokuGameState> game = ref.watch(
+      sudokuControllerProvider,
+    );
+
+    return Scaffold(
+      backgroundColor: colors.sand,
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            _Header(title: variant.title, subtitle: variant.sizeLabel),
+            Expanded(
+              child: game.when(
+                loading: () => const _Generating(),
+                error: (Object error, StackTrace stack) => _GenerationFailed(
+                  onRetry: () => ref
+                      .read(sudokuControllerProvider.notifier)
+                      .startNewPuzzle(),
+                ),
+                data: (SudokuGameState state) => _Playing(game: state),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 10),
+      child: Row(
+        children: <Widget>[
+          _IconButtonTile(
+            semanticLabel: 'Back to the game list',
+            icon: Icons.arrow_back_ios_new_rounded,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+          Expanded(
+            child: Column(
+              children: <Widget>[
+                Text(title, style: NookType.title(colors.ink)),
+                const SizedBox(height: 1),
+                Text(subtitle, style: NookType.sectionLabel(colors.inkFaint)),
+              ],
+            ),
+          ),
+          // Balances the back button so the title stays centred. The timer
+          // that lives here in the designs arrives with statistics (VIB-77).
+          const SizedBox(width: kMinTapTarget),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconButtonTile extends StatelessWidget {
+  const _IconButtonTile({
+    required this.semanticLabel,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String semanticLabel;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      excludeSemantics: true,
+      child: Material(
+        color: colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.all(NookRadius.tile),
+          side: BorderSide(color: colors.line),
+        ),
+        child: InkWell(
+          borderRadius: const BorderRadius.all(NookRadius.tile),
+          onTap: onTap,
+          child: SizedBox(
+            width: kMinTapTarget,
+            height: kMinTapTarget,
+            child: Icon(icon, size: 18, color: colors.inkMuted),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Generating extends StatelessWidget {
+  const _Generating();
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          CircularProgressIndicator(color: colors.clay, strokeWidth: 3),
+          const SizedBox(height: 18),
+          Text(
+            'Making you a puzzle',
+            style: NookType.rowSubtitle(colors.inkMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenerationFailed extends StatelessWidget {
+  const _GenerationFailed({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              'That puzzle did not come out right.',
+              textAlign: TextAlign.center,
+              style: NookType.title(colors.ink),
+            ),
+            const SizedBox(height: 18),
+            _PrimaryButton(label: 'Try again', onTap: onRetry),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Playing extends ConsumerWidget {
+  const _Playing({required this.game});
+
+  final SudokuGameState game;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final NookColors colors = Theme.of(context).nook;
+    final SudokuController controller = ref.read(
+      sudokuControllerProvider.notifier,
+    );
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // The board is square and never wider than the screen allows, with a
+        // ceiling so a tablet does not turn it into a wall.
+        final double edge = (constraints.maxWidth - 56)
+            .clamp(120.0, 420.0)
+            .toDouble();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(28, 6, 28, 24),
+          child: Column(
+            children: <Widget>[
+              SudokuBoard(game: game, edge: edge, onSelect: controller.select),
+              const SizedBox(height: 22),
+              NumberPad(
+                digits: game.size,
+                remaining: game.remaining,
+                onDigit: controller.enter,
+              ),
+              const SizedBox(height: 22),
+              if (game.isSolved)
+                _Solved(onNewPuzzle: controller.startNewPuzzle)
+              else
+                Text(
+                  'Tap a cell, then a number',
+                  style: NookType.footnote(colors.inkGhost),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// What the player sees on finishing.
+///
+/// The medallion, the times and the streak in the designs need a clock and a
+/// history to be honest about; both arrive with statistics (VIB-77). Until
+/// then this says the true thing and nothing more.
+class _Solved extends StatelessWidget {
+  const _Solved({required this.onNewPuzzle});
+
+  final VoidCallback onNewPuzzle;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: colors.sageSoft,
+          border: Border.all(color: colors.sageLine),
+          borderRadius: const BorderRadius.all(NookRadius.card),
+        ),
+        child: Column(
+          children: <Widget>[
+            Icon(Icons.check_rounded, size: 34, color: colors.sage),
+            const SizedBox(height: 8),
+            Text('Solved', style: NookType.title(colors.sageInk)),
+            const SizedBox(height: 16),
+            _PrimaryButton(label: 'New puzzle', onTap: onNewPuzzle),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  const _PrimaryButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    return Material(
+      color: colors.clay,
+      borderRadius: const BorderRadius.all(NookRadius.key),
+      child: InkWell(
+        borderRadius: const BorderRadius.all(NookRadius.key),
+        onTap: onTap,
+        child: Container(
+          height: kMinTapTarget + 6,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 26),
+          child: Text(label, style: NookType.rowTitle(colors.surface)),
+        ),
+      ),
+    );
+  }
+}

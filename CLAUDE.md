@@ -12,16 +12,21 @@ A free puzzle collection for iOS and Android. No ads, no tracking, no account �
 
 ```
 packages/puzzle_engine/   pure Dart, no Flutter — solvers, generators, difficulty rating
-  bin/generate.dart       CLI: batch-produce bundled starter packs
+  bin/generate.dart       CLI: batch-produce bundled starter packs (not built yet)
 lib/                      the app
   design/                 tokens, themes, typography
   board/                  shared board widgets, selection, gestures
-  chrome/                 timer, undo, notes, hints
-  games/                  per-game screens (thin)
-  store/                  persistence (Drift/SQLite)
-  content/                bundled pack loading
-assets/packs/             generated starter packs
+  chrome/                 timer, undo, notes, hints (not built yet)
+  games/                  per-game state and screens (thin)
+  home/                   the game list
+  store/                  persistence (Drift/SQLite) (not built yet)
+  content/                bundled pack loading (not built yet)
+assets/fonts/             Nunito + Fredoka, bundled
+assets/packs/             generated starter packs (not built yet)
 ```
+
+Directories marked "not built yet" are in the plan but have no code; create them
+when the ticket that needs them comes up, not before.
 
 ## Rules that matter
 
@@ -31,7 +36,18 @@ assets/packs/             generated starter packs
 - **Boards are built from widgets, not CustomPainter** — accessibility semantics, hit testing and per-cell animation come free.
 - Generation runs on a background isolate; the UI never blocks.
 - Region colours are always paired with a texture, so colour-blind players can read the board.
-- Hit targets are never below 44 logical pixels.
+- Hit targets are never below 44 logical pixels (`kMinTapTarget`).
+- **No network requests, including fonts.** Nunito and Fredoka are bundled
+  assets, not `google_fonts` downloads. Both are variable fonts, so a weight is
+  set through `fontVariations` as well as `fontWeight` — use `nookText` /
+  `NookType` rather than a bare `TextStyle`, or every weight renders the same.
+- **Screens never write a literal colour.** They read tokens from
+  `Theme.of(context).nook`, so adding a theme means adding a `NookColors`
+  instance and touching no screen.
+- A Riverpod provider that reads a scoped provider (one overridden by a
+  `ProviderScope` further down the tree) must declare it in `dependencies:`.
+  Without that it resolves in the root container and silently gets the wrong
+  value — see `sudokuControllerProvider`.
 
 ## Commands
 
