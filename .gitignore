@@ -4,7 +4,10 @@
 .pub-cache/
 .pub/
 build/
-pubspec.lock
+
+# The app's lock file is committed so CI resolves the same dependency versions
+# the app was tested against; packages/ are libraries, whose locks are not.
+packages/*/pubspec.lock
 *.iml
 .flutter-plugins
 .flutter-plugins-dependencies

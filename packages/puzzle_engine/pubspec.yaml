@@ -1,0 +1,17 @@
+name: puzzle_engine
+description: >-
+  Puzzle rules for Nook: solvers, generators and difficulty rating.
+  Pure Dart with no Flutter dependency, so it can be tested exhaustively
+  without a device and compiled to a command-line tool.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  meta: ^1.15.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0
