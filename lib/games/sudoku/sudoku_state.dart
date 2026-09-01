@@ -1,13 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
+import '../../chrome/move_history.dart';
 import 'sudoku_variant.dart';
 
 /// A Sudoku in progress: the puzzle, what the player has entered so far, and
 /// which cell they are pointing at.
 ///
 /// Immutable — every change produces a new instance. That is what makes undo
-/// (VIB-71) and save/resume (VIB-75) additions rather than rewrites.
+/// and save/resume (VIB-75) additions rather than rewrites.
 @immutable
 class SudokuGameState {
   SudokuGameState({
@@ -15,6 +16,7 @@ class SudokuGameState {
     required this.puzzle,
     required List<int> cells,
     this.selectedIndex,
+    this.history = const MoveHistory.empty(),
   }) : cells = List<int>.unmodifiable(cells);
 
   /// Starts a fresh game from a generated [puzzle], with nothing selected.
@@ -41,6 +43,13 @@ class SudokuGameState {
 
   /// The cell the number pad will write to, or `null` if none is selected.
   final int? selectedIndex;
+
+  /// The moves the player can still take back.
+  ///
+  /// Held in the shared type rather than a Sudoku-shaped one: every game keeps
+  /// its history the same way, and this one is plain enough to be written to
+  /// disk as it stands.
+  final MoveHistory history;
 
   /// The shape of the grid.
   SudokuSpec get spec => puzzle.spec;
@@ -89,6 +98,13 @@ class SudokuGameState {
     return true;
   }
 
+  /// Whether there is a move to take back.
+  ///
+  /// A solved grid is finished: taking a digit back out of it would only be a
+  /// way to unsolve a puzzle by accident, so the control switches off with the
+  /// rest of the board.
+  bool get canUndo => history.canUndo && !isSolved;
+
   /// Whether the cell at [index] shares a row, column or box with [other].
   bool sharesUnit(int index, int other) =>
       spec.rowOf(index) == spec.rowOf(other) ||
@@ -99,12 +115,17 @@ class SudokuGameState {
   ///
   /// [selectedIndex] cannot be cleared through this; nothing needs to, and
   /// allowing it would mean an extra sentinel for no gain.
-  SudokuGameState copyWith({List<int>? cells, int? selectedIndex}) {
+  SudokuGameState copyWith({
+    List<int>? cells,
+    int? selectedIndex,
+    MoveHistory? history,
+  }) {
     return SudokuGameState(
       variant: variant,
       puzzle: puzzle,
       cells: cells ?? this.cells,
       selectedIndex: selectedIndex ?? this.selectedIndex,
+      history: history ?? this.history,
     );
   }
 }

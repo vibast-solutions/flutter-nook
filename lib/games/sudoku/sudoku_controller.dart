@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
+import '../../chrome/move_history.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
@@ -88,28 +89,76 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
 
   /// Writes [digit] into the selected cell.
   ///
-  /// Tapping the digit already in the cell clears it, which is how a player
-  /// undoes a single mistake without reaching for erase (VIB-71).
+  /// Tapping the digit already in the cell clears it, which is the quickest
+  /// way to take back a single mistake without reaching for erase.
   /// Does nothing when there is no selection, the cell is a given, or the
   /// puzzle is already solved.
   void enter(int digit) {
     final SudokuGameState? game = state.value;
-    if (game == null || game.isSolved) {
+    if (game == null || digit < 1 || digit > game.size) {
       return;
     }
     final int? index = game.selectedIndex;
-    if (index == null || game.isGiven(index)) {
+    if (index == null) {
       return;
     }
-    if (digit < 1 || digit > game.size) {
+    _write(game, index, game.cells[index] == digit ? 0 : digit);
+  }
+
+  /// Empties the selected cell.
+  ///
+  /// Does nothing on a given, on a cell that is already empty, or when nothing
+  /// is selected — in each of those there is no move to make, so none is
+  /// recorded and undo stays a list of things the player actually did.
+  void erase() {
+    final SudokuGameState? game = state.value;
+    final int? index = game?.selectedIndex;
+    if (game == null || index == null) {
       return;
     }
-    final int next = game.cells[index] == digit ? 0 : digit;
-    if (next == game.cells[index]) {
+    _write(game, index, 0);
+  }
+
+  /// Takes back the last move, and puts the player back on the cell it
+  /// changed.
+  ///
+  /// Undoing with nothing to undo is a no-op: a player who taps once too often
+  /// should get nothing, not an error.
+  void undo() {
+    final SudokuGameState? game = state.value;
+    if (game == null || !game.canUndo) {
       return;
     }
-    final List<int> cells = List<int>.of(game.cells)..[index] = next;
-    state = AsyncData<SudokuGameState>(game.copyWith(cells: cells));
+    final BoardMove move = game.history.last!;
+    final List<int> cells = List<int>.of(game.cells)
+      ..[move.index] = move.before;
+    state = AsyncData<SudokuGameState>(
+      game.copyWith(
+        cells: cells,
+        selectedIndex: move.index,
+        history: game.history.pop(),
+      ),
+    );
+  }
+
+  /// Puts [value] in the cell at [index] and records the move.
+  ///
+  /// The one place the board is written to, so there is one place a move can
+  /// be missed from the history rather than one per control.
+  void _write(SudokuGameState game, int index, int value) {
+    final int before = game.cells[index];
+    if (game.isSolved || game.isGiven(index) || value == before) {
+      return;
+    }
+    final List<int> cells = List<int>.of(game.cells)..[index] = value;
+    state = AsyncData<SudokuGameState>(
+      game.copyWith(
+        cells: cells,
+        history: game.history.push(
+          BoardMove(index: index, before: before, after: value),
+        ),
+      ),
+    );
   }
 
   /// Throws away the current puzzle and generates another.

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/number_pad.dart';
 import 'package:nook/board/sudoku_board.dart';
+import 'package:nook/chrome/action_row.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
@@ -24,6 +25,24 @@ Future<void> tapCell(WidgetTester tester, int index) async {
 Future<void> tapDigit(WidgetTester tester, int digit) async {
   await tester.tap(find.byKey(NumberPad.keyFor(digit)));
   await tester.pump();
+}
+
+/// Taps the action-row control labelled [label].
+Future<void> tapAction(WidgetTester tester, String label) async {
+  await tester.tap(find.byKey(BoardActionRow.keyFor(label)));
+  await tester.pump();
+}
+
+/// The colour the action-row control labelled [label] is filled with.
+Color actionBackground(WidgetTester tester, String label) {
+  return tester
+      .widget<Material>(find.byKey(BoardActionRow.keyFor(label)))
+      .color!;
+}
+
+/// Every digit on the board, with `null` for an empty cell.
+List<String?> boardDigits(WidgetTester tester) {
+  return <String?>[for (int i = 0; i < 16; i++) digitIn(tester, i)];
 }
 
 /// The digit currently drawn in the cell at [index], or `null` if it is empty.
@@ -203,6 +222,179 @@ void main() {
 
       expect(colourOf(6), colors.ink, reason: 'a given');
       expect(colourOf(0), colors.clay, reason: 'the player');
+    });
+  });
+
+  group('undo and erase', () {
+    /// The board as it starts: the six givens and ten empty cells.
+    List<String?> givenBoard() {
+      final SudokuPuzzle puzzle = fixedMiniPuzzle();
+      return <String?>[
+        for (final int given in puzzle.givens) given == 0 ? null : '$given',
+      ];
+    }
+
+    /// The starting board with [entries] written into it.
+    List<String?> boardWith(Map<int, String> entries) {
+      final List<String?> board = givenBoard();
+      entries.forEach((int index, String digit) => board[index] = digit);
+      return board;
+    }
+
+    testWidgets('three digits are taken back one at a time', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+      await tapCell(tester, 4);
+      await tapDigit(tester, 3);
+      await tapCell(tester, 15);
+      await tapDigit(tester, 1);
+      expect(
+        boardDigits(tester),
+        boardWith(<int, String>{0: '1', 4: '3', 15: '1'}),
+      );
+
+      await tapAction(tester, 'Undo');
+      expect(boardDigits(tester), boardWith(<int, String>{0: '1', 4: '3'}));
+
+      await tapAction(tester, 'Undo');
+      expect(boardDigits(tester), boardWith(<int, String>{0: '1'}));
+
+      await tapAction(tester, 'Undo');
+      expect(
+        boardDigits(tester),
+        givenBoard(),
+        reason: 'back where it started',
+      );
+    });
+
+    testWidgets('undo puts the player back on the cell it changed', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+      await tapCell(tester, 15);
+
+      await tapAction(tester, 'Undo');
+
+      expect(digitIn(tester, 0), isNull);
+      expect(
+        cellBackground(tester, 0),
+        colors.cellSelected,
+        reason: 'the selection follows the move being taken back',
+      );
+    });
+
+    testWidgets('a correction is one move, and undoing it restores the first '
+        'digit', (WidgetTester tester) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 3); // Wrong.
+      await tapDigit(tester, 1); // Corrected.
+
+      await tapAction(tester, 'Undo');
+
+      expect(digitIn(tester, 0), '3');
+    });
+
+    testWidgets('undo reads as unavailable with nothing to take back', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      expect(actionBackground(tester, 'Undo'), colors.disabledSurface);
+
+      // Tapping it anyway is a no-op rather than an error.
+      await tapAction(tester, 'Undo');
+      expect(boardDigits(tester), givenBoard());
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+      expect(actionBackground(tester, 'Undo'), colors.surface);
+
+      await tapAction(tester, 'Undo');
+      expect(actionBackground(tester, 'Undo'), colors.disabledSurface);
+    });
+
+    testWidgets('erase clears the player\'s digit', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+      expect(digitIn(tester, 0), '1');
+
+      await tapAction(tester, 'Erase');
+
+      expect(digitIn(tester, 0), isNull);
+    });
+
+    testWidgets('erase leaves a given alone', (WidgetTester tester) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 6); // A given 1.
+      await tapAction(tester, 'Erase');
+
+      expect(digitIn(tester, 6), '1');
+      expect(
+        actionBackground(tester, 'Undo'),
+        colors.disabledSurface,
+        reason: 'nothing happened, so there is nothing to undo',
+      );
+    });
+
+    testWidgets('erase with nothing selected does nothing', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapAction(tester, 'Erase');
+
+      expect(boardDigits(tester), givenBoard());
+    });
+
+    testWidgets('an erase can itself be undone', (WidgetTester tester) async {
+      await pumpSudokuGame(tester);
+
+      await tapCell(tester, 0);
+      await tapDigit(tester, 1);
+      await tapAction(tester, 'Erase');
+      expect(digitIn(tester, 0), isNull);
+
+      await tapAction(tester, 'Undo');
+
+      expect(digitIn(tester, 0), '1');
+    });
+
+    testWidgets('both controls switch off once the puzzle is solved', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      final SudokuPuzzle puzzle = fixedMiniPuzzle();
+      for (int i = 0; i < puzzle.givens.length; i++) {
+        if (puzzle.givens[i] == 0) {
+          await tapCell(tester, i);
+          await tapDigit(tester, puzzle.solution[i]);
+        }
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('Solved'), findsOneWidget);
+      expect(actionBackground(tester, 'Undo'), colors.disabledSurface);
+      expect(actionBackground(tester, 'Erase'), colors.disabledSurface);
+
+      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'Erase');
+
+      expect(find.text('Solved'), findsOneWidget, reason: 'still solved');
     });
   });
 
