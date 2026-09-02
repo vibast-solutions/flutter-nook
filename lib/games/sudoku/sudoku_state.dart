@@ -17,13 +17,16 @@ class SudokuGameState {
     required this.puzzle,
     required List<int> cells,
     List<int>? notes,
+    Set<int>? hints,
     this.selectedIndex,
     this.history = const MoveHistory.empty(),
     this.notesMode = false,
+    this.wasHinted = false,
   }) : cells = List<int>.unmodifiable(cells),
        notes = List<int>.unmodifiable(
          notes ?? List<int>.filled(cells.length, 0),
-       );
+       ),
+       hints = Set<int>.unmodifiable(hints ?? const <int>{});
 
   /// Starts a fresh game from a generated [puzzle], with nothing selected.
   factory SudokuGameState.fresh({
@@ -54,6 +57,21 @@ class SudokuGameState {
   /// wrapper away.
   final List<int> notes;
 
+  /// The cells a hint filled in, so the board can keep saying which digits
+  /// were given away rather than worked out.
+  ///
+  /// Only the cells still holding their hinted digit: writing over one, or
+  /// taking it back, makes the cell the player's again. Whether the puzzle was
+  /// ever hinted at all is [wasHinted], which no amount of undoing clears.
+  final Set<int> hints;
+
+  /// Whether this puzzle has ever been hinted.
+  ///
+  /// Sticky, unlike [hints]: a revealed cell cannot be un-revealed by taking
+  /// it back, and this is what tells statistics (VIB-77) that the time still
+  /// counts but the personal best does not.
+  final bool wasHinted;
+
   /// The cell the number pad will write to, or `null` if none is selected.
   final int? selectedIndex;
 
@@ -82,6 +100,9 @@ class SudokuGameState {
 
   /// Whether the cell at [index] came with the puzzle and cannot be changed.
   bool isGiven(int index) => puzzle.isGiven(index);
+
+  /// Whether the digit in the cell at [index] came from a hint.
+  bool isHinted(int index) => hints.contains(index);
 
   /// The pencil marks in the cell at [index].
   NoteMarks notesAt(int index) => NoteMarks(notes[index]);
@@ -151,18 +172,22 @@ class SudokuGameState {
   SudokuGameState copyWith({
     List<int>? cells,
     List<int>? notes,
+    Set<int>? hints,
     int? selectedIndex,
     MoveHistory? history,
     bool? notesMode,
+    bool? wasHinted,
   }) {
     return SudokuGameState(
       variant: variant,
       puzzle: puzzle,
       cells: cells ?? this.cells,
       notes: notes ?? this.notes,
+      hints: hints ?? this.hints,
       selectedIndex: selectedIndex ?? this.selectedIndex,
       history: history ?? this.history,
       notesMode: notesMode ?? this.notesMode,
+      wasHinted: wasHinted ?? this.wasHinted,
     );
   }
 }

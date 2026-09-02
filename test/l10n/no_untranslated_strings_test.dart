@@ -40,6 +40,7 @@ const Set<String> allowedLiterals = <String>{
   'undo',
   'erase',
   'notes',
+  'hint',
   // Field names a move is written out under when a game is saved.
   'index',
   'before',

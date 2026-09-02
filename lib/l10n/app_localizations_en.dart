@@ -227,6 +227,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cellHint(int row, int column, int value) {
+    return 'Row $row, column $column, $value, from a hint';
+  }
+
+  @override
   String get listSeparator => ', ';
 
   @override
@@ -237,6 +242,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionNotes => 'Notes';
+
+  @override
+  String get actionHint => 'Hint';
 
   @override
   String actionToggleOn(String label) {

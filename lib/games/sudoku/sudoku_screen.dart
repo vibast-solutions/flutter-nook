@@ -337,7 +337,13 @@ class _Playing extends ConsumerWidget {
                     onTap: game.isSolved ? null : controller.toggleNotes,
                     unavailableReason: l10n.reasonPuzzleDone,
                   ),
-                  // The hint (VIB-76) joins this row.
+                  BoardAction(
+                    id: 'hint',
+                    label: l10n.actionHint,
+                    icon: Icons.lightbulb_outline_rounded,
+                    onTap: game.isSolved ? null : controller.hint,
+                    unavailableReason: l10n.reasonPuzzleDone,
+                  ),
                 ],
               ),
               const SizedBox(height: 14),

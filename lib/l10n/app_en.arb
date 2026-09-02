@@ -264,6 +264,15 @@
       "value": { "type": "int", "example": "1" }
     }
   },
+  "cellHint": "Row {row}, column {column}, {value}, from a hint",
+  "@cellHint": {
+    "description": "Screen-reader label for a cell that a hint filled in. Distinguishes it from the player's own answer, which is what its colour does on screen.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
   "listSeparator": ", ",
   "@listSeparator": {
     "description": "What goes between items when a screen reader lists several digits, as in the pencil marks of one cell. Includes its trailing space."
@@ -275,6 +284,10 @@
   "@actionErase": { "description": "Control that clears the selected cell." },
   "actionNotes": "Notes",
   "@actionNotes": { "description": "Control that switches between writing answers and writing pencil marks." },
+  "actionHint": "Hint",
+  "@actionHint": {
+    "description": "Control that fills in one cell the player could have worked out. Hints are unlimited and free, so the word carries no count and no cost."
+  },
   "actionToggleOn": "{label} on",
   "@actionToggleOn": {
     "description": "The caption under a control that is a switch and is currently on. It spells the state out in words because a player who cannot see the fill would otherwise write pencil marks they meant as answers.",
