@@ -6,6 +6,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../chrome/play_clock.dart';
 import '../../store/nook_database.dart';
+import 'solve_outcome.dart';
 import 'sudoku_controller.dart';
 import 'sudoku_save.dart';
 import 'sudoku_state.dart';
@@ -18,6 +19,11 @@ import 'sudoku_state.dart';
 /// thing it does *not* save is a finished puzzle — solving throws the save
 /// away, because a solved grid is a result rather than something to come back
 /// to.
+///
+/// Finishing is where that result is written down instead: the puzzle is
+/// counted, and its time is offered to the best time for this game and tier.
+/// That happens here rather than in the controller because it happens once, at
+/// a moment in time, and the controller has no idea what time it is.
 ///
 /// It lives beside the screen rather than inside the controller because the
 /// controller is a pure transformation of [SudokuGameState] and is tested
@@ -51,6 +57,12 @@ class _SudokuSessionState extends ConsumerState<SudokuSession>
   Future<void> _writes = Future<void>.value();
 
   SudokuGameState? _latest;
+
+  /// Whether the puzzle on screen has already been counted as solved.
+  ///
+  /// A finished board publishes itself more than once — a tap on a spent
+  /// control, a rebuild — and a puzzle is only ever finished once.
+  bool _counted = false;
 
   @override
   void initState() {
@@ -104,10 +116,33 @@ class _SudokuSessionState extends ConsumerState<SudokuSession>
         // The puzzle is over: the clock stops on the time the player took,
         // rather than counting on while they look at it.
         _clock.pause();
+        _count(game);
+      } else if (_counted) {
+        // A new puzzle has arrived in place of a finished one. Its result is
+        // not this puzzle's, and neither is the time the clock stopped on:
+        // both go back to nothing.
+        _counted = false;
+        _clock.restart();
+        ref.read(solveOutcomeProvider.notifier).clear();
       }
       _record();
     });
     return widget.child;
+  }
+
+  /// Counts [game] as solved, once.
+  ///
+  /// Only a finished puzzle is ever recorded: a player who walks away from one
+  /// leaves nothing behind but the save, because Nook keeps no record of
+  /// anything anybody failed to do.
+  void _count(SudokuGameState game) {
+    if (_counted) {
+      return;
+    }
+    _counted = true;
+    ref
+        .read(solveOutcomeProvider.notifier)
+        .record(time: _clock.elapsed, hinted: game.wasHinted);
   }
 
   /// Writes the game as it stands, or clears the save once it is solved.
