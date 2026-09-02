@@ -43,7 +43,14 @@ when the ticket that needs them comes up, not before.
   an undo can bring the marks back, but an answer is what the cell draws.
 - Generation runs on a background isolate; the UI never blocks.
 - Region colours are always paired with a texture, so colour-blind players can read the board.
-- Hit targets are never below 44 logical pixels (`kMinTapTarget`).
+- **Hit targets are never below 44 logical pixels** (`kMinTapTarget`), measured
+  at `kSmallestSupportedWidth`. Board cells are the one exception, and only
+  because nine of them across a phone cannot each be 44 wide — they take as
+  much of the width as the page can spare instead.
+- **A board sizes its own type and ignores the system text scale.** Every glyph
+  on it is a fraction of a cell and a cell is a fraction of the screen, so
+  scaling it again only pushes digits out of the squares that hold them.
+  Everything outside a board scales normally.
 - **No network requests, including fonts.** Nunito and Fredoka are bundled
   assets, not `google_fonts` downloads. Both are variable fonts, so a weight is
   set through `fontVariations` as well as `fontWeight` — use `nookText` /
