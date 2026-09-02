@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/sudoku_board.dart';
+import 'package:nook/chrome/continue_card.dart';
+import 'package:nook/chrome/discard_dialog.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/difficulty_screen.dart';
-import 'package:nook/games/sudoku/sudoku_controller.dart';
 import 'package:nook/games/sudoku/sudoku_naming.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/l10n/app_localizations.dart';
+import 'package:nook/store/nook_database.dart';
+import 'package:nook/store/saved_game.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
@@ -18,17 +20,17 @@ import '../support/sudoku_fixture.dart';
 Future<void> pumpDifficulty(
   WidgetTester tester, {
   SudokuVariant variant = SudokuVariant.classic,
+  NookDatabase? database,
+  TestClock? clock,
   double width = 400,
 }) async {
   await setPhoneSurface(tester, width: width);
   final SudokuPuzzle fixed = fixedPuzzle(variant);
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        sudokuPuzzleSourceProvider.overrideWithValue(
-          (SudokuSpec spec, SudokuDifficulty tier, int seed) async => fixed,
-        ),
-      ],
+    nookScope(
+      puzzle: fixed,
+      database: database,
+      clock: clock,
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -235,17 +237,12 @@ void main() {
       final List<SudokuDifficulty> asked = <SudokuDifficulty>[];
       await setPhoneSurface(tester);
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sudokuPuzzleSourceProvider.overrideWithValue((
-              SudokuSpec spec,
-              SudokuDifficulty tier,
-              int seed,
-            ) async {
-              asked.add(tier);
-              return fixedPuzzle(SudokuVariant.classic);
-            }),
-          ],
+        nookScope(
+          puzzle: fixedPuzzle(SudokuVariant.classic),
+          source: (SudokuSpec spec, SudokuDifficulty tier, int seed) async {
+            asked.add(tier);
+            return fixedPuzzle(SudokuVariant.classic);
+          },
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -262,6 +259,128 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(asked, <SudokuDifficulty>[SudokuDifficulty.fiendish]);
+    });
+  });
+
+  group('a game with a puzzle already in progress', () {
+    /// The difficulty screen for Sudoku Mini, with [save] already on disk.
+    Future<NookDatabase> pumpWithSave(
+      WidgetTester tester, {
+      SavedGame? save,
+    }) async {
+      final NookDatabase database = memoryDatabase();
+      await SavedGameStore(database).save(save ?? partPlayedMiniSave());
+      await pumpDifficulty(
+        tester,
+        variant: SudokuVariant.mini,
+        database: database,
+      );
+      return database;
+    }
+
+    testWidgets('offers it before offering a new one', (
+      WidgetTester tester,
+    ) async {
+      await pumpWithSave(tester);
+
+      expect(find.text(en.difficultyInProgress), findsOneWidget);
+      expect(find.byKey(ContinueCard.cardKey), findsOneWidget);
+      expect(find.text(en.continueProgress('01:30', 10)), findsOneWidget);
+    });
+
+    testWidgets('carries on with it exactly where it was', (
+      WidgetTester tester,
+    ) async {
+      await pumpWithSave(tester);
+
+      await tester.tap(find.byKey(ContinueCard.cardKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SudokuBoard), findsOneWidget);
+      expect(digitIn(tester, 0), '1');
+      expect(find.text('01:30'), findsOneWidget);
+    });
+
+    testWidgets('asks before a new puzzle throws it away', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = await pumpWithSave(tester);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(en.discardTitle), findsOneWidget);
+      expect(find.byType(SudokuBoard), findsNothing);
+      expect(
+        await storedSave(tester, database, SudokuVariant.miniId),
+        isNotNull,
+        reason: 'asking is not the same as doing',
+      );
+    });
+
+    testWidgets('keeps it when the player says to keep playing', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = await pumpWithSave(tester);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(DiscardDialog.keepKey));
+      await tester.pumpAndSettle();
+
+      expect(find.text(en.discardTitle), findsNothing);
+      expect(find.byType(SudokuBoard), findsNothing);
+      final SavedGame? kept = await storedSave(
+        tester,
+        database,
+        SudokuVariant.miniId,
+      );
+      expect(kept, isNotNull);
+      expect(kept!.cells[0], 1, reason: 'the board was changed by cancelling');
+      expect(kept.elapsed, const Duration(minutes: 1, seconds: 30));
+      expect(find.byKey(ContinueCard.cardKey), findsOneWidget);
+    });
+
+    testWidgets('throws it away only when the player says so', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = await pumpWithSave(tester);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(DiscardDialog.confirmKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SudokuBoard), findsOneWidget);
+      final SavedGame? replacement = await storedSave(
+        tester,
+        database,
+        SudokuVariant.miniId,
+      );
+      // The new puzzle saves itself as soon as it exists, so what must be gone
+      // is the old board rather than the row.
+      expect(replacement?.cells[0] ?? 0, isNot(1));
+      expect(replacement?.elapsed ?? Duration.zero, Duration.zero);
+    });
+
+    testWidgets('asks nothing when there is nothing to lose', (
+      WidgetTester tester,
+    ) async {
+      await pumpDifficulty(tester, variant: SudokuVariant.mini);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(en.discardTitle), findsNothing);
+      expect(find.byType(SudokuBoard), findsOneWidget);
     });
   });
 }

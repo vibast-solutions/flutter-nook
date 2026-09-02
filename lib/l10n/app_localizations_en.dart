@@ -16,6 +16,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAllGames => 'ALL GAMES';
 
   @override
+  String get homeContinue => 'CONTINUE';
+
+  @override
+  String continueDetails(String difficulty, String time, int percent) {
+    return '$difficulty · $time · $percent% filled in';
+  }
+
+  @override
+  String continueProgress(String time, int percent) {
+    return '$time · $percent% filled in';
+  }
+
+  @override
+  String continueLabel(
+    String game,
+    String difficulty,
+    String time,
+    int percent,
+  ) {
+    return 'Continue $game, $difficulty, $time played, $percent% filled in';
+  }
+
+  @override
   String get homePromise => 'No ads. No tracking. No account. Ever.';
 
   @override
@@ -101,6 +124,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get difficultyFiendishBlurb => 'Chains across the grid';
 
   @override
+  String get difficultyInProgress => 'IN PROGRESS';
+
+  @override
   String get difficultyStartNew => 'START A NEW ONE';
 
   @override
@@ -155,6 +181,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameNewPuzzle => 'New puzzle';
+
+  @override
+  String gameElapsedLabel(String time) {
+    return 'Time so far $time';
+  }
+
+  @override
+  String get discardTitle => 'Start a new puzzle?';
+
+  @override
+  String discardBody(String game) {
+    return 'Your unfinished $game puzzle will be thrown away. There is no way to get it back.';
+  }
+
+  @override
+  String get discardConfirm => 'Discard and start';
+
+  @override
+  String get discardKeep => 'Keep playing';
 
   @override
   String boardLabel(String name, int size) {

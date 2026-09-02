@@ -1,41 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/sudoku_board.dart';
-import 'package:nook/design/theme.dart';
-import 'package:nook/design/tokens.dart';
-import 'package:nook/games/sudoku/sudoku_controller.dart';
+import 'package:nook/chrome/continue_card.dart';
 import 'package:nook/games/sudoku/sudoku_naming.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
-import 'package:nook/l10n/app_localizations.dart';
 import 'package:nook/home/home_screen.dart';
+import 'package:nook/store/nook_database.dart';
+import 'package:nook/chrome/move_history.dart';
+import 'package:nook/store/saved_game.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
-
-Future<void> pumpHome(
-  WidgetTester tester, {
-  SudokuVariant variant = SudokuVariant.mini,
-}) async {
-  await setPhoneSurface(tester);
-  final SudokuPuzzle fixed = fixedPuzzle(variant);
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        sudokuPuzzleSourceProvider.overrideWithValue(
-          (SudokuSpec spec, SudokuDifficulty tier, int seed) async => fixed,
-        ),
-      ],
-      child: MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: buildNookTheme(NookColors.softClay),
-        home: const HomeScreen(),
-      ),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
 
 void main() {
   group('the home screen', () {
@@ -50,6 +24,66 @@ void main() {
       expect(find.text('Sudoku Mini'), findsOneWidget);
       expect(find.text('Stars'), findsOneWidget);
       expect(find.text('Duo'), findsOneWidget);
+    });
+
+    testWidgets('offers nothing to continue on a fresh install', (
+      WidgetTester tester,
+    ) async {
+      await pumpHome(tester);
+
+      expect(find.byKey(ContinueCard.cardKey), findsNothing);
+      expect(find.text(en.homeContinue), findsNothing);
+    });
+
+    testWidgets('offers the puzzle that was left unfinished', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await SavedGameStore(database).save(partPlayedMiniSave());
+
+      await pumpHome(tester, database: database);
+
+      expect(find.text(en.homeContinue), findsOneWidget);
+      expect(find.byKey(ContinueCard.cardKey), findsOneWidget);
+      // One of the ten blanks filled in, after a minute and a half.
+      expect(
+        find.text(
+          en.continueDetails(SudokuDifficulty.gentle.label(en), '01:30', 10),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('offers the most recently played of several', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      final SavedGameStore store = SavedGameStore(database);
+      await store.save(partPlayedMiniSave(at: DateTime.utc(2026, 9, 1)));
+      await store.save(
+        SavedGame(
+          gameId: SudokuVariant.classicId,
+          difficulty: SudokuDifficulty.hard.name,
+          seed: 7,
+          givens: List<int>.filled(81, 0),
+          solution: List<int>.filled(81, 1),
+          cells: List<int>.filled(81, 0),
+          notes: List<int>.filled(81, 0),
+          history: const MoveHistory.empty(),
+          elapsed: const Duration(minutes: 12),
+          updatedAt: DateTime.utc(2026, 9, 2),
+        ),
+      );
+
+      await pumpHome(tester, database: database);
+
+      expect(
+        find.descendant(
+          of: find.byKey(ContinueCard.cardKey),
+          matching: find.text(SudokuVariant.classic.title(en)),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('says plainly what Nook does not do', (
