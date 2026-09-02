@@ -196,7 +196,7 @@ void main() {
         }
       }
       await tester.pumpAndSettle();
-      await tester.tap(find.text(en.gameNewPuzzle));
+      await tester.tap(find.text(en.completionAnother(en.difficultyGentle)));
       await tester.pumpAndSettle();
 
       expect(

@@ -17,6 +17,7 @@ import 'package:nook/games/sudoku/sudoku_state.dart';
 import 'package:nook/home/home_screen.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/l10n/app_localizations.dart';
+import 'package:nook/store/game_stats.dart';
 import 'package:nook/store/nook_database.dart';
 import 'package:nook/store/saved_game.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
@@ -138,6 +139,32 @@ SavedGame partPlayedMiniSave({
     elapsed: elapsed,
     at: at ?? DateTime.utc(2026, 9, 2, 9),
   );
+}
+
+/// Fills in every blank on the board correctly, finishing the puzzle.
+///
+/// Tapped cell by cell the way a player would, so a test that finishes a
+/// puzzle exercises the same path a real one takes rather than writing a
+/// solved state into the controller.
+Future<void> solvePuzzle(WidgetTester tester, SudokuPuzzle puzzle) async {
+  for (int index = 0; index < puzzle.givens.length; index++) {
+    if (puzzle.givens[index] != 0 || digitIn(tester, index) != null) {
+      continue;
+    }
+    await tapCell(tester, index);
+    await tapDigit(tester, puzzle.solution[index]);
+  }
+  await tester.pumpAndSettle();
+}
+
+/// Everything [database] has counted, read outside the test's fake clock.
+Future<List<GameStats>> storedStats(
+  WidgetTester tester,
+  NookDatabase database,
+) async {
+  return (await tester.runAsync<List<GameStats>>(
+    () => GameStatsStore(database).watchAll().first,
+  ))!;
 }
 
 /// The save [database] holds for [gameId], or `null` if it holds none.

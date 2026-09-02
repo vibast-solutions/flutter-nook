@@ -136,6 +136,21 @@
   "@difficultyStartNew": { "description": "Heading above the list of difficulties. Upper case in English by design." },
   "difficultyNeedsNotes": "needs notes",
   "@difficultyNeedsNotes": { "description": "Shown beside the hardest tier instead of a difficulty meter, warning that pencil marks are effectively required." },
+  "difficultyTierBest": "best {time} · {count, plural, =1{1 solved} other{{count} solved}}",
+  "@difficultyTierBest": {
+    "description": "The line under a difficulty's name once the player has finished puzzles there: their fastest time at this tier, and how many they have solved. The time is a digital clock reading, minutes and seconds separated by a colon.",
+    "placeholders": {
+      "time": { "type": "String", "example": "02:54" },
+      "count": { "type": "int", "example": "22" }
+    }
+  },
+  "difficultyTierSolved": "{count, plural, =1{1 solved} other{{count} solved}}",
+  "@difficultyTierSolved": {
+    "description": "The same line for a tier the player has only ever finished with a hint, so it has a count but no best time. A hinted puzzle counts as solved and never sets a best.",
+    "placeholders": {
+      "count": { "type": "int", "example": "3" }
+    }
+  },
   "difficultyTierLabel": "{name}. {description}",
   "@difficultyTierLabel": {
     "description": "Screen-reader label for a difficulty row.",
@@ -190,8 +205,6 @@
   "@gameInstruction": { "description": "The one line of instruction under the number pad, shown until the puzzle is solved." },
   "gameSolved": "Solved",
   "@gameSolved": { "description": "Announced and shown when the player finishes a puzzle." },
-  "gameNewPuzzle": "New puzzle",
-  "@gameNewPuzzle": { "description": "Button that starts another puzzle after finishing one." },
 
   "gameElapsedLabel": "Time so far {time}",
   "@gameElapsedLabel": {
@@ -199,6 +212,75 @@
     "placeholders": {
       "time": { "type": "String", "example": "07:42" }
     }
+  },
+
+  "completionSubtitle": "{game} · {tier}",
+  "@completionSubtitle": {
+    "description": "The line under 'Solved' on the finished-puzzle screen: which game was finished, and at which difficulty.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" },
+      "tier": { "type": "String", "example": "Medium" }
+    }
+  },
+  "completionPersonalBest": "A new personal best",
+  "@completionPersonalBest": {
+    "description": "Shown on the finished-puzzle screen when the player has just beaten their own fastest time at this game and difficulty. The only thing in Nook a player is ever measured against is themselves, so there is nobody else in this sentence."
+  },
+  "completionTime": "TIME",
+  "@completionTime": {
+    "description": "Heading on the card showing how long the puzzle just finished took. Upper case in English by design; use whatever the language's convention for a small caption is."
+  },
+  "completionPrevious": "PREVIOUS",
+  "@completionPrevious": {
+    "description": "Heading on the card showing the player's best time before this puzzle. Short because it sits in a narrow card between two others."
+  },
+  "completionSolvedCount": "SOLVED",
+  "@completionSolvedCount": {
+    "description": "Heading on the card showing how many puzzles the player has finished at this game and difficulty."
+  },
+  "completionNoTime": "—",
+  "@completionNoTime": {
+    "description": "Stands in for a best time that does not exist yet, on the finished-puzzle screen. An em dash in English; use whatever a language writes for 'no figure'. Never a zero, which would read as a time."
+  },
+  "completionTimeLabel": "Your time, {time}",
+  "@completionTimeLabel": {
+    "description": "Screen-reader label for the card showing how long this puzzle took.",
+    "placeholders": {
+      "time": { "type": "String", "example": "08:12" }
+    }
+  },
+  "completionPreviousLabel": "Previous best, {time}",
+  "@completionPreviousLabel": {
+    "description": "Screen-reader label for the card showing the time the player had to beat.",
+    "placeholders": {
+      "time": { "type": "String", "example": "08:41" }
+    }
+  },
+  "completionNoPreviousLabel": "No previous best time",
+  "@completionNoPreviousLabel": {
+    "description": "Screen-reader label for the previous-best card when there is no best time yet — either the first solve here, or every one of them was helped by a hint."
+  },
+  "completionSolvedLabel": "{count, plural, =1{1 puzzle solved at this difficulty} other{{count} puzzles solved at this difficulty}}",
+  "@completionSolvedLabel": {
+    "description": "Screen-reader label for the card counting finished puzzles.",
+    "placeholders": {
+      "count": { "type": "int", "example": "6" }
+    }
+  },
+  "completionAnother": "Another {tier} puzzle",
+  "@completionAnother": {
+    "description": "The main button on the finished-puzzle screen, which generates a new puzzle at the same difficulty. Names the tier so the player knows what they are getting.",
+    "placeholders": {
+      "tier": { "type": "String", "example": "Medium" }
+    }
+  },
+  "completionBackHome": "Back to Nook",
+  "@completionBackHome": {
+    "description": "The second button on the finished-puzzle screen, which returns to the game list. 'Nook' is the app's name: leave it untranslated."
+  },
+  "completionClose": "Close",
+  "@completionClose": {
+    "description": "Screen-reader label for the button that leaves the finished-puzzle screen and goes back to the list of difficulties."
   },
 
   "discardTitle": "Start a new puzzle?",

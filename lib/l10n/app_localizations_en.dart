@@ -133,6 +133,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get difficultyNeedsNotes => 'needs notes';
 
   @override
+  String difficultyTierBest(String time, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count solved',
+      one: '1 solved',
+    );
+    return 'best $time · $_temp0';
+  }
+
+  @override
+  String difficultyTierSolved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count solved',
+      one: '1 solved',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String difficultyTierLabel(String name, String description) {
     return '$name. $description';
   }
@@ -180,12 +202,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameSolved => 'Solved';
 
   @override
-  String get gameNewPuzzle => 'New puzzle';
-
-  @override
   String gameElapsedLabel(String time) {
     return 'Time so far $time';
   }
+
+  @override
+  String completionSubtitle(String game, String tier) {
+    return '$game · $tier';
+  }
+
+  @override
+  String get completionPersonalBest => 'A new personal best';
+
+  @override
+  String get completionTime => 'TIME';
+
+  @override
+  String get completionPrevious => 'PREVIOUS';
+
+  @override
+  String get completionSolvedCount => 'SOLVED';
+
+  @override
+  String get completionNoTime => '—';
+
+  @override
+  String completionTimeLabel(String time) {
+    return 'Your time, $time';
+  }
+
+  @override
+  String completionPreviousLabel(String time) {
+    return 'Previous best, $time';
+  }
+
+  @override
+  String get completionNoPreviousLabel => 'No previous best time';
+
+  @override
+  String completionSolvedLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count puzzles solved at this difficulty',
+      one: '1 puzzle solved at this difficulty',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String completionAnother(String tier) {
+    return 'Another $tier puzzle';
+  }
+
+  @override
+  String get completionBackHome => 'Back to Nook';
+
+  @override
+  String get completionClose => 'Close';
 
   @override
   String get discardTitle => 'Start a new puzzle?';

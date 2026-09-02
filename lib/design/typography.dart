@@ -60,6 +60,28 @@ abstract final class NookType {
     letterSpacing: -0.2,
   );
 
+  /// The one word at the top of a finished puzzle, in the display face.
+  ///
+  /// The largest type in Nook, and the only place that gets to be loud:
+  /// finishing is the one moment the app has anything to celebrate, and it is
+  /// spent on the word "Solved" rather than on anything being asked of the
+  /// player.
+  static TextStyle celebration(Color color) => nookText(
+    size: 34,
+    weight: 600,
+    family: NookFonts.display,
+    color: color,
+    letterSpacing: -0.3,
+  );
+
+  /// A figure on one of the finished-puzzle screen's cards.
+  static TextStyle statValue(Color color) =>
+      nookText(size: 23, weight: 800, color: color);
+
+  /// The word on a full-width button.
+  static TextStyle buttonLabel(Color color) =>
+      nookText(size: 16.5, weight: 800, color: color);
+
   /// A screen or card title.
   static TextStyle title(Color color) =>
       nookText(size: 17, weight: 800, color: color);

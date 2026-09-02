@@ -303,6 +303,18 @@ abstract class AppLocalizations {
   /// **'needs notes'**
   String get difficultyNeedsNotes;
 
+  /// The line under a difficulty's name once the player has finished puzzles there: their fastest time at this tier, and how many they have solved. The time is a digital clock reading, minutes and seconds separated by a colon.
+  ///
+  /// In en, this message translates to:
+  /// **'best {time} · {count, plural, =1{1 solved} other{{count} solved}}'**
+  String difficultyTierBest(String time, int count);
+
+  /// The same line for a tier the player has only ever finished with a hint, so it has a count but no best time. A hinted puzzle counts as solved and never sets a best.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 solved} other{{count} solved}}'**
+  String difficultyTierSolved(int count);
+
   /// Screen-reader label for a difficulty row.
   ///
   /// In en, this message translates to:
@@ -375,17 +387,89 @@ abstract class AppLocalizations {
   /// **'Solved'**
   String get gameSolved;
 
-  /// Button that starts another puzzle after finishing one.
-  ///
-  /// In en, this message translates to:
-  /// **'New puzzle'**
-  String get gameNewPuzzle;
-
   /// Screen-reader label for the clock in the game screen header. The placeholder is a digital clock reading, minutes and seconds separated by a colon, with an hours part in front of it once a puzzle passes an hour.
   ///
   /// In en, this message translates to:
   /// **'Time so far {time}'**
   String gameElapsedLabel(String time);
+
+  /// The line under 'Solved' on the finished-puzzle screen: which game was finished, and at which difficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'{game} · {tier}'**
+  String completionSubtitle(String game, String tier);
+
+  /// Shown on the finished-puzzle screen when the player has just beaten their own fastest time at this game and difficulty. The only thing in Nook a player is ever measured against is themselves, so there is nobody else in this sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'A new personal best'**
+  String get completionPersonalBest;
+
+  /// Heading on the card showing how long the puzzle just finished took. Upper case in English by design; use whatever the language's convention for a small caption is.
+  ///
+  /// In en, this message translates to:
+  /// **'TIME'**
+  String get completionTime;
+
+  /// Heading on the card showing the player's best time before this puzzle. Short because it sits in a narrow card between two others.
+  ///
+  /// In en, this message translates to:
+  /// **'PREVIOUS'**
+  String get completionPrevious;
+
+  /// Heading on the card showing how many puzzles the player has finished at this game and difficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'SOLVED'**
+  String get completionSolvedCount;
+
+  /// Stands in for a best time that does not exist yet, on the finished-puzzle screen. An em dash in English; use whatever a language writes for 'no figure'. Never a zero, which would read as a time.
+  ///
+  /// In en, this message translates to:
+  /// **'—'**
+  String get completionNoTime;
+
+  /// Screen-reader label for the card showing how long this puzzle took.
+  ///
+  /// In en, this message translates to:
+  /// **'Your time, {time}'**
+  String completionTimeLabel(String time);
+
+  /// Screen-reader label for the card showing the time the player had to beat.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous best, {time}'**
+  String completionPreviousLabel(String time);
+
+  /// Screen-reader label for the previous-best card when there is no best time yet — either the first solve here, or every one of them was helped by a hint.
+  ///
+  /// In en, this message translates to:
+  /// **'No previous best time'**
+  String get completionNoPreviousLabel;
+
+  /// Screen-reader label for the card counting finished puzzles.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 puzzle solved at this difficulty} other{{count} puzzles solved at this difficulty}}'**
+  String completionSolvedLabel(int count);
+
+  /// The main button on the finished-puzzle screen, which generates a new puzzle at the same difficulty. Names the tier so the player knows what they are getting.
+  ///
+  /// In en, this message translates to:
+  /// **'Another {tier} puzzle'**
+  String completionAnother(String tier);
+
+  /// The second button on the finished-puzzle screen, which returns to the game list. 'Nook' is the app's name: leave it untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Nook'**
+  String get completionBackHome;
+
+  /// Screen-reader label for the button that leaves the finished-puzzle screen and goes back to the list of difficulties.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get completionClose;
 
   /// Title of the question asked when the player starts a new puzzle in a game that already has an unfinished one.
   ///
