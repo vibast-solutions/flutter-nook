@@ -209,14 +209,23 @@ class _Playing extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
+        // The designs leave 28 logical pixels either side of the board on a
+        // 390-wide phone. On a narrower one that margin is worth more to the
+        // grid than to the page — a 9x9's cells are the tightest thing on the
+        // screen — so it gives way in proportion rather than holding its
+        // ground.
+        final double margin = (constraints.maxWidth * 28 / 390).clamp(
+          18.0,
+          28.0,
+        );
         // The board is square and never wider than the screen allows, with a
         // ceiling so a tablet does not turn it into a wall.
-        final double edge = (constraints.maxWidth - 56)
+        final double edge = (constraints.maxWidth - margin * 2)
             .clamp(120.0, 420.0)
             .toDouble();
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 6, 28, 24),
+          padding: EdgeInsets.fromLTRB(margin, 6, margin, 24),
           child: Column(
             children: <Widget>[
               SudokuBoard(game: game, edge: edge, onSelect: controller.select),

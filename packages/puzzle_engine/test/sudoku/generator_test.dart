@@ -40,26 +40,6 @@ void main() {
       }
     });
 
-    test('the same seed produces an identical puzzle', () {
-      for (final int seed in <int>[1, 7, 99, 12345, -3]) {
-        final SudokuPuzzle first = generator.generate(seed);
-        final SudokuPuzzle second = generator.generate(seed);
-        expect(second.givens, first.givens);
-        expect(second.solution, first.solution);
-        expect(second.seed, seed);
-      }
-    });
-
-    test('a fresh generator reproduces an earlier puzzle', () {
-      // Determinism must survive a new object, not just a repeated call —
-      // this is what lets a save store a seed instead of a grid.
-      final SudokuPuzzle first = SudokuGenerator(SudokuSpec.mini)
-          .generate(2024);
-      final SudokuPuzzle second = SudokuGenerator(SudokuSpec.mini)
-          .generate(2024);
-      expect(second.givens, first.givens);
-    });
-
     test('different seeds generally produce different puzzles', () {
       // 4x4 has few distinct grids, so duplicates are expected and accepted;
       // what would be wrong is the seed making no difference at all.
@@ -68,14 +48,6 @@ void main() {
         distinct.add(generator.generate(seed).givens.join(','));
       }
       expect(distinct.length, greaterThan(10));
-    });
-
-    test('leaves some cells for the player and some as givens', () {
-      for (int seed = 1; seed <= 60; seed++) {
-        final SudokuPuzzle puzzle = generator.generate(seed);
-        expect(puzzle.givenCount, greaterThan(0));
-        expect(puzzle.givenCount, lessThan(puzzle.spec.cellCount));
-      }
     });
 
     test('removal is minimal — putting any given back is not needed, and '
@@ -97,39 +69,157 @@ void main() {
     });
   });
 
-  group('SudokuGenerator (non-square boxes)', () {
-    // Nothing in the app uses 6x6 yet, but the engine is written for any box
-    // shape and the uniqueness guarantee has to hold for all of them.
+  group('SudokuGenerator (6x6, non-square boxes)', () {
+    // 3x2 boxes are the shape that catches anything written for square ones,
+    // so the guarantees are checked here in full rather than sampled.
     final SudokuGenerator generator = SudokuGenerator(SudokuSpec.light);
     final SudokuSolver solver = SudokuSolver(SudokuSpec.light);
 
-    test('generates unique 6x6 puzzles with 3x2 boxes', () {
-      for (int seed = 1; seed <= 25; seed++) {
+    test('every generated puzzle has exactly one solution', () {
+      for (int seed = 1; seed <= 150; seed++) {
         final SudokuPuzzle puzzle = generator.generate(seed);
         expect(puzzle.spec.size, 6);
         expect(puzzle.givens, hasLength(36));
         expect(
           solver.countSolutions(puzzle.givens, limit: 2),
           1,
-          reason: 'seed $seed',
+          reason: 'seed $seed produced a puzzle that is not unique',
         );
-        expect(solver.isSolved(puzzle.solution), isTrue);
       }
     });
 
-    test('is deterministic at 6x6 too', () {
-      expect(generator.generate(5).givens, generator.generate(5).givens);
+    test('the stated solution really solves the given grid', () {
+      for (int seed = 1; seed <= 150; seed++) {
+        final SudokuPuzzle puzzle = generator.generate(seed);
+        expect(
+          solver.isSolved(puzzle.solution),
+          isTrue,
+          reason: 'seed $seed has an invalid solution',
+        );
+        for (int i = 0; i < puzzle.givens.length; i++) {
+          if (puzzle.givens[i] != 0) {
+            expect(
+              puzzle.givens[i],
+              puzzle.solution[i],
+              reason: 'seed $seed contradicts itself at cell $i',
+            );
+          }
+        }
+      }
+    });
+
+    test('boxes are three wide and two tall, not two by three', () {
+      // The one asymmetry a square-box assumption would silently get wrong:
+      // read the shape back off a generated solution.
+      final SudokuPuzzle puzzle = generator.generate(11);
+      const SudokuSpec spec = SudokuSpec.light;
+      for (int box = 0; box < spec.size; box++) {
+        final Set<int> digits = <int>{};
+        for (int i = 0; i < spec.cellCount; i++) {
+          if (spec.boxOf(i) == box) {
+            digits.add(puzzle.solution[i]);
+          }
+        }
+        expect(digits, hasLength(6), reason: 'box $box repeats a digit');
+      }
     });
   });
 
   group('SudokuGenerator (9x9)', () {
-    test('generates a unique 9x9 puzzle', () {
-      final SudokuGenerator generator = SudokuGenerator(SudokuSpec.classic);
-      final SudokuSolver solver = SudokuSolver(SudokuSpec.classic);
-      final SudokuPuzzle puzzle = generator.generate(1);
-      expect(puzzle.givens, hasLength(81));
-      expect(solver.countSolutions(puzzle.givens, limit: 2), 1);
+    final SudokuGenerator generator = SudokuGenerator(SudokuSpec.classic);
+    final SudokuSolver solver = SudokuSolver(SudokuSpec.classic);
+
+    test('every generated puzzle has exactly one solution', () {
+      // The size that actually costs something to check, and the size the
+      // promise matters most at — a 9x9 is where guessing would hurt.
+      for (int seed = 1; seed <= 100; seed++) {
+        final SudokuPuzzle puzzle = generator.generate(seed);
+        expect(puzzle.givens, hasLength(81));
+        expect(
+          solver.countSolutions(puzzle.givens, limit: 2),
+          1,
+          reason: 'seed $seed produced a puzzle that is not unique',
+        );
+      }
     });
+
+    test('the stated solution really solves the given grid', () {
+      for (int seed = 1; seed <= 100; seed++) {
+        final SudokuPuzzle puzzle = generator.generate(seed);
+        expect(
+          solver.isSolved(puzzle.solution),
+          isTrue,
+          reason: 'seed $seed has an invalid solution',
+        );
+        for (int i = 0; i < puzzle.givens.length; i++) {
+          if (puzzle.givens[i] != 0) {
+            expect(
+              puzzle.givens[i],
+              puzzle.solution[i],
+              reason: 'seed $seed contradicts itself at cell $i',
+            );
+          }
+        }
+      }
+    });
+
+    test('removing any one given breaks uniqueness', () {
+      for (int seed = 1; seed <= 5; seed++) {
+        final SudokuPuzzle puzzle = generator.generate(seed);
+        for (int i = 0; i < puzzle.givens.length; i++) {
+          if (puzzle.givens[i] == 0) {
+            continue;
+          }
+          final List<int> reduced = List<int>.of(puzzle.givens)..[i] = 0;
+          expect(
+            solver.countSolutions(reduced, limit: 2),
+            greaterThan(1),
+            reason: 'seed $seed keeps given $i for no reason',
+          );
+        }
+      }
+    });
+
+    test('different seeds produce different puzzles', () {
+      final Set<String> distinct = <String>{};
+      for (int seed = 1; seed <= 25; seed++) {
+        distinct.add(generator.generate(seed).givens.join(','));
+      }
+      expect(distinct, hasLength(25));
+    });
+  });
+
+  group('SudokuGenerator (every variant)', () {
+    // Determinism is the contract a saved game and the daily puzzle both rest
+    // on, so it is asserted for each shape Nook ships rather than for one.
+    const Map<String, SudokuSpec> variants = <String, SudokuSpec>{
+      '4x4': SudokuSpec.mini,
+      '6x6': SudokuSpec.light,
+      '9x9': SudokuSpec.classic,
+    };
+
+    for (final MapEntry<String, SudokuSpec> variant in variants.entries) {
+      test('${variant.key}: the same seed produces an identical puzzle', () {
+        for (final int seed in <int>[1, 7, 99, 12345, -3]) {
+          final SudokuPuzzle first = SudokuGenerator(variant.value)
+              .generate(seed);
+          final SudokuPuzzle second = SudokuGenerator(variant.value)
+              .generate(seed);
+          expect(second.givens, first.givens, reason: 'seed $seed differs');
+          expect(second.solution, first.solution, reason: 'seed $seed differs');
+          expect(second.seed, seed);
+        }
+      });
+
+      test('${variant.key}: leaves cells for the player and keeps givens', () {
+        for (int seed = 1; seed <= 20; seed++) {
+          final SudokuPuzzle puzzle = SudokuGenerator(variant.value)
+              .generate(seed);
+          expect(puzzle.givenCount, greaterThan(0));
+          expect(puzzle.givenCount, lessThan(puzzle.spec.cellCount));
+        }
+      });
+    }
   });
 
   group('SudokuPuzzle', () {

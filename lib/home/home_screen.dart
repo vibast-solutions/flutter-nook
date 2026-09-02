@@ -31,32 +31,16 @@ class _GameEntry {
 
 /// The first screen: what you were playing, and everything you can play.
 ///
-/// Only Sudoku Mini is live. The rest are listed rather than hidden because
-/// the list is the promise — a player should be able to see where Nook is
-/// going, and a greyed row is more honest than an empty screen.
+/// All three Sudokus are live; Stars and Duo are listed rather than hidden
+/// because the list is the promise — a player should be able to see where Nook
+/// is going, and a greyed row is more honest than an empty screen.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   static final List<_GameEntry> _games = <_GameEntry>[
-    _GameEntry(
-      title: SudokuVariant.classic.title,
-      subtitle: '${SudokuVariant.classic.sizeLabel} · coming soon',
-      icon: Icons.grid_on_rounded,
-      accent: true,
-    ),
-    _GameEntry(
-      title: SudokuVariant.light.title,
-      subtitle: '${SudokuVariant.light.sizeLabel} · coming soon',
-      icon: Icons.grid_view_rounded,
-      accent: true,
-    ),
-    _GameEntry(
-      title: SudokuVariant.mini.title,
-      subtitle: '${SudokuVariant.mini.sizeLabel} · a few quiet minutes',
-      icon: Icons.window_rounded,
-      accent: true,
-      open: _openMini,
-    ),
+    _sudoku(SudokuVariant.classic, 'the full grid', Icons.grid_on_rounded),
+    _sudoku(SudokuVariant.light, 'a gentler grid', Icons.grid_view_rounded),
+    _sudoku(SudokuVariant.mini, 'a few quiet minutes', Icons.window_rounded),
     const _GameEntry(
       title: 'Stars',
       subtitle: 'One star per row, column and region · coming soon',
@@ -71,8 +55,26 @@ class HomeScreen extends StatelessWidget {
     ),
   ];
 
-  static void _openMini(BuildContext context) {
-    Navigator.of(context).push(SudokuGamePage.route(SudokuVariant.mini));
+  /// A row for one of the Sudokus.
+  ///
+  /// Built from the variant rather than written out three times: the grid
+  /// size, the title and the route all come from the one place that knows
+  /// them, so a fourth variant is a line here and nothing else. The designs
+  /// put a best time where [description] sits; there is nothing honest to put
+  /// there until times are kept (VIB-77).
+  static _GameEntry _sudoku(
+    SudokuVariant variant,
+    String description,
+    IconData icon,
+  ) {
+    return _GameEntry(
+      title: variant.title,
+      subtitle: '${variant.sizeLabel} · $description',
+      icon: icon,
+      accent: true,
+      open: (BuildContext context) =>
+          Navigator.of(context).push(SudokuGamePage.route(variant)),
+    );
   }
 
   @override
