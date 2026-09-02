@@ -42,6 +42,14 @@ final Provider<SudokuDifficulty> sudokuDifficultyProvider =
       name: 'sudokuDifficulty',
     );
 
+/// The game to open instead of generating one, or `null` for a new puzzle.
+///
+/// Scoped like the two above: resuming is a property of the way the screen was
+/// opened, not of the app, and a player who taps a difficulty after resuming
+/// must get a fresh puzzle rather than the same saved one again.
+final Provider<SudokuGameState?> sudokuResumeProvider =
+    Provider<SudokuGameState?>((Ref ref) => null, name: 'sudokuResume');
+
 /// Where new puzzles come from. Overridden in tests.
 final Provider<SudokuPuzzleSource> sudokuPuzzleSourceProvider =
     Provider<SudokuPuzzleSource>(
@@ -69,7 +77,11 @@ sudokuControllerProvider =
       // Declared so the controller is rebuilt inside the scope the game screen
       // opens, where the variant is overridden. Without it the controller resolves
       // in the root container and never sees which Sudoku it is playing.
-      dependencies: [sudokuVariantProvider, sudokuDifficultyProvider],
+      dependencies: [
+        sudokuVariantProvider,
+        sudokuDifficultyProvider,
+        sudokuResumeProvider,
+      ],
     );
 
 /// Holds one Sudoku and applies the player's moves to it.
@@ -80,12 +92,13 @@ sudokuControllerProvider =
 class SudokuController extends AsyncNotifier<SudokuGameState> {
   @override
   Future<SudokuGameState> build() async {
-    final SudokuVariant variant = ref.watch(sudokuVariantProvider);
-    final SudokuDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
-    final SudokuPuzzleSource source = ref.watch(sudokuPuzzleSourceProvider);
-    final int seed = ref.watch(sudokuSeedSourceProvider)();
-    final SudokuPuzzle puzzle = await source(variant.spec, difficulty, seed);
-    return SudokuGameState.fresh(variant: variant, puzzle: puzzle);
+    final SudokuGameState? resumed = ref.watch(sudokuResumeProvider);
+    if (resumed != null) {
+      // A saved puzzle is already a whole game; there is nothing to generate
+      // and nothing to wait for, which is why resuming never shows a spinner.
+      return resumed;
+    }
+    return _freshGame();
   }
 
   /// Points the number pad at the cell at [index].
@@ -184,22 +197,51 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
       game.copyWith(
         cells: cells,
         notes: notes,
+        // Whatever the cell held is gone, so it is no longer showing a hint —
+        // the puzzle stays marked as hinted, which is a fact about the game
+        // rather than about the cell.
+        hints: game.hints.difference(<int>{move.index}),
         selectedIndex: move.index,
         history: game.history.pop(),
       ),
     );
   }
 
+  /// Fills in one cell the player could have worked out for themselves.
+  ///
+  /// Unlimited, free, and never counted: there is no hint budget in Nook to
+  /// spend, wait for or buy back. Which cell is the whole of the design —
+  /// [SudokuHinter] picks one the technique solver can justify from the board
+  /// as it stands, so a hint shows the player what they were not seeing rather
+  /// than taking a piece of the puzzle away. A mistake already on the board is
+  /// reasoned around and left alone.
+  void hint() {
+    final SudokuGameState? game = state.value;
+    if (game == null || game.isSolved) {
+      return;
+    }
+    final SudokuHint? found = SudokuHinter(game.puzzle).hintFor(game.cells);
+    if (found == null) {
+      return;
+    }
+    // The marks in the cell go with the answer, exactly as they would if the
+    // player had settled it themselves.
+    _write(game, found.index, value: found.digit, notes: 0, hinted: true);
+  }
+
   /// Puts [value] and [notes] in the cell at [index] and records the move.
   ///
   /// The one place the board is written to, so there is one place a move can
   /// be missed from the history rather than one per control. An answer and the
-  /// marks around it change together and come back together.
+  /// marks around it change together and come back together — and so does
+  /// whether the cell is showing a hint, which is why [hinted] comes through
+  /// here rather than being stamped on afterwards.
   void _write(
     SudokuGameState game,
     int index, {
     required int value,
     required int notes,
+    bool hinted = false,
   }) {
     final int before = game.cells[index];
     final int notesBefore = game.notes[index];
@@ -212,6 +254,16 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
       game.copyWith(
         cells: List<int>.of(game.cells)..[index] = value,
         notes: List<int>.of(game.notes)..[index] = notes,
+        // A hint marks its cell; anything else written into a hinted cell
+        // makes it the player's again.
+        hints: hinted
+            ? <int>{...game.hints, index}
+            : game.hints.difference(<int>{index}),
+        wasHinted: game.wasHinted || hinted,
+        // A hint lands where the player was not looking, so the selection goes
+        // to it — otherwise the one thing that changed is the one thing they
+        // have to hunt for.
+        selectedIndex: hinted ? index : game.selectedIndex,
         history: game.history.push(
           BoardMove(
             index: index,
@@ -226,10 +278,26 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
   }
 
   /// Throws away the current puzzle and generates another.
+  ///
+  /// Generates rather than rebuilding: rebuilding would read the resume slot
+  /// again and hand back the very puzzle the player just asked to leave.
   Future<void> startNewPuzzle() async {
     state = const AsyncLoading<SudokuGameState>();
-    ref.invalidateSelf();
-    await future;
+    state = await AsyncValue.guard(_freshGame);
+  }
+
+  /// A newly generated puzzle of the shape and tier this screen asked for.
+  ///
+  /// Read rather than watched: the variant, the tier and the seed source are
+  /// fixed for as long as the screen is open, and a controller that rebuilt
+  /// itself would throw away the game the player is in the middle of.
+  Future<SudokuGameState> _freshGame() async {
+    final SudokuVariant variant = ref.read(sudokuVariantProvider);
+    final SudokuDifficulty difficulty = ref.read(sudokuDifficultyProvider);
+    final SudokuPuzzleSource source = ref.read(sudokuPuzzleSourceProvider);
+    final int seed = ref.read(sudokuSeedSourceProvider)();
+    final SudokuPuzzle puzzle = await source(variant.spec, difficulty, seed);
+    return SudokuGameState.fresh(variant: variant, puzzle: puzzle);
   }
 }
 

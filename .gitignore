@@ -22,6 +22,7 @@ packages/*/pubspec.lock
 
 # Platform build output
 android/.gradle/
+android/.kotlin/
 android/local.properties
 android/key.properties
 ios/Pods/

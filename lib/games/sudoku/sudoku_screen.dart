@@ -5,11 +5,15 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import '../../board/number_pad.dart';
 import '../../board/sudoku_board.dart';
 import '../../chrome/action_row.dart';
+import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
+import 'completion_view.dart';
 import 'sudoku_controller.dart';
 import 'sudoku_naming.dart';
+import 'sudoku_save.dart';
+import 'sudoku_session.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
@@ -22,6 +26,7 @@ class SudokuGamePage extends StatelessWidget {
   const SudokuGamePage({
     required this.variant,
     required this.difficulty,
+    this.resume,
     super.key,
   });
 
@@ -31,7 +36,10 @@ class SudokuGamePage extends StatelessWidget {
   /// How hard the player asked for it to be.
   final SudokuDifficulty difficulty;
 
-  /// Builds a route to this page.
+  /// The puzzle to carry on with, or `null` to generate a new one.
+  final SudokuSave? resume;
+
+  /// Builds a route to a new puzzle.
   static Route<void> route(SudokuVariant variant, SudokuDifficulty difficulty) {
     return MaterialPageRoute<void>(
       builder: (BuildContext context) =>
@@ -39,14 +47,33 @@ class SudokuGamePage extends StatelessWidget {
     );
   }
 
+  /// Builds a route back into the puzzle in [save], exactly as it was left.
+  static Route<void> resumeRoute(SudokuSave save) {
+    return MaterialPageRoute<void>(
+      builder: (BuildContext context) => SudokuGamePage(
+        variant: save.variant,
+        difficulty: save.difficulty,
+        resume: save,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final SudokuSave? saved = resume;
     return ProviderScope(
       overrides: [
         sudokuVariantProvider.overrideWithValue(variant),
         sudokuDifficultyProvider.overrideWithValue(difficulty),
+        sudokuResumeProvider.overrideWithValue(saved?.game),
+        resumedElapsedProvider.overrideWithValue(
+          saved?.elapsed ?? Duration.zero,
+        ),
       ],
-      child: const _SudokuScreen(),
+      child: SudokuSession(
+        difficulty: difficulty,
+        child: const _SudokuScreen(),
+      ),
     );
   }
 }
@@ -63,6 +90,17 @@ class _SudokuScreen extends ConsumerWidget {
     final AsyncValue<SudokuGameState> game = ref.watch(
       sudokuControllerProvider,
     );
+
+    // A finished puzzle takes the whole screen. The board it was played on is
+    // complete and has nothing left to do, and the clock in the header has
+    // stopped — leaving them up would be leaving the furniture of a game that
+    // is over around the one moment the app has to celebrate.
+    if (game.value?.isSolved ?? false) {
+      return Scaffold(
+        backgroundColor: colors.sand,
+        body: const SudokuCompletionView(),
+      );
+    }
 
     return Scaffold(
       backgroundColor: colors.sand,
@@ -121,10 +159,37 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          // Balances the back button so the title stays centred. The timer
-          // that lives here in the designs arrives with statistics (VIB-77).
-          const SizedBox(width: kMinTapTarget),
+          const _Clock(),
         ],
+      ),
+    );
+  }
+}
+
+/// How long this puzzle has been played for.
+///
+/// Sits where the designs put it, opposite the back button, and is wide enough
+/// to keep the title centred as the digits change — a clock that shoved the
+/// game's name sideways every time it ticked would be worse than no clock.
+class _Clock extends ConsumerWidget {
+  const _Clock();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final NookColors colors = Theme.of(context).nook;
+    final Duration elapsed = ref.watch(playClockProvider);
+    final String reading = clockReading(elapsed);
+
+    return Semantics(
+      label: AppLocalizations.of(context).gameElapsedLabel(reading),
+      excludeSemantics: true,
+      child: SizedBox(
+        width: kMinTapTarget + 14,
+        child: Text(
+          reading,
+          textAlign: TextAlign.end,
+          style: NookType.sectionLabel(colors.inkMuted),
+        ),
       ),
     );
   }
@@ -284,7 +349,13 @@ class _Playing extends ConsumerWidget {
                     onTap: game.isSolved ? null : controller.toggleNotes,
                     unavailableReason: l10n.reasonPuzzleDone,
                   ),
-                  // The hint (VIB-76) joins this row.
+                  BoardAction(
+                    id: 'hint',
+                    label: l10n.actionHint,
+                    icon: Icons.lightbulb_outline_rounded,
+                    onTap: game.isSolved ? null : controller.hint,
+                    unavailableReason: l10n.reasonPuzzleDone,
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -294,56 +365,14 @@ class _Playing extends ConsumerWidget {
                 onDigit: controller.enter,
               ),
               const SizedBox(height: 22),
-              if (game.isSolved)
-                _Solved(onNewPuzzle: controller.startNewPuzzle)
-              else
-                Text(
-                  l10n.gameInstruction,
-                  style: NookType.footnote(colors.inkGhost),
-                ),
+              Text(
+                l10n.gameInstruction,
+                style: NookType.footnote(colors.inkGhost),
+              ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-/// What the player sees on finishing.
-///
-/// The medallion, the times and the streak in the designs need a clock and a
-/// history to be honest about; both arrive with statistics (VIB-77). Until
-/// then this says the true thing and nothing more.
-class _Solved extends StatelessWidget {
-  const _Solved({required this.onNewPuzzle});
-
-  final VoidCallback onNewPuzzle;
-
-  @override
-  Widget build(BuildContext context) {
-    final NookColors colors = Theme.of(context).nook;
-    final AppLocalizations l10n = AppLocalizations.of(context);
-    return Semantics(
-      liveRegion: true,
-      container: true,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: colors.sageSoft,
-          border: Border.all(color: colors.sageLine),
-          borderRadius: const BorderRadius.all(NookRadius.card),
-        ),
-        child: Column(
-          children: <Widget>[
-            Icon(Icons.check_rounded, size: 34, color: colors.sage),
-            const SizedBox(height: 8),
-            Text(l10n.gameSolved, style: NookType.title(colors.sageInk)),
-            const SizedBox(height: 16),
-            _PrimaryButton(label: l10n.gameNewPuzzle, onTap: onNewPuzzle),
-          ],
-        ),
-      ),
     );
   }
 }

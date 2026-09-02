@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'spec.dart';
 import 'technique.dart';
 
@@ -57,6 +59,45 @@ class SudokuSolveReport {
   String toString() =>
       'SudokuSolveReport(${isSolved ? 'solved' : 'stalled'}, '
       'hardest ${hardest?.name ?? 'none'})';
+}
+
+/// One digit a solver worked out, and the reasoning that justified it.
+///
+/// The unit a hint is made of: where the digit goes, what it is, and which
+/// rung of the ladder produced it. Only [SudokuTechnique.nakedSingle] and
+/// [SudokuTechnique.hiddenSingle] ever place a digit — the rest of the ladder
+/// rules candidates out — so [technique] is always one of those two, reached
+/// after however much elimination the board needed first.
+@immutable
+class SudokuPlacement {
+  const SudokuPlacement({
+    required this.index,
+    required this.digit,
+    required this.technique,
+  });
+
+  /// Which cell the digit belongs in.
+  final int index;
+
+  /// The digit itself.
+  final int digit;
+
+  /// The deduction that put it there.
+  final SudokuTechnique technique;
+
+  @override
+  bool operator ==(Object other) {
+    return other is SudokuPlacement &&
+        other.index == index &&
+        other.digit == digit &&
+        other.technique == technique;
+  }
+
+  @override
+  int get hashCode => Object.hash(index, digit, technique);
+
+  @override
+  String toString() => 'SudokuPlacement($digit at $index, ${technique.name})';
 }
 
 /// Solves a Sudoku using only deductions a person could make.
@@ -162,6 +203,39 @@ class SudokuLogicSolver {
       cells: board.cells,
       steps: steps,
     );
+  }
+
+  /// The digits the solver can work out from [cells], in the order a person
+  /// would reach them.
+  ///
+  /// Lazy on purpose: a hint needs the first placement it can use and nothing
+  /// more, and solving a 9x9 to the end to answer that would be dozens of
+  /// deductions of wasted work. The sequence stops where reasoning does — at a
+  /// full grid, at a board that contradicts itself, or at a puzzle this solver
+  /// cannot finish.
+  Iterable<SudokuPlacement> placements(List<int> cells) sync* {
+    if (cells.length != _cellCount) {
+      throw ArgumentError('Expected $_cellCount cells, got ${cells.length}.');
+    }
+    final _Board board = _Board(this, cells);
+    if (board.isBroken) {
+      return;
+    }
+    while (!board.isComplete) {
+      board.lastPlaced = null;
+      final SudokuTechnique? applied = _applyEasiest(board);
+      if (applied == null || board.isBroken) {
+        return;
+      }
+      final int? index = board.lastPlaced;
+      if (index != null) {
+        yield SudokuPlacement(
+          index: index,
+          digit: board.cells[index],
+          technique: applied,
+        );
+      }
+    }
   }
 
   /// Runs the ladder from the bottom and returns the first rung that moved the
@@ -718,9 +792,16 @@ class _Board {
 
   bool get isComplete => _empty == 0;
 
+  /// The cell the last technique filled, or `null` if it only eliminated.
+  ///
+  /// Cleared by the caller between rungs, which is how [placements] tells a
+  /// deduction that placed a digit from one that merely narrowed the board.
+  int? lastPlaced;
+
   /// Writes [digit] into [index] and takes it away from everything that cell
   /// can see.
   void place(int index, int digit) {
+    lastPlaced = index;
     cells[index] = digit;
     candidates[index] = 0;
     _empty--;

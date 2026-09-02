@@ -1,12 +1,25 @@
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nook/board/number_pad.dart';
+import 'package:nook/board/sudoku_board.dart';
+import 'package:nook/chrome/action_row.dart';
+import 'package:nook/chrome/move_history.dart';
+import 'package:nook/chrome/note_marks.dart';
+import 'package:nook/chrome/play_clock.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
+import 'package:nook/games/sudoku/sudoku_save.dart';
 import 'package:nook/games/sudoku/sudoku_screen.dart';
+import 'package:nook/games/sudoku/sudoku_state.dart';
+import 'package:nook/home/home_screen.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/l10n/app_localizations.dart';
+import 'package:nook/store/game_stats.dart';
+import 'package:nook/store/nook_database.dart';
+import 'package:nook/store/saved_game.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 /// The English strings, for a test that wants to say what a screen should show
@@ -58,11 +71,151 @@ SudokuPuzzle fixedPuzzle(SudokuVariant variant) {
 }
 
 /// The three Sudokus, for a test that has to hold for all of them.
-const List<SudokuVariant> allVariants = <SudokuVariant>[
-  SudokuVariant.mini,
-  SudokuVariant.light,
-  SudokuVariant.classic,
-];
+const List<SudokuVariant> allVariants = SudokuVariant.values;
+
+/// A clock the test winds on by hand.
+///
+/// Time is the one thing a puzzle depends on that a test cannot wait for: a
+/// timer test that slept for its assertions would take as long as the durations
+/// it is checking.
+class TestClock {
+  TestClock([DateTime? start]) : _now = start ?? DateTime.utc(2026, 9, 2, 9);
+
+  DateTime _now;
+
+  /// The current instant, as [nowProvider] wants it.
+  DateTime call() => _now;
+
+  /// Moves the world forward.
+  void advance(Duration by) => _now = _now.add(by);
+}
+
+/// A database that lives in memory and goes away with the test.
+///
+/// The real schema and the real SQL, so a test that saves a game exercises
+/// what the app will run rather than a stand-in that always agrees with it.
+NookDatabase memoryDatabase() {
+  // Every test makes its own, which is exactly what the warning is about and
+  // exactly what a test should do.
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  final NookDatabase database = NookDatabase.memory();
+  addTearDown(database.close);
+  return database;
+}
+
+/// The marks a part-played fixture pencils into one cell.
+final NoteMarks pencilledMarks = NoteMarks.of(<int>[2, 3]);
+
+/// A part-played Sudoku Mini, written exactly as the app would write it.
+///
+/// One answer entered, one cell pencilled in, and both moves still in the
+/// history — so a test reading it back can tell which of the three came home
+/// and which did not.
+SavedGame partPlayedMiniSave({
+  Duration elapsed = const Duration(minutes: 1, seconds: 30),
+  DateTime? at,
+}) {
+  final SudokuPuzzle puzzle = fixedMiniPuzzle();
+  final SudokuGameState game = SudokuGameState(
+    variant: SudokuVariant.mini,
+    puzzle: puzzle,
+    cells: List<int>.of(puzzle.givens)..[0] = 1,
+    notes: List<int>.filled(puzzle.givens.length, 0)..[4] = pencilledMarks.mask,
+    history: MoveHistory(
+      moves: <BoardMove>[
+        const BoardMove(index: 0, before: 0, after: 1),
+        BoardMove(
+          index: 4,
+          before: 0,
+          after: 0,
+          notesAfter: pencilledMarks.mask,
+        ),
+      ],
+    ),
+  );
+  return savedGameFor(
+    game,
+    difficulty: SudokuDifficulty.gentle,
+    elapsed: elapsed,
+    at: at ?? DateTime.utc(2026, 9, 2, 9),
+  );
+}
+
+/// Fills in every blank on the board correctly, finishing the puzzle.
+///
+/// Tapped cell by cell the way a player would, so a test that finishes a
+/// puzzle exercises the same path a real one takes rather than writing a
+/// solved state into the controller.
+Future<void> solvePuzzle(WidgetTester tester, SudokuPuzzle puzzle) async {
+  for (int index = 0; index < puzzle.givens.length; index++) {
+    if (puzzle.givens[index] != 0 || digitIn(tester, index) != null) {
+      continue;
+    }
+    await tapCell(tester, index);
+    await tapDigit(tester, puzzle.solution[index]);
+  }
+  await tester.pumpAndSettle();
+}
+
+/// Everything [database] has counted, read outside the test's fake clock.
+Future<List<GameStats>> storedStats(
+  WidgetTester tester,
+  NookDatabase database,
+) async {
+  return (await tester.runAsync<List<GameStats>>(
+    () => GameStatsStore(database).watchAll().first,
+  ))!;
+}
+
+/// The save [database] holds for [gameId], or `null` if it holds none.
+///
+/// Read outside the test's fake clock: a query is real work on a real
+/// database, and it has to be allowed to take the time it takes rather than
+/// waiting for a frame that is never pumped.
+Future<SavedGame?> storedSave(
+  WidgetTester tester,
+  NookDatabase database,
+  String gameId,
+) async {
+  return tester.runAsync<SavedGame?>(() async {
+    final List<SavedGame> saves = await SavedGameStore(database)
+        .watchAll()
+        .first;
+    for (final SavedGame save in saves) {
+      if (save.gameId == gameId) {
+        return save;
+      }
+    }
+    return null;
+  });
+}
+
+/// Wraps [child] in what every Nook screen needs under test: a puzzle that is
+/// already made, a database in memory, and a clock the test owns.
+///
+/// Pass [source] instead of relying on [puzzle] to watch what the generator is
+/// asked for. The database matters even to a test that never mentions saving:
+/// a screen that reads the real one would go looking for a file that a test
+/// has no business having.
+Widget nookScope({
+  required SudokuPuzzle puzzle,
+  required Widget child,
+  SudokuPuzzleSource? source,
+  NookDatabase? database,
+  TestClock? clock,
+}) {
+  return ProviderScope(
+    overrides: [
+      sudokuPuzzleSourceProvider.overrideWithValue(
+        source ??
+            (SudokuSpec spec, SudokuDifficulty tier, int seed) async => puzzle,
+      ),
+      nookDatabaseProvider.overrideWithValue(database ?? memoryDatabase()),
+      nowProvider.overrideWithValue((clock ?? TestClock()).call),
+    ],
+    child: child,
+  );
+}
 
 /// Gives the test a phone-shaped window, so a board and its pad both fit and
 /// taps are not swallowed by an off-screen scroll position.
@@ -72,6 +225,82 @@ const List<SudokuVariant> allVariants = <SudokuVariant>[
 Future<void> setPhoneSurface(WidgetTester tester, {double width = 400}) async {
   await tester.binding.setSurfaceSize(Size(width, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
+}
+
+/// Taps the board cell at [index].
+Future<void> tapCell(WidgetTester tester, int index) async {
+  await tester.tap(find.byKey(SudokuBoard.cellKey(index)));
+  await tester.pump();
+}
+
+/// Taps the number-pad key for [digit].
+Future<void> tapDigit(WidgetTester tester, int digit) async {
+  await tester.tap(find.byKey(NumberPad.keyFor(digit)));
+  await tester.pump();
+}
+
+/// Taps the action-row control with the id [id].
+///
+/// Controls are found by id rather than by the word on them: the word is
+/// translated, and a test that hunted for it would only pass in English.
+Future<void> tapAction(WidgetTester tester, String id) async {
+  await tester.tap(find.byKey(BoardActionRow.keyFor(id)));
+  await tester.pump();
+}
+
+/// The colour the action-row control with the id [id] is filled with.
+Color actionBackground(WidgetTester tester, String id) {
+  return tester.widget<Material>(find.byKey(BoardActionRow.keyFor(id))).color!;
+}
+
+/// Every digit on the board, with `null` for an empty cell.
+List<String?> boardDigits(WidgetTester tester) {
+  return <String?>[for (int i = 0; i < 16; i++) digitIn(tester, i)];
+}
+
+/// The digit currently drawn in the cell at [index], or `null` if it is empty.
+String? digitIn(WidgetTester tester, int index) {
+  final Finder text = find.byKey(SudokuBoard.valueKey(index));
+  if (text.evaluate().isEmpty) {
+    return null;
+  }
+  return tester.widget<Text>(text).data;
+}
+
+/// The pencil marks drawn in the cell at [index], smallest first.
+List<int> notesIn(WidgetTester tester, int index) {
+  final Finder marks = find.descendant(
+    of: find.byKey(SudokuBoard.notesKey(index)),
+    matching: find.byType(Text),
+  );
+  return <int>[
+    for (final Text mark in tester.widgetList<Text>(marks))
+      int.parse(mark.data!),
+  ];
+}
+
+Future<void> pumpHome(
+  WidgetTester tester, {
+  SudokuVariant variant = SudokuVariant.mini,
+  NookDatabase? database,
+  TestClock? clock,
+}) async {
+  await setPhoneSurface(tester);
+  final SudokuPuzzle fixed = fixedPuzzle(variant);
+  await tester.pumpWidget(
+    nookScope(
+      puzzle: fixed,
+      database: database,
+      clock: clock,
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: buildNookTheme(NookColors.softClay),
+        home: const HomeScreen(),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }
 
 /// Pumps the Sudoku screen with a puzzle already generated.
@@ -84,18 +313,19 @@ Future<void> pumpSudokuGame(
   SudokuVariant variant = SudokuVariant.mini,
   SudokuDifficulty difficulty = SudokuDifficulty.gentle,
   SudokuPuzzle? puzzle,
+  SudokuSave? resume,
+  NookDatabase? database,
+  TestClock? clock,
   double width = 400,
   double textScale = 1,
 }) async {
   final SudokuPuzzle fixed = puzzle ?? fixedPuzzle(variant);
   await setPhoneSurface(tester, width: width);
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        sudokuPuzzleSourceProvider.overrideWithValue(
-          (SudokuSpec spec, SudokuDifficulty tier, int seed) async => fixed,
-        ),
-      ],
+    nookScope(
+      puzzle: fixed,
+      database: database,
+      clock: clock,
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -105,7 +335,11 @@ Future<void> pumpSudokuGame(
               .copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
-        home: SudokuGamePage(variant: variant, difficulty: difficulty),
+        home: SudokuGamePage(
+          variant: variant,
+          difficulty: difficulty,
+          resume: resume,
+        ),
       ),
     ),
   );

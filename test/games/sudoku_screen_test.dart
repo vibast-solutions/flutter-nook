@@ -16,58 +16,6 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
 
-/// Taps the board cell at [index].
-Future<void> tapCell(WidgetTester tester, int index) async {
-  await tester.tap(find.byKey(SudokuBoard.cellKey(index)));
-  await tester.pump();
-}
-
-/// Taps the number-pad key for [digit].
-Future<void> tapDigit(WidgetTester tester, int digit) async {
-  await tester.tap(find.byKey(NumberPad.keyFor(digit)));
-  await tester.pump();
-}
-
-/// Taps the action-row control with the id [id].
-///
-/// Controls are found by id rather than by the word on them: the word is
-/// translated, and a test that hunted for it would only pass in English.
-Future<void> tapAction(WidgetTester tester, String id) async {
-  await tester.tap(find.byKey(BoardActionRow.keyFor(id)));
-  await tester.pump();
-}
-
-/// The colour the action-row control with the id [id] is filled with.
-Color actionBackground(WidgetTester tester, String id) {
-  return tester.widget<Material>(find.byKey(BoardActionRow.keyFor(id))).color!;
-}
-
-/// Every digit on the board, with `null` for an empty cell.
-List<String?> boardDigits(WidgetTester tester) {
-  return <String?>[for (int i = 0; i < 16; i++) digitIn(tester, i)];
-}
-
-/// The digit currently drawn in the cell at [index], or `null` if it is empty.
-String? digitIn(WidgetTester tester, int index) {
-  final Finder text = find.byKey(SudokuBoard.valueKey(index));
-  if (text.evaluate().isEmpty) {
-    return null;
-  }
-  return tester.widget<Text>(text).data;
-}
-
-/// The pencil marks drawn in the cell at [index], smallest first.
-List<int> notesIn(WidgetTester tester, int index) {
-  final Finder marks = find.descendant(
-    of: find.byKey(SudokuBoard.notesKey(index)),
-    matching: find.byType(Text),
-  );
-  return <int>[
-    for (final Text mark in tester.widgetList<Text>(marks))
-      int.parse(mark.data!),
-  ];
-}
-
 /// The colour a pencil mark in the cell at [index] is drawn in.
 Color noteColour(WidgetTester tester, int index) {
   return tester
@@ -401,9 +349,12 @@ void main() {
       expect(digitIn(tester, 0), '1');
     });
 
-    testWidgets('both controls switch off once the puzzle is solved', (
+    testWidgets('and both give way with the board once it is solved', (
       WidgetTester tester,
     ) async {
+      // There is nothing left to take back or rub out on a finished puzzle,
+      // so the controls do not sit there greyed out — the whole board goes,
+      // and the finished screen takes its place.
       await pumpSudokuGame(tester);
 
       final SudokuPuzzle puzzle = fixedMiniPuzzle();
@@ -415,14 +366,10 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(find.text('Solved'), findsOneWidget);
-      expect(actionBackground(tester, 'undo'), colors.disabledSurface);
-      expect(actionBackground(tester, 'erase'), colors.disabledSurface);
-
-      await tapAction(tester, 'undo');
-      await tapAction(tester, 'erase');
-
-      expect(find.text('Solved'), findsOneWidget, reason: 'still solved');
+      expect(find.text(en.gameSolved), findsOneWidget);
+      expect(find.byType(SudokuBoard), findsNothing);
+      expect(find.byKey(BoardActionRow.keyFor('undo')), findsNothing);
+      expect(find.byKey(BoardActionRow.keyFor('erase')), findsNothing);
     });
   });
 
@@ -625,7 +572,7 @@ void main() {
       expect(find.text('Notes on'), findsOneWidget);
     });
 
-    testWidgets('the toggle switches off with the rest once solved', (
+    testWidgets('the toggle goes with the pad once the puzzle is solved', (
       WidgetTester tester,
     ) async {
       await pumpSudokuGame(tester);
@@ -639,12 +586,9 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(actionBackground(tester, 'notes'), colors.disabledSurface);
-
-      await tapAction(tester, 'notes');
-
-      expect(find.text('Notes off'), findsOneWidget);
-      expect(find.text('Solved'), findsOneWidget);
+      expect(find.text(en.gameSolved), findsOneWidget);
+      expect(find.byType(NumberPad), findsNothing);
+      expect(find.byKey(BoardActionRow.keyFor('notes')), findsNothing);
     });
   });
 
@@ -764,7 +708,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('New puzzle'));
+      await tester.tap(find.text(en.completionAnother(en.difficultyGentle)));
       await tester.pumpAndSettle();
 
       // The fixture is handed back, so the board resets to its givens.

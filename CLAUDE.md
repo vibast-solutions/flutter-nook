@@ -16,11 +16,13 @@ packages/puzzle_engine/   pure Dart, no Flutter — solvers, generators, difficu
 lib/                      the app
   design/                 tokens, themes, typography
   board/                  shared board widgets, selection, gestures
-  chrome/                 controls around a board: undo, erase and notes, later timer/hints
+  chrome/                 the furniture around a game: undo, erase, notes, the
+                          clock, the Continue card, the discard question
   games/                  per-game state and screens (thin)
   home/                   the game list
   l10n/                   app_en.arb (the words) + the generated AppLocalizations
-  store/                  persistence (Drift/SQLite) (not built yet)
+  store/                  persistence: the Drift database, saved games,
+                          and the solved counts and best times
   content/                bundled pack loading (not built yet)
 assets/fonts/             Nunito + Fredoka, bundled
 assets/packs/             generated starter packs (not built yet)
@@ -56,6 +58,36 @@ when the ticket that needs them comes up, not before.
   stack of its own, and a move is a handful of plain integers — which cell, what
   it held, and the pencil marks around it as a `NoteMarks` bitmask — because it
   has to survive being written to disk when a game is saved and resumed.
+- **A hint reveals a cell the player could have deduced**, chosen by the same
+  technique solver that measures difficulty (`SudokuHinter`), never at random.
+  A mistake already on the board is reasoned around rather than reasoned from
+  — one wrong digit makes the rest of the grid unsolvable, so a solver fed it
+  would deduce a run of wrong cells — and is left exactly where it is: Nook
+  does not mark a player's work. **Hints are unlimited and free**: there is no
+  counter, cooldown or limit anywhere in the code, and none is ever to be
+  added.
+- **Finishing is the one moment Nook never spends.** The finished-puzzle
+  screen asks nothing: no rating prompt, no tip, no "enjoying Nook?", no
+  promotion of anything. It says what the player did, offers another puzzle,
+  and gets out of the way. This is a feature, not a gap waiting to be filled,
+  and `test/games/sudoku_completion_test.dart` counts the controls on it so
+  that a third one cannot appear quietly.
+- **A finished puzzle takes the whole screen.** The board it was played on has
+  nothing left to do and the clock has stopped, so both give way rather than
+  sitting there greyed out — and the next puzzle starts on a clock at zero
+  (`PlayClock.restart`), because a new puzzle is a new time.
+- **Statistics are a count and a best time, per game and per tier, and
+  nothing else.** No record is kept of an individual solve, there is no
+  failure statistic anywhere (an abandoned puzzle is simply not recorded), and
+  nothing is ever compared with anybody else — the only thing a player is
+  measured against is themselves, last time. **A hinted puzzle counts as
+  solved, keeps its time, and never sets a best**, which is what
+  `SavedGame.wasHinted` is for.
+- **The screen is told its figures by the write that produced them.** The time
+  a player has just beaten stops existing the moment the new best is stored,
+  so `GameStatsStore.record` reads and writes in one transaction and hands
+  back a `SolveOutcome`. Only the difficulty screen, which is looking at
+  history rather than at a result, reads the figures back.
 - **A cell shows an answer or its pencil marks, never both.** Both are kept, so
   an undo can bring the marks back, but an answer is what the cell draws.
 - Generation runs on a background isolate; the UI never blocks.
@@ -105,6 +137,53 @@ when the ticket that needs them comes up, not before.
   `ProviderScope` further down the tree) must declare it in `dependencies:`.
   Without that it resolves in the root container and silently gets the wrong
   value — see `sudokuControllerProvider`.
+- **A provider may not be written to while the widget tree is.** `initState`
+  and `dispose` are both build lifecycles, so anything a screen has to start
+  or stop there must not publish state — see `PlayClock`, where only the tick
+  and an explicit pause do, and a resumed puzzle's starting time arrives
+  through a scoped provider rather than being written in after the fact.
+- **A saved game stores the grids, not just the seed.** A puzzle is
+  reproducible from its seed, but restoring one that way would make every save
+  in the world depend on the generator behaving identically for ever: one
+  change to the carving order and a player's entries come back sitting on
+  somebody else's givens. The seed is kept as provenance.
+- **`lib/store/` knows nothing about any one game.** A `SavedGame` holds a game
+  id, a tier name and lists of small integers, because that describes a saved
+  Sudoku, Stars and Duo alike. `games/sudoku/sudoku_save.dart` is where those
+  identifiers become types again, and it returns `null` rather than throwing
+  for anything it cannot read: a save can outlive the build that wrote it.
+- **Progress is saved as it happens, by `SudokuSession`.** Every change is
+  written, so there is no such thing as an unsaved move and nothing depends on
+  the app being closed politely. Solving discards the save instead of writing
+  it. Persistence lives beside the screen rather than in the controller,
+  because the controller is a pure transformation of state and is tested
+  without pumping a frame.
+- **A hinted cell is marked while it holds its digit; a hinted puzzle stays
+  hinted for ever.** `SudokuGameState.hints` is the cells still showing a hint,
+  and anything written into one — including an undo — hands the cell back to
+  the player. `wasHinted` is sticky, because a revealed cell cannot be
+  un-revealed by taking it back: it is what tells statistics (VIB-77) that the
+  time still counts but the personal best does not.
+- **Elapsed time is accumulated from intervals, never measured from a start
+  timestamp.** A puzzle opened before bed and finished at breakfast has been
+  played for four minutes, not nine hours.
+- **A tier that has been played talks about the player; one that has not
+  talks about the puzzle.** The line under a difficulty is the best time and
+  the count once there is one, and what the tier feels like before that —
+  "not solved yet" is true and tells a player choosing a tier for the first
+  time nothing at all.
+- **A schema change ships with its migration and a test that runs it.**
+  `test/store/migration_test.dart` writes the old schema out by hand, puts a
+  row in it and opens the database through the app's own code, because the
+  thing being protected is a puzzle already on somebody's phone. The old DDL
+  in that test is a record of what shipped and does not get updated when the
+  current schema moves.
+- **A widget test that touches the database uses `NookDatabase.memory()`**
+  (through `nookScope` in the fixture), which closes its query streams
+  synchronously. Drift normally waits an event loop before letting a stream
+  go, and a timer outliving a widget test is what the test framework fails a
+  test for. Reads from a test go through `storedSave`, which runs outside the
+  fake clock.
 
 ## Commands
 
@@ -112,7 +191,12 @@ when the ticket that needs them comes up, not before.
 flutter analyze && flutter test          # the app
 dart analyze && dart test                # from packages/puzzle_engine
 flutter gen-l10n                         # after editing lib/l10n/*.arb
+dart run build_runner build              # after editing lib/store/*.dart
 ```
+
+The Drift mapping (`lib/store/nook_database.g.dart`) is generated and
+committed, like the localisations, so a checkout analyses without a build
+step. Change a table, run `build_runner`, commit both files.
 
 CI also runs `dart format --output=none --set-exit-if-changed`, so format
 before pushing.

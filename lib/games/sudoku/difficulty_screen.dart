@@ -1,12 +1,21 @@
 import 'dart:ui' show PathMetric;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
+import '../../chrome/continue_card.dart';
+import '../../chrome/discard_dialog.dart';
+import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
+import '../../home/home_screen.dart';
 import '../../l10n/app_localizations.dart';
+import '../../store/game_stats.dart';
+import '../../store/nook_database.dart';
+import '../../store/saved_game.dart';
 import 'sudoku_naming.dart';
+import 'sudoku_save.dart';
 import 'sudoku_screen.dart';
 import 'sudoku_variant.dart';
 
@@ -20,7 +29,7 @@ import 'sudoku_variant.dart';
 /// measurement rather than a decision — see [SudokuRater.tiersFor]. Offering a
 /// tier a 4x4 cannot make would mean five buttons handing back the same puzzle,
 /// which is a worse kind of dishonesty than a short list.
-class SudokuDifficultyPage extends StatelessWidget {
+class SudokuDifficultyPage extends ConsumerWidget {
   const SudokuDifficultyPage({required this.variant, super.key});
 
   /// The Sudoku whose difficulties are being offered.
@@ -41,11 +50,50 @@ class SudokuDifficultyPage extends StatelessWidget {
   static Key tierKey(SudokuDifficulty difficulty) =>
       ValueKey<String>('difficulty-${difficulty.name}');
 
+  /// This game's unfinished puzzle, if it has one this build can open.
+  SudokuSave? _saved(List<SavedGame>? saves) {
+    for (final SavedGame save in saves ?? const <SavedGame>[]) {
+      if (save.gameId == variant.id) {
+        return SudokuSave.read(save);
+      }
+    }
+    return null;
+  }
+
+  /// Starts a new puzzle at [tier], asking first if that means losing one.
+  ///
+  /// The saved puzzle is deleted before the new one is opened rather than
+  /// being left to be overwritten: the player said to throw it away, and it
+  /// should be gone whether or not the puzzle that replaces it is ever
+  /// generated.
+  Future<void> _start(
+    BuildContext context,
+    WidgetRef ref,
+    SudokuDifficulty tier,
+    SudokuSave? saved,
+  ) async {
+    final NavigatorState navigator = Navigator.of(context);
+    if (saved != null) {
+      final bool discard = await DiscardDialog.ask(
+        context,
+        gameName: saved.variant.title(AppLocalizations.of(context)),
+      );
+      if (!discard) {
+        return;
+      }
+      await ref.read(savedGameStoreProvider).discard(variant.id);
+    }
+    await navigator.push(SudokuGamePage.route(variant, tier));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final List<SudokuDifficulty> tiers = variant.tiers;
+    final SudokuSave? saved = _saved(ref.watch(savedGamesProvider).value);
+    final List<GameStats> figures =
+        ref.watch(gameStatsProvider).value ?? const <GameStats>[];
 
     return Scaffold(
       backgroundColor: colors.sand,
@@ -57,9 +105,15 @@ class SudokuDifficultyPage extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 10, 24, 8),
                 children: <Widget>[
-                  // The designs open with an In-progress card. It arrives with
-                  // save and resume (VIB-75); until a saved game can exist,
-                  // there is nothing true to put here.
+                  if (saved != null) ...<Widget>[
+                    Text(
+                      l10n.difficultyInProgress,
+                      style: NookType.sectionLabel(colors.inkFaint),
+                    ),
+                    const SizedBox(height: 10),
+                    _InProgressRow(saved: saved),
+                    const SizedBox(height: 20),
+                  ],
                   Text(
                     l10n.difficultyStartNew,
                     style: NookType.sectionLabel(colors.inkFaint),
@@ -68,9 +122,12 @@ class SudokuDifficultyPage extends StatelessWidget {
                   for (final SudokuDifficulty tier in tiers) ...<Widget>[
                     _TierRow(
                       difficulty: tier,
-                      onTap: () =>
-                          Navigator.of(context)
-                              .push(SudokuGamePage.route(variant, tier)),
+                      stats: statsFor(
+                        figures,
+                        gameId: variant.id,
+                        difficulty: tier.name,
+                      ),
+                      onTap: () => _start(context, ref, tier, saved),
                     ),
                     const SizedBox(height: 9),
                   ],
@@ -135,19 +192,79 @@ class _Header extends StatelessWidget {
   }
 }
 
+/// The puzzle already under way in this game.
+///
+/// Named by its tier rather than by the game, which the header above it has
+/// just said.
+class _InProgressRow extends StatelessWidget {
+  const _InProgressRow({required this.saved});
+
+  final SudokuSave saved;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String tier = saved.difficulty.label(l10n);
+    final String time = clockReading(saved.elapsed);
+    final int percent = (saved.progress * 100).round();
+
+    return ContinueCard(
+      icon: sudokuIcon(saved.variant),
+      title: tier,
+      details: l10n.continueProgress(time, percent),
+      semanticLabel: l10n.continueLabel(
+        saved.variant.title(l10n),
+        tier,
+        time,
+        percent,
+      ),
+      onTap: () =>
+          Navigator.of(context).push(SudokuGamePage.resumeRoute(saved)),
+    );
+  }
+}
+
 /// One difficulty, and the way in.
 class _TierRow extends StatelessWidget {
-  const _TierRow({required this.difficulty, required this.onTap});
+  const _TierRow({
+    required this.difficulty,
+    required this.stats,
+    required this.onTap,
+  });
 
   final SudokuDifficulty difficulty;
+
+  /// What the player has done here before, or `null` if this is new ground.
+  final GameStats? stats;
+
   final VoidCallback onTap;
+
+  /// The line under the tier's name.
+  ///
+  /// A tier the player has finished something at talks about them: their best
+  /// time and how many they have done. One they have not talks about the
+  /// puzzle instead, because "not solved yet" is a true sentence that tells
+  /// nobody anything, and what a player choosing a tier for the first time
+  /// wants to know is what it will be like.
+  String _line(AppLocalizations l10n) {
+    final GameStats? figures = stats;
+    if (figures == null || figures.solved == 0) {
+      return difficulty.blurb(l10n);
+    }
+    final Duration? best = figures.bestTime;
+    if (best == null) {
+      // Solved, but only ever with help, so there is no best time to show.
+      return l10n.difficultyTierSolved(figures.solved);
+    }
+    return l10n.difficultyTierBest(clockReading(best), figures.solved);
+  }
 
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final String name = difficulty.label(l10n);
-    final String description = difficulty.blurb(l10n);
+    final String description = _line(l10n);
     // The designs mark Fiendish with words rather than a full meter: four
     // filled bars would say "hardest", where what a player needs to know is
     // that this is the tier they will want to write notes for.
@@ -183,10 +300,6 @@ class _TierRow extends StatelessWidget {
                       children: <Widget>[
                         Text(name, style: NookType.rowTitle(colors.ink)),
                         const SizedBox(height: 3),
-                        // The designs put a best time and a solved count here.
-                        // Neither exists until statistics do (VIB-77), and a
-                        // row of zeroes would be worse than saying what the
-                        // tier is like.
                         Text(
                           description,
                           style: NookType.rowSubtitle(colors.inkMuted),

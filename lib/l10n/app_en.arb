@@ -10,6 +10,37 @@
   "@homeAllGames": {
     "description": "Heading above the list of games on the home screen. Upper case in English by design; use whatever the language's convention for a small section heading is."
   },
+  "homeContinue": "CONTINUE",
+  "@homeContinue": {
+    "description": "Heading above the card offering the puzzle the player last left unfinished, at the top of the home screen. Upper case in English by design; use whatever the language's convention for a small section heading is."
+  },
+  "continueDetails": "{difficulty} · {time} · {percent}% filled in",
+  "@continueDetails": {
+    "description": "The second line of a card offering an unfinished puzzle: how hard it is, how long it has been played for, and how much of the grid has something written in it.",
+    "placeholders": {
+      "difficulty": { "type": "String", "example": "Medium" },
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
+  "continueProgress": "{time} · {percent}% filled in",
+  "@continueProgress": {
+    "description": "The line on the in-progress card on a game's own screen, where the game is already named above: how long the puzzle has been played for, and how much of the grid has something written in it.",
+    "placeholders": {
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
+  "continueLabel": "Continue {game}, {difficulty}, {time} played, {percent}% filled in",
+  "@continueLabel": {
+    "description": "Screen-reader label for the card offering an unfinished puzzle.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" },
+      "difficulty": { "type": "String", "example": "Medium" },
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
   "homePromise": "No ads. No tracking. No account. Ever.",
   "@homePromise": {
     "description": "The footer of the home screen. Nook's central promise, so keep it short and flat rather than enthusiastic."
@@ -97,10 +128,29 @@
   "difficultyFiendishBlurb": "Chains across the grid",
   "@difficultyFiendishBlurb": { "description": "What solving a Fiendish puzzle feels like. A 'chain' is a line of reasoning linking cells across the whole board." },
 
+  "difficultyInProgress": "IN PROGRESS",
+  "@difficultyInProgress": {
+    "description": "Heading above the card offering this game's unfinished puzzle, on the screen where a difficulty is picked. Upper case in English by design."
+  },
   "difficultyStartNew": "START A NEW ONE",
   "@difficultyStartNew": { "description": "Heading above the list of difficulties. Upper case in English by design." },
   "difficultyNeedsNotes": "needs notes",
   "@difficultyNeedsNotes": { "description": "Shown beside the hardest tier instead of a difficulty meter, warning that pencil marks are effectively required." },
+  "difficultyTierBest": "best {time} · {count, plural, =1{1 solved} other{{count} solved}}",
+  "@difficultyTierBest": {
+    "description": "The line under a difficulty's name once the player has finished puzzles there: their fastest time at this tier, and how many they have solved. The time is a digital clock reading, minutes and seconds separated by a colon.",
+    "placeholders": {
+      "time": { "type": "String", "example": "02:54" },
+      "count": { "type": "int", "example": "22" }
+    }
+  },
+  "difficultyTierSolved": "{count, plural, =1{1 solved} other{{count} solved}}",
+  "@difficultyTierSolved": {
+    "description": "The same line for a tier the player has only ever finished with a hint, so it has a count but no best time. A hinted puzzle counts as solved and never sets a best.",
+    "placeholders": {
+      "count": { "type": "int", "example": "3" }
+    }
+  },
   "difficultyTierLabel": "{name}. {description}",
   "@difficultyTierLabel": {
     "description": "Screen-reader label for a difficulty row.",
@@ -155,8 +205,103 @@
   "@gameInstruction": { "description": "The one line of instruction under the number pad, shown until the puzzle is solved." },
   "gameSolved": "Solved",
   "@gameSolved": { "description": "Announced and shown when the player finishes a puzzle." },
-  "gameNewPuzzle": "New puzzle",
-  "@gameNewPuzzle": { "description": "Button that starts another puzzle after finishing one." },
+
+  "gameElapsedLabel": "Time so far {time}",
+  "@gameElapsedLabel": {
+    "description": "Screen-reader label for the clock in the game screen header. The placeholder is a digital clock reading, minutes and seconds separated by a colon, with an hours part in front of it once a puzzle passes an hour.",
+    "placeholders": {
+      "time": { "type": "String", "example": "07:42" }
+    }
+  },
+
+  "completionSubtitle": "{game} · {tier}",
+  "@completionSubtitle": {
+    "description": "The line under 'Solved' on the finished-puzzle screen: which game was finished, and at which difficulty.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" },
+      "tier": { "type": "String", "example": "Medium" }
+    }
+  },
+  "completionPersonalBest": "A new personal best",
+  "@completionPersonalBest": {
+    "description": "Shown on the finished-puzzle screen when the player has just beaten their own fastest time at this game and difficulty. The only thing in Nook a player is ever measured against is themselves, so there is nobody else in this sentence."
+  },
+  "completionTime": "TIME",
+  "@completionTime": {
+    "description": "Heading on the card showing how long the puzzle just finished took. Upper case in English by design; use whatever the language's convention for a small caption is."
+  },
+  "completionPrevious": "PREVIOUS",
+  "@completionPrevious": {
+    "description": "Heading on the card showing the player's best time before this puzzle. Short because it sits in a narrow card between two others."
+  },
+  "completionSolvedCount": "SOLVED",
+  "@completionSolvedCount": {
+    "description": "Heading on the card showing how many puzzles the player has finished at this game and difficulty."
+  },
+  "completionNoTime": "—",
+  "@completionNoTime": {
+    "description": "Stands in for a best time that does not exist yet, on the finished-puzzle screen. An em dash in English; use whatever a language writes for 'no figure'. Never a zero, which would read as a time."
+  },
+  "completionTimeLabel": "Your time, {time}",
+  "@completionTimeLabel": {
+    "description": "Screen-reader label for the card showing how long this puzzle took.",
+    "placeholders": {
+      "time": { "type": "String", "example": "08:12" }
+    }
+  },
+  "completionPreviousLabel": "Previous best, {time}",
+  "@completionPreviousLabel": {
+    "description": "Screen-reader label for the card showing the time the player had to beat.",
+    "placeholders": {
+      "time": { "type": "String", "example": "08:41" }
+    }
+  },
+  "completionNoPreviousLabel": "No previous best time",
+  "@completionNoPreviousLabel": {
+    "description": "Screen-reader label for the previous-best card when there is no best time yet — either the first solve here, or every one of them was helped by a hint."
+  },
+  "completionSolvedLabel": "{count, plural, =1{1 puzzle solved at this difficulty} other{{count} puzzles solved at this difficulty}}",
+  "@completionSolvedLabel": {
+    "description": "Screen-reader label for the card counting finished puzzles.",
+    "placeholders": {
+      "count": { "type": "int", "example": "6" }
+    }
+  },
+  "completionAnother": "Another {tier} puzzle",
+  "@completionAnother": {
+    "description": "The main button on the finished-puzzle screen, which generates a new puzzle at the same difficulty. Names the tier so the player knows what they are getting.",
+    "placeholders": {
+      "tier": { "type": "String", "example": "Medium" }
+    }
+  },
+  "completionBackHome": "Back to Nook",
+  "@completionBackHome": {
+    "description": "The second button on the finished-puzzle screen, which returns to the game list. 'Nook' is the app's name: leave it untranslated."
+  },
+  "completionClose": "Close",
+  "@completionClose": {
+    "description": "Screen-reader label for the button that leaves the finished-puzzle screen and goes back to the list of difficulties."
+  },
+
+  "discardTitle": "Start a new puzzle?",
+  "@discardTitle": {
+    "description": "Title of the question asked when the player starts a new puzzle in a game that already has an unfinished one."
+  },
+  "discardBody": "Your unfinished {game} puzzle will be thrown away. There is no way to get it back.",
+  "@discardBody": {
+    "description": "The body of that question. Plain about the consequence: this is the only thing in Nook that destroys the player's work.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" }
+    }
+  },
+  "discardConfirm": "Discard and start",
+  "@discardConfirm": {
+    "description": "The button that throws the unfinished puzzle away and starts a new one. Says what it does rather than 'OK'."
+  },
+  "discardKeep": "Keep playing",
+  "@discardKeep": {
+    "description": "The button that cancels, leaving the unfinished puzzle exactly as it was."
+  },
 
   "boardLabel": "{name} board, {size} by {size}",
   "@boardLabel": {
@@ -201,6 +346,15 @@
       "value": { "type": "int", "example": "1" }
     }
   },
+  "cellHint": "Row {row}, column {column}, {value}, from a hint",
+  "@cellHint": {
+    "description": "Screen-reader label for a cell that a hint filled in. Distinguishes it from the player's own answer, which is what its colour does on screen.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
   "listSeparator": ", ",
   "@listSeparator": {
     "description": "What goes between items when a screen reader lists several digits, as in the pencil marks of one cell. Includes its trailing space."
@@ -212,6 +366,10 @@
   "@actionErase": { "description": "Control that clears the selected cell." },
   "actionNotes": "Notes",
   "@actionNotes": { "description": "Control that switches between writing answers and writing pencil marks." },
+  "actionHint": "Hint",
+  "@actionHint": {
+    "description": "Control that fills in one cell the player could have worked out. Hints are unlimited and free, so the word carries no count and no cost."
+  },
   "actionToggleOn": "{label} on",
   "@actionToggleOn": {
     "description": "The caption under a control that is a switch and is currently on. It spells the state out in words because a player who cannot see the fill would otherwise write pencil marks they meant as answers.",

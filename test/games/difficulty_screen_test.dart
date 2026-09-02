@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/sudoku_board.dart';
+import 'package:nook/chrome/continue_card.dart';
+import 'package:nook/chrome/discard_dialog.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/difficulty_screen.dart';
-import 'package:nook/games/sudoku/sudoku_controller.dart';
 import 'package:nook/games/sudoku/sudoku_naming.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/l10n/app_localizations.dart';
+import 'package:nook/store/nook_database.dart';
+import 'package:nook/store/saved_game.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
@@ -18,17 +20,17 @@ import '../support/sudoku_fixture.dart';
 Future<void> pumpDifficulty(
   WidgetTester tester, {
   SudokuVariant variant = SudokuVariant.classic,
+  NookDatabase? database,
+  TestClock? clock,
   double width = 400,
 }) async {
   await setPhoneSurface(tester, width: width);
   final SudokuPuzzle fixed = fixedPuzzle(variant);
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        sudokuPuzzleSourceProvider.overrideWithValue(
-          (SudokuSpec spec, SudokuDifficulty tier, int seed) async => fixed,
-        ),
-      ],
+    nookScope(
+      puzzle: fixed,
+      database: database,
+      clock: clock,
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -235,17 +237,12 @@ void main() {
       final List<SudokuDifficulty> asked = <SudokuDifficulty>[];
       await setPhoneSurface(tester);
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sudokuPuzzleSourceProvider.overrideWithValue((
-              SudokuSpec spec,
-              SudokuDifficulty tier,
-              int seed,
-            ) async {
-              asked.add(tier);
-              return fixedPuzzle(SudokuVariant.classic);
-            }),
-          ],
+        nookScope(
+          puzzle: fixedPuzzle(SudokuVariant.classic),
+          source: (SudokuSpec spec, SudokuDifficulty tier, int seed) async {
+            asked.add(tier);
+            return fixedPuzzle(SudokuVariant.classic);
+          },
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -262,6 +259,254 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(asked, <SudokuDifficulty>[SudokuDifficulty.fiendish]);
+    });
+  });
+
+  group('a game with a puzzle already in progress', () {
+    /// The difficulty screen for Sudoku Mini, with [save] already on disk.
+    Future<NookDatabase> pumpWithSave(
+      WidgetTester tester, {
+      SavedGame? save,
+    }) async {
+      final NookDatabase database = memoryDatabase();
+      await SavedGameStore(database).save(save ?? partPlayedMiniSave());
+      await pumpDifficulty(
+        tester,
+        variant: SudokuVariant.mini,
+        database: database,
+      );
+      return database;
+    }
+
+    testWidgets('offers it before offering a new one', (
+      WidgetTester tester,
+    ) async {
+      await pumpWithSave(tester);
+
+      expect(find.text(en.difficultyInProgress), findsOneWidget);
+      expect(find.byKey(ContinueCard.cardKey), findsOneWidget);
+      expect(find.text(en.continueProgress('01:30', 10)), findsOneWidget);
+    });
+
+    testWidgets('carries on with it exactly where it was', (
+      WidgetTester tester,
+    ) async {
+      await pumpWithSave(tester);
+
+      await tester.tap(find.byKey(ContinueCard.cardKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SudokuBoard), findsOneWidget);
+      expect(digitIn(tester, 0), '1');
+      expect(find.text('01:30'), findsOneWidget);
+    });
+
+    testWidgets('asks before a new puzzle throws it away', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = await pumpWithSave(tester);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(en.discardTitle), findsOneWidget);
+      expect(find.byType(SudokuBoard), findsNothing);
+      expect(
+        await storedSave(tester, database, SudokuVariant.miniId),
+        isNotNull,
+        reason: 'asking is not the same as doing',
+      );
+    });
+
+    testWidgets('keeps it when the player says to keep playing', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = await pumpWithSave(tester);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(DiscardDialog.keepKey));
+      await tester.pumpAndSettle();
+
+      expect(find.text(en.discardTitle), findsNothing);
+      expect(find.byType(SudokuBoard), findsNothing);
+      final SavedGame? kept = await storedSave(
+        tester,
+        database,
+        SudokuVariant.miniId,
+      );
+      expect(kept, isNotNull);
+      expect(kept!.cells[0], 1, reason: 'the board was changed by cancelling');
+      expect(kept.elapsed, const Duration(minutes: 1, seconds: 30));
+      expect(find.byKey(ContinueCard.cardKey), findsOneWidget);
+    });
+
+    testWidgets('throws it away only when the player says so', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = await pumpWithSave(tester);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(DiscardDialog.confirmKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SudokuBoard), findsOneWidget);
+      final SavedGame? replacement = await storedSave(
+        tester,
+        database,
+        SudokuVariant.miniId,
+      );
+      // The new puzzle saves itself as soon as it exists, so what must be gone
+      // is the old board rather than the row.
+      expect(replacement?.cells[0] ?? 0, isNot(1));
+      expect(replacement?.elapsed ?? Duration.zero, Duration.zero);
+    });
+
+    testWidgets('asks nothing when there is nothing to lose', (
+      WidgetTester tester,
+    ) async {
+      await pumpDifficulty(tester, variant: SudokuVariant.mini);
+
+      await tester.tap(
+        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(en.discardTitle), findsNothing);
+      expect(find.byType(SudokuBoard), findsOneWidget);
+    });
+  });
+
+  group('what a tier says about itself', () {
+    /// Writes [solved] finished puzzles at [tier] into [database], the fastest
+    /// of them taking [best] unless there is no best time to have.
+    Future<void> record(
+      NookDatabase database, {
+      required SudokuDifficulty tier,
+      int solved = 1,
+      Duration? best = const Duration(minutes: 1),
+      String gameId = SudokuVariant.classicId,
+    }) async {
+      final GameStatsStore store = GameStatsStore(database);
+      for (int puzzle = 0; puzzle < solved; puzzle++) {
+        await store.record(
+          gameId: gameId,
+          difficulty: tier.name,
+          // A helped puzzle counts and sets no best, which is the only way to
+          // arrive at a tier with a count and no time.
+          time: best ?? const Duration(minutes: 9),
+          hinted: best == null,
+        );
+      }
+    }
+
+    /// The line under [tier]'s name.
+    String lineUnder(WidgetTester tester, SudokuDifficulty tier) {
+      final Iterable<Text> lines = tester.widgetList<Text>(
+        find.descendant(
+          of: find.byKey(SudokuDifficultyPage.tierKey(tier)),
+          matching: find.byType(Text),
+        ),
+      );
+      return lines.elementAt(1).data!;
+    }
+
+    testWidgets('a tier nobody has finished describes the puzzle', (
+      WidgetTester tester,
+    ) async {
+      // Rather than "not solved yet", which is true and tells a player
+      // choosing a tier for the first time nothing at all.
+      await pumpDifficulty(tester);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.medium),
+        SudokuDifficulty.medium.blurb(en),
+      );
+    });
+
+    testWidgets('a tier with a best time shows it, and the count', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await record(database, tier: SudokuDifficulty.medium, solved: 3);
+
+      await pumpDifficulty(tester, database: database);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.medium),
+        en.difficultyTierBest('01:00', 3),
+      );
+      expect(find.text('best 01:00 · 3 solved'), findsOneWidget);
+    });
+
+    testWidgets('a tier only ever finished with help shows just the count', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await record(database, tier: SudokuDifficulty.hard, best: null);
+
+      await pumpDifficulty(tester, database: database);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.hard),
+        en.difficultyTierSolved(1),
+      );
+      expect(find.text('1 solved'), findsOneWidget);
+    });
+
+    testWidgets('and the figures belong to one tier of one game', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await record(database, tier: SudokuDifficulty.gentle);
+      await record(
+        database,
+        tier: SudokuDifficulty.easy,
+        gameId: SudokuVariant.miniId,
+      );
+
+      await pumpDifficulty(tester, database: database);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.gentle),
+        en.difficultyTierBest('01:00', 1),
+      );
+      expect(
+        lineUnder(tester, SudokuDifficulty.easy),
+        SudokuDifficulty.easy.blurb(en),
+        reason: 'a Sudoku Mini time was shown on Sudoku Classic',
+      );
+    });
+
+    testWidgets('and a screen reader hears them too', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        final NookDatabase database = memoryDatabase();
+        await record(database, tier: SudokuDifficulty.gentle, solved: 2);
+
+        await pumpDifficulty(tester, database: database);
+
+        expect(
+          find.bySemanticsLabel(
+            en.difficultyTierLabel(
+              en.difficultyGentle,
+              en.difficultyTierBest('01:00', 2),
+            ),
+          ),
+          findsOneWidget,
+        );
+      } finally {
+        handle.dispose();
+      }
     });
   });
 }
