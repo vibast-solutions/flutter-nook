@@ -42,6 +42,14 @@ final Provider<SudokuDifficulty> sudokuDifficultyProvider =
       name: 'sudokuDifficulty',
     );
 
+/// The game to open instead of generating one, or `null` for a new puzzle.
+///
+/// Scoped like the two above: resuming is a property of the way the screen was
+/// opened, not of the app, and a player who taps a difficulty after resuming
+/// must get a fresh puzzle rather than the same saved one again.
+final Provider<SudokuGameState?> sudokuResumeProvider =
+    Provider<SudokuGameState?>((Ref ref) => null, name: 'sudokuResume');
+
 /// Where new puzzles come from. Overridden in tests.
 final Provider<SudokuPuzzleSource> sudokuPuzzleSourceProvider =
     Provider<SudokuPuzzleSource>(
@@ -69,7 +77,11 @@ sudokuControllerProvider =
       // Declared so the controller is rebuilt inside the scope the game screen
       // opens, where the variant is overridden. Without it the controller resolves
       // in the root container and never sees which Sudoku it is playing.
-      dependencies: [sudokuVariantProvider, sudokuDifficultyProvider],
+      dependencies: [
+        sudokuVariantProvider,
+        sudokuDifficultyProvider,
+        sudokuResumeProvider,
+      ],
     );
 
 /// Holds one Sudoku and applies the player's moves to it.
@@ -80,12 +92,13 @@ sudokuControllerProvider =
 class SudokuController extends AsyncNotifier<SudokuGameState> {
   @override
   Future<SudokuGameState> build() async {
-    final SudokuVariant variant = ref.watch(sudokuVariantProvider);
-    final SudokuDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
-    final SudokuPuzzleSource source = ref.watch(sudokuPuzzleSourceProvider);
-    final int seed = ref.watch(sudokuSeedSourceProvider)();
-    final SudokuPuzzle puzzle = await source(variant.spec, difficulty, seed);
-    return SudokuGameState.fresh(variant: variant, puzzle: puzzle);
+    final SudokuGameState? resumed = ref.watch(sudokuResumeProvider);
+    if (resumed != null) {
+      // A saved puzzle is already a whole game; there is nothing to generate
+      // and nothing to wait for, which is why resuming never shows a spinner.
+      return resumed;
+    }
+    return _freshGame();
   }
 
   /// Points the number pad at the cell at [index].
@@ -226,10 +239,26 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
   }
 
   /// Throws away the current puzzle and generates another.
+  ///
+  /// Generates rather than rebuilding: rebuilding would read the resume slot
+  /// again and hand back the very puzzle the player just asked to leave.
   Future<void> startNewPuzzle() async {
     state = const AsyncLoading<SudokuGameState>();
-    ref.invalidateSelf();
-    await future;
+    state = await AsyncValue.guard(_freshGame);
+  }
+
+  /// A newly generated puzzle of the shape and tier this screen asked for.
+  ///
+  /// Read rather than watched: the variant, the tier and the seed source are
+  /// fixed for as long as the screen is open, and a controller that rebuilt
+  /// itself would throw away the game the player is in the middle of.
+  Future<SudokuGameState> _freshGame() async {
+    final SudokuVariant variant = ref.read(sudokuVariantProvider);
+    final SudokuDifficulty difficulty = ref.read(sudokuDifficultyProvider);
+    final SudokuPuzzleSource source = ref.read(sudokuPuzzleSourceProvider);
+    final int seed = ref.read(sudokuSeedSourceProvider)();
+    final SudokuPuzzle puzzle = await source(variant.spec, difficulty, seed);
+    return SudokuGameState.fresh(variant: variant, puzzle: puzzle);
   }
 }
 

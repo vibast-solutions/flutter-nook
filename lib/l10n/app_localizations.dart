@@ -106,6 +106,35 @@ abstract class AppLocalizations {
   /// **'ALL GAMES'**
   String get homeAllGames;
 
+  /// Heading above the card offering the puzzle the player last left unfinished, at the top of the home screen. Upper case in English by design; use whatever the language's convention for a small section heading is.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTINUE'**
+  String get homeContinue;
+
+  /// The second line of a card offering an unfinished puzzle: how hard it is, how long it has been played for, and how much of the grid has something written in it.
+  ///
+  /// In en, this message translates to:
+  /// **'{difficulty} · {time} · {percent}% filled in'**
+  String continueDetails(String difficulty, String time, int percent);
+
+  /// The line on the in-progress card on a game's own screen, where the game is already named above: how long the puzzle has been played for, and how much of the grid has something written in it.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} · {percent}% filled in'**
+  String continueProgress(String time, int percent);
+
+  /// Screen-reader label for the card offering an unfinished puzzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue {game}, {difficulty}, {time} played, {percent}% filled in'**
+  String continueLabel(
+    String game,
+    String difficulty,
+    String time,
+    int percent,
+  );
+
   /// The footer of the home screen. Nook's central promise, so keep it short and flat rather than enthusiastic.
   ///
   /// In en, this message translates to:
@@ -256,6 +285,12 @@ abstract class AppLocalizations {
   /// **'Chains across the grid'**
   String get difficultyFiendishBlurb;
 
+  /// Heading above the card offering this game's unfinished puzzle, on the screen where a difficulty is picked. Upper case in English by design.
+  ///
+  /// In en, this message translates to:
+  /// **'IN PROGRESS'**
+  String get difficultyInProgress;
+
   /// Heading above the list of difficulties. Upper case in English by design.
   ///
   /// In en, this message translates to:
@@ -345,6 +380,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New puzzle'**
   String get gameNewPuzzle;
+
+  /// Screen-reader label for the clock in the game screen header. The placeholder is a digital clock reading, minutes and seconds separated by a colon, with an hours part in front of it once a puzzle passes an hour.
+  ///
+  /// In en, this message translates to:
+  /// **'Time so far {time}'**
+  String gameElapsedLabel(String time);
+
+  /// Title of the question asked when the player starts a new puzzle in a game that already has an unfinished one.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new puzzle?'**
+  String get discardTitle;
+
+  /// The body of that question. Plain about the consequence: this is the only thing in Nook that destroys the player's work.
+  ///
+  /// In en, this message translates to:
+  /// **'Your unfinished {game} puzzle will be thrown away. There is no way to get it back.'**
+  String discardBody(String game);
+
+  /// The button that throws the unfinished puzzle away and starts a new one. Says what it does rather than 'OK'.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard and start'**
+  String get discardConfirm;
+
+  /// The button that cancels, leaving the unfinished puzzle exactly as it was.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep playing'**
+  String get discardKeep;
 
   /// Screen-reader label announcing the board as a whole.
   ///

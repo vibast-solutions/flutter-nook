@@ -1,0 +1,1025 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'nook_database.dart';
+
+// ignore_for_file: type=lint
+class $SavedGamesTable extends SavedGames
+    with TableInfo<$SavedGamesTable, SavedGameRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedGamesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _gameIdMeta = const VerificationMeta('gameId');
+  @override
+  late final GeneratedColumn<String> gameId = GeneratedColumn<String>(
+    'game_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _difficultyMeta = const VerificationMeta(
+    'difficulty',
+  );
+  @override
+  late final GeneratedColumn<String> difficulty = GeneratedColumn<String>(
+    'difficulty',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _seedMeta = const VerificationMeta('seed');
+  @override
+  late final GeneratedColumn<int> seed = GeneratedColumn<int>(
+    'seed',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<int>, String> givens =
+      GeneratedColumn<String>(
+        'givens',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<List<int>>($SavedGamesTable.$convertergivens);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<int>, String> solution =
+      GeneratedColumn<String>(
+        'solution',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<List<int>>($SavedGamesTable.$convertersolution);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<int>, String> cells =
+      GeneratedColumn<String>(
+        'cells',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<List<int>>($SavedGamesTable.$convertercells);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<int>, String> notes =
+      GeneratedColumn<String>(
+        'notes',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<List<int>>($SavedGamesTable.$converternotes);
+  @override
+  late final GeneratedColumnWithTypeConverter<MoveHistory, String> history =
+      GeneratedColumn<String>(
+        'history',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<MoveHistory>($SavedGamesTable.$converterhistory);
+  static const VerificationMeta _notesModeMeta = const VerificationMeta(
+    'notesMode',
+  );
+  @override
+  late final GeneratedColumn<bool> notesMode = GeneratedColumn<bool>(
+    'notes_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notes_mode" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Duration, int> elapsed =
+      GeneratedColumn<int>(
+        'elapsed',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<Duration>($SavedGamesTable.$converterelapsed);
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    gameId,
+    difficulty,
+    seed,
+    givens,
+    solution,
+    cells,
+    notes,
+    history,
+    notesMode,
+    elapsed,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_games';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedGameRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('game_id')) {
+      context.handle(
+        _gameIdMeta,
+        gameId.isAcceptableOrUnknown(data['game_id']!, _gameIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_gameIdMeta);
+    }
+    if (data.containsKey('difficulty')) {
+      context.handle(
+        _difficultyMeta,
+        difficulty.isAcceptableOrUnknown(data['difficulty']!, _difficultyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_difficultyMeta);
+    }
+    if (data.containsKey('seed')) {
+      context.handle(
+        _seedMeta,
+        seed.isAcceptableOrUnknown(data['seed']!, _seedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seedMeta);
+    }
+    if (data.containsKey('notes_mode')) {
+      context.handle(
+        _notesModeMeta,
+        notesMode.isAcceptableOrUnknown(data['notes_mode']!, _notesModeMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {gameId};
+  @override
+  SavedGameRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedGameRow(
+      gameId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}game_id'],
+      )!,
+      difficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulty'],
+      )!,
+      seed: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seed'],
+      )!,
+      givens: $SavedGamesTable.$convertergivens.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}givens'],
+        )!,
+      ),
+      solution: $SavedGamesTable.$convertersolution.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}solution'],
+        )!,
+      ),
+      cells: $SavedGamesTable.$convertercells.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}cells'],
+        )!,
+      ),
+      notes: $SavedGamesTable.$converternotes.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}notes'],
+        )!,
+      ),
+      history: $SavedGamesTable.$converterhistory.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}history'],
+        )!,
+      ),
+      notesMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notes_mode'],
+      )!,
+      elapsed: $SavedGamesTable.$converterelapsed.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}elapsed'],
+        )!,
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SavedGamesTable createAlias(String alias) {
+    return $SavedGamesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<List<int>, String> $convertergivens =
+      const _DigitsConverter();
+  static TypeConverter<List<int>, String> $convertersolution =
+      const _DigitsConverter();
+  static TypeConverter<List<int>, String> $convertercells =
+      const _DigitsConverter();
+  static TypeConverter<List<int>, String> $converternotes =
+      const _DigitsConverter();
+  static TypeConverter<MoveHistory, String> $converterhistory =
+      const _HistoryConverter();
+  static TypeConverter<Duration, int> $converterelapsed =
+      const _DurationConverter();
+}
+
+class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
+  /// The game's stable identifier, which is also what makes the save unique.
+  final String gameId;
+
+  /// The tier, as its identifier rather than a name a player reads.
+  final String difficulty;
+
+  /// The seed the puzzle was generated from.
+  final int seed;
+
+  /// The starting grid.
+  final List<int> givens;
+
+  /// The one solution.
+  final List<int> solution;
+
+  /// The grid as the player left it.
+  final List<int> cells;
+
+  /// The pencil marks, one bitmask per cell.
+  final List<int> notes;
+
+  /// The moves still to take back.
+  final MoveHistory history;
+
+  /// Whether the pad was left writing pencil marks.
+  final bool notesMode;
+
+  /// How long the puzzle has been played for.
+  final Duration elapsed;
+
+  /// When this save was last written; the newest is the one Continue offers.
+  final DateTime updatedAt;
+  const SavedGameRow({
+    required this.gameId,
+    required this.difficulty,
+    required this.seed,
+    required this.givens,
+    required this.solution,
+    required this.cells,
+    required this.notes,
+    required this.history,
+    required this.notesMode,
+    required this.elapsed,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['game_id'] = Variable<String>(gameId);
+    map['difficulty'] = Variable<String>(difficulty);
+    map['seed'] = Variable<int>(seed);
+    {
+      map['givens'] = Variable<String>(
+        $SavedGamesTable.$convertergivens.toSql(givens),
+      );
+    }
+    {
+      map['solution'] = Variable<String>(
+        $SavedGamesTable.$convertersolution.toSql(solution),
+      );
+    }
+    {
+      map['cells'] = Variable<String>(
+        $SavedGamesTable.$convertercells.toSql(cells),
+      );
+    }
+    {
+      map['notes'] = Variable<String>(
+        $SavedGamesTable.$converternotes.toSql(notes),
+      );
+    }
+    {
+      map['history'] = Variable<String>(
+        $SavedGamesTable.$converterhistory.toSql(history),
+      );
+    }
+    map['notes_mode'] = Variable<bool>(notesMode);
+    {
+      map['elapsed'] = Variable<int>(
+        $SavedGamesTable.$converterelapsed.toSql(elapsed),
+      );
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SavedGamesCompanion toCompanion(bool nullToAbsent) {
+    return SavedGamesCompanion(
+      gameId: Value(gameId),
+      difficulty: Value(difficulty),
+      seed: Value(seed),
+      givens: Value(givens),
+      solution: Value(solution),
+      cells: Value(cells),
+      notes: Value(notes),
+      history: Value(history),
+      notesMode: Value(notesMode),
+      elapsed: Value(elapsed),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory SavedGameRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedGameRow(
+      gameId: serializer.fromJson<String>(json['gameId']),
+      difficulty: serializer.fromJson<String>(json['difficulty']),
+      seed: serializer.fromJson<int>(json['seed']),
+      givens: serializer.fromJson<List<int>>(json['givens']),
+      solution: serializer.fromJson<List<int>>(json['solution']),
+      cells: serializer.fromJson<List<int>>(json['cells']),
+      notes: serializer.fromJson<List<int>>(json['notes']),
+      history: serializer.fromJson<MoveHistory>(json['history']),
+      notesMode: serializer.fromJson<bool>(json['notesMode']),
+      elapsed: serializer.fromJson<Duration>(json['elapsed']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'gameId': serializer.toJson<String>(gameId),
+      'difficulty': serializer.toJson<String>(difficulty),
+      'seed': serializer.toJson<int>(seed),
+      'givens': serializer.toJson<List<int>>(givens),
+      'solution': serializer.toJson<List<int>>(solution),
+      'cells': serializer.toJson<List<int>>(cells),
+      'notes': serializer.toJson<List<int>>(notes),
+      'history': serializer.toJson<MoveHistory>(history),
+      'notesMode': serializer.toJson<bool>(notesMode),
+      'elapsed': serializer.toJson<Duration>(elapsed),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  SavedGameRow copyWith({
+    String? gameId,
+    String? difficulty,
+    int? seed,
+    List<int>? givens,
+    List<int>? solution,
+    List<int>? cells,
+    List<int>? notes,
+    MoveHistory? history,
+    bool? notesMode,
+    Duration? elapsed,
+    DateTime? updatedAt,
+  }) => SavedGameRow(
+    gameId: gameId ?? this.gameId,
+    difficulty: difficulty ?? this.difficulty,
+    seed: seed ?? this.seed,
+    givens: givens ?? this.givens,
+    solution: solution ?? this.solution,
+    cells: cells ?? this.cells,
+    notes: notes ?? this.notes,
+    history: history ?? this.history,
+    notesMode: notesMode ?? this.notesMode,
+    elapsed: elapsed ?? this.elapsed,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  SavedGameRow copyWithCompanion(SavedGamesCompanion data) {
+    return SavedGameRow(
+      gameId: data.gameId.present ? data.gameId.value : this.gameId,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
+      seed: data.seed.present ? data.seed.value : this.seed,
+      givens: data.givens.present ? data.givens.value : this.givens,
+      solution: data.solution.present ? data.solution.value : this.solution,
+      cells: data.cells.present ? data.cells.value : this.cells,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      history: data.history.present ? data.history.value : this.history,
+      notesMode: data.notesMode.present ? data.notesMode.value : this.notesMode,
+      elapsed: data.elapsed.present ? data.elapsed.value : this.elapsed,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedGameRow(')
+          ..write('gameId: $gameId, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('seed: $seed, ')
+          ..write('givens: $givens, ')
+          ..write('solution: $solution, ')
+          ..write('cells: $cells, ')
+          ..write('notes: $notes, ')
+          ..write('history: $history, ')
+          ..write('notesMode: $notesMode, ')
+          ..write('elapsed: $elapsed, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    gameId,
+    difficulty,
+    seed,
+    givens,
+    solution,
+    cells,
+    notes,
+    history,
+    notesMode,
+    elapsed,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedGameRow &&
+          other.gameId == this.gameId &&
+          other.difficulty == this.difficulty &&
+          other.seed == this.seed &&
+          other.givens == this.givens &&
+          other.solution == this.solution &&
+          other.cells == this.cells &&
+          other.notes == this.notes &&
+          other.history == this.history &&
+          other.notesMode == this.notesMode &&
+          other.elapsed == this.elapsed &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
+  final Value<String> gameId;
+  final Value<String> difficulty;
+  final Value<int> seed;
+  final Value<List<int>> givens;
+  final Value<List<int>> solution;
+  final Value<List<int>> cells;
+  final Value<List<int>> notes;
+  final Value<MoveHistory> history;
+  final Value<bool> notesMode;
+  final Value<Duration> elapsed;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const SavedGamesCompanion({
+    this.gameId = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.seed = const Value.absent(),
+    this.givens = const Value.absent(),
+    this.solution = const Value.absent(),
+    this.cells = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.history = const Value.absent(),
+    this.notesMode = const Value.absent(),
+    this.elapsed = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedGamesCompanion.insert({
+    required String gameId,
+    required String difficulty,
+    required int seed,
+    required List<int> givens,
+    required List<int> solution,
+    required List<int> cells,
+    required List<int> notes,
+    required MoveHistory history,
+    this.notesMode = const Value.absent(),
+    required Duration elapsed,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : gameId = Value(gameId),
+       difficulty = Value(difficulty),
+       seed = Value(seed),
+       givens = Value(givens),
+       solution = Value(solution),
+       cells = Value(cells),
+       notes = Value(notes),
+       history = Value(history),
+       elapsed = Value(elapsed),
+       updatedAt = Value(updatedAt);
+  static Insertable<SavedGameRow> custom({
+    Expression<String>? gameId,
+    Expression<String>? difficulty,
+    Expression<int>? seed,
+    Expression<String>? givens,
+    Expression<String>? solution,
+    Expression<String>? cells,
+    Expression<String>? notes,
+    Expression<String>? history,
+    Expression<bool>? notesMode,
+    Expression<int>? elapsed,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (gameId != null) 'game_id': gameId,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (seed != null) 'seed': seed,
+      if (givens != null) 'givens': givens,
+      if (solution != null) 'solution': solution,
+      if (cells != null) 'cells': cells,
+      if (notes != null) 'notes': notes,
+      if (history != null) 'history': history,
+      if (notesMode != null) 'notes_mode': notesMode,
+      if (elapsed != null) 'elapsed': elapsed,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedGamesCompanion copyWith({
+    Value<String>? gameId,
+    Value<String>? difficulty,
+    Value<int>? seed,
+    Value<List<int>>? givens,
+    Value<List<int>>? solution,
+    Value<List<int>>? cells,
+    Value<List<int>>? notes,
+    Value<MoveHistory>? history,
+    Value<bool>? notesMode,
+    Value<Duration>? elapsed,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return SavedGamesCompanion(
+      gameId: gameId ?? this.gameId,
+      difficulty: difficulty ?? this.difficulty,
+      seed: seed ?? this.seed,
+      givens: givens ?? this.givens,
+      solution: solution ?? this.solution,
+      cells: cells ?? this.cells,
+      notes: notes ?? this.notes,
+      history: history ?? this.history,
+      notesMode: notesMode ?? this.notesMode,
+      elapsed: elapsed ?? this.elapsed,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (gameId.present) {
+      map['game_id'] = Variable<String>(gameId.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<String>(difficulty.value);
+    }
+    if (seed.present) {
+      map['seed'] = Variable<int>(seed.value);
+    }
+    if (givens.present) {
+      map['givens'] = Variable<String>(
+        $SavedGamesTable.$convertergivens.toSql(givens.value),
+      );
+    }
+    if (solution.present) {
+      map['solution'] = Variable<String>(
+        $SavedGamesTable.$convertersolution.toSql(solution.value),
+      );
+    }
+    if (cells.present) {
+      map['cells'] = Variable<String>(
+        $SavedGamesTable.$convertercells.toSql(cells.value),
+      );
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(
+        $SavedGamesTable.$converternotes.toSql(notes.value),
+      );
+    }
+    if (history.present) {
+      map['history'] = Variable<String>(
+        $SavedGamesTable.$converterhistory.toSql(history.value),
+      );
+    }
+    if (notesMode.present) {
+      map['notes_mode'] = Variable<bool>(notesMode.value);
+    }
+    if (elapsed.present) {
+      map['elapsed'] = Variable<int>(
+        $SavedGamesTable.$converterelapsed.toSql(elapsed.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedGamesCompanion(')
+          ..write('gameId: $gameId, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('seed: $seed, ')
+          ..write('givens: $givens, ')
+          ..write('solution: $solution, ')
+          ..write('cells: $cells, ')
+          ..write('notes: $notes, ')
+          ..write('history: $history, ')
+          ..write('notesMode: $notesMode, ')
+          ..write('elapsed: $elapsed, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+abstract class _$NookDatabase extends GeneratedDatabase {
+  _$NookDatabase(QueryExecutor e) : super(e);
+  $NookDatabaseManager get managers => $NookDatabaseManager(this);
+  late final $SavedGamesTable savedGames = $SavedGamesTable(this);
+  @override
+  Iterable<TableInfo<Table, Object?>> get allTables =>
+      allSchemaEntities.whereType<TableInfo<Table, Object?>>();
+  @override
+  List<DatabaseSchemaEntity> get allSchemaEntities => [savedGames];
+}
+
+typedef $$SavedGamesTableCreateCompanionBuilder = SavedGamesCompanion Function({
+  required String gameId,
+  required String difficulty,
+  required int seed,
+  required List<int> givens,
+  required List<int> solution,
+  required List<int> cells,
+  required List<int> notes,
+  required MoveHistory history,
+  Value<bool> notesMode,
+  required Duration elapsed,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$SavedGamesTableUpdateCompanionBuilder = SavedGamesCompanion Function({
+  Value<String> gameId,
+  Value<String> difficulty,
+  Value<int> seed,
+  Value<List<int>> givens,
+  Value<List<int>> solution,
+  Value<List<int>> cells,
+  Value<List<int>> notes,
+  Value<MoveHistory> history,
+  Value<bool> notesMode,
+  Value<Duration> elapsed,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$SavedGamesTableFilterComposer
+    extends Composer<_$NookDatabase, $SavedGamesTable> {
+  $$SavedGamesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get gameId => $composableBuilder(
+    column: $table.gameId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seed => $composableBuilder(
+    column: $table.seed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<int>, List<int>, String> get givens =>
+      $composableBuilder(
+        column: $table.givens,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<List<int>, List<int>, String> get solution =>
+      $composableBuilder(
+        column: $table.solution,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<List<int>, List<int>, String> get cells =>
+      $composableBuilder(
+        column: $table.cells,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<List<int>, List<int>, String> get notes =>
+      $composableBuilder(
+        column: $table.notes,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<MoveHistory, MoveHistory, String>
+  get history => $composableBuilder(
+    column: $table.history,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get notesMode => $composableBuilder(
+    column: $table.notesMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Duration, Duration, int> get elapsed =>
+      $composableBuilder(
+        column: $table.elapsed,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SavedGamesTableOrderingComposer
+    extends Composer<_$NookDatabase, $SavedGamesTable> {
+  $$SavedGamesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get gameId => $composableBuilder(
+    column: $table.gameId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seed => $composableBuilder(
+    column: $table.seed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get givens => $composableBuilder(
+    column: $table.givens,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get solution => $composableBuilder(
+    column: $table.solution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cells => $composableBuilder(
+    column: $table.cells,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get history => $composableBuilder(
+    column: $table.history,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get notesMode => $composableBuilder(
+    column: $table.notesMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get elapsed => $composableBuilder(
+    column: $table.elapsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedGamesTableAnnotationComposer
+    extends Composer<_$NookDatabase, $SavedGamesTable> {
+  $$SavedGamesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get gameId =>
+      $composableBuilder(column: $table.gameId, builder: (column) => column);
+
+  GeneratedColumn<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get seed =>
+      $composableBuilder(column: $table.seed, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<int>, String> get givens =>
+      $composableBuilder(column: $table.givens, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<int>, String> get solution =>
+      $composableBuilder(column: $table.solution, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<int>, String> get cells =>
+      $composableBuilder(column: $table.cells, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<int>, String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<MoveHistory, String> get history =>
+      $composableBuilder(column: $table.history, builder: (column) => column);
+
+  GeneratedColumn<bool> get notesMode =>
+      $composableBuilder(column: $table.notesMode, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Duration, int> get elapsed =>
+      $composableBuilder(column: $table.elapsed, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SavedGamesTableTableManager
+    extends
+        RootTableManager<
+          _$NookDatabase,
+          $SavedGamesTable,
+          SavedGameRow,
+          $$SavedGamesTableFilterComposer,
+          $$SavedGamesTableOrderingComposer,
+          $$SavedGamesTableAnnotationComposer,
+          $$SavedGamesTableCreateCompanionBuilder,
+          $$SavedGamesTableUpdateCompanionBuilder,
+          (
+            SavedGameRow,
+            BaseReferences<_$NookDatabase, $SavedGamesTable, SavedGameRow>,
+          ),
+          SavedGameRow,
+          PrefetchHooks Function()
+        > {
+  $$SavedGamesTableTableManager(_$NookDatabase db, $SavedGamesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedGamesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedGamesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedGamesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> gameId = const Value.absent(),
+                Value<String> difficulty = const Value.absent(),
+                Value<int> seed = const Value.absent(),
+                Value<List<int>> givens = const Value.absent(),
+                Value<List<int>> solution = const Value.absent(),
+                Value<List<int>> cells = const Value.absent(),
+                Value<List<int>> notes = const Value.absent(),
+                Value<MoveHistory> history = const Value.absent(),
+                Value<bool> notesMode = const Value.absent(),
+                Value<Duration> elapsed = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedGamesCompanion(
+                gameId: gameId,
+                difficulty: difficulty,
+                seed: seed,
+                givens: givens,
+                solution: solution,
+                cells: cells,
+                notes: notes,
+                history: history,
+                notesMode: notesMode,
+                elapsed: elapsed,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String gameId,
+                required String difficulty,
+                required int seed,
+                required List<int> givens,
+                required List<int> solution,
+                required List<int> cells,
+                required List<int> notes,
+                required MoveHistory history,
+                Value<bool> notesMode = const Value.absent(),
+                required Duration elapsed,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SavedGamesCompanion.insert(
+                gameId: gameId,
+                difficulty: difficulty,
+                seed: seed,
+                givens: givens,
+                solution: solution,
+                cells: cells,
+                notes: notes,
+                history: history,
+                notesMode: notesMode,
+                elapsed: elapsed,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SavedGamesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NookDatabase,
+      $SavedGamesTable,
+      SavedGameRow,
+      $$SavedGamesTableFilterComposer,
+      $$SavedGamesTableOrderingComposer,
+      $$SavedGamesTableAnnotationComposer,
+      $$SavedGamesTableCreateCompanionBuilder,
+      $$SavedGamesTableUpdateCompanionBuilder,
+      (
+        SavedGameRow,
+        BaseReferences<_$NookDatabase, $SavedGamesTable, SavedGameRow>,
+      ),
+      SavedGameRow,
+      PrefetchHooks Function()
+    >;
+
+class $NookDatabaseManager {
+  final _$NookDatabase _db;
+  $NookDatabaseManager(this._db);
+  $$SavedGamesTableTableManager get savedGames =>
+      $$SavedGamesTableTableManager(_db, _db.savedGames);
+}

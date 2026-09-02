@@ -10,6 +10,37 @@
   "@homeAllGames": {
     "description": "Heading above the list of games on the home screen. Upper case in English by design; use whatever the language's convention for a small section heading is."
   },
+  "homeContinue": "CONTINUE",
+  "@homeContinue": {
+    "description": "Heading above the card offering the puzzle the player last left unfinished, at the top of the home screen. Upper case in English by design; use whatever the language's convention for a small section heading is."
+  },
+  "continueDetails": "{difficulty} · {time} · {percent}% filled in",
+  "@continueDetails": {
+    "description": "The second line of a card offering an unfinished puzzle: how hard it is, how long it has been played for, and how much of the grid has something written in it.",
+    "placeholders": {
+      "difficulty": { "type": "String", "example": "Medium" },
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
+  "continueProgress": "{time} · {percent}% filled in",
+  "@continueProgress": {
+    "description": "The line on the in-progress card on a game's own screen, where the game is already named above: how long the puzzle has been played for, and how much of the grid has something written in it.",
+    "placeholders": {
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
+  "continueLabel": "Continue {game}, {difficulty}, {time} played, {percent}% filled in",
+  "@continueLabel": {
+    "description": "Screen-reader label for the card offering an unfinished puzzle.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" },
+      "difficulty": { "type": "String", "example": "Medium" },
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
   "homePromise": "No ads. No tracking. No account. Ever.",
   "@homePromise": {
     "description": "The footer of the home screen. Nook's central promise, so keep it short and flat rather than enthusiastic."
@@ -97,6 +128,10 @@
   "difficultyFiendishBlurb": "Chains across the grid",
   "@difficultyFiendishBlurb": { "description": "What solving a Fiendish puzzle feels like. A 'chain' is a line of reasoning linking cells across the whole board." },
 
+  "difficultyInProgress": "IN PROGRESS",
+  "@difficultyInProgress": {
+    "description": "Heading above the card offering this game's unfinished puzzle, on the screen where a difficulty is picked. Upper case in English by design."
+  },
   "difficultyStartNew": "START A NEW ONE",
   "@difficultyStartNew": { "description": "Heading above the list of difficulties. Upper case in English by design." },
   "difficultyNeedsNotes": "needs notes",
@@ -157,6 +192,34 @@
   "@gameSolved": { "description": "Announced and shown when the player finishes a puzzle." },
   "gameNewPuzzle": "New puzzle",
   "@gameNewPuzzle": { "description": "Button that starts another puzzle after finishing one." },
+
+  "gameElapsedLabel": "Time so far {time}",
+  "@gameElapsedLabel": {
+    "description": "Screen-reader label for the clock in the game screen header. The placeholder is a digital clock reading, minutes and seconds separated by a colon, with an hours part in front of it once a puzzle passes an hour.",
+    "placeholders": {
+      "time": { "type": "String", "example": "07:42" }
+    }
+  },
+
+  "discardTitle": "Start a new puzzle?",
+  "@discardTitle": {
+    "description": "Title of the question asked when the player starts a new puzzle in a game that already has an unfinished one."
+  },
+  "discardBody": "Your unfinished {game} puzzle will be thrown away. There is no way to get it back.",
+  "@discardBody": {
+    "description": "The body of that question. Plain about the consequence: this is the only thing in Nook that destroys the player's work.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" }
+    }
+  },
+  "discardConfirm": "Discard and start",
+  "@discardConfirm": {
+    "description": "The button that throws the unfinished puzzle away and starts a new one. Says what it does rather than 'OK'."
+  },
+  "discardKeep": "Keep playing",
+  "@discardKeep": {
+    "description": "The button that cancels, leaving the unfinished puzzle exactly as it was."
+  },
 
   "boardLabel": "{name} board, {size} by {size}",
   "@boardLabel": {

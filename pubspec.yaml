@@ -25,10 +25,27 @@ dependencies:
   puzzle_engine:
     path: packages/puzzle_engine
 
+  # Saved games, and later statistics. SQLite because a save is a row and a
+  # statistic is a query; Drift because it types the schema and generates the
+  # mapping rather than leaving hand-written SQL to drift out of step with it.
+  # The native library comes from `sqlite3`'s own build hooks — the old
+  # `sqlite3_flutter_libs` is retired and is deliberately not depended on.
+  drift: ^2.34.3
+
+  # Where the database file goes on each platform. First-party (flutter.dev).
+  path_provider: ^2.1.6
+  path: ^1.9.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+
+  # Generates the Drift mapping. Build-time only: nothing here ships in the
+  # app, and the generated file is committed so a checkout analyses without a
+  # code-generation step.
+  drift_dev: ^2.34.5
+  build_runner: ^2.16.1
 
 flutter:
   uses-material-design: true

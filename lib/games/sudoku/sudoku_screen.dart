@@ -5,11 +5,14 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import '../../board/number_pad.dart';
 import '../../board/sudoku_board.dart';
 import '../../chrome/action_row.dart';
+import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
 import 'sudoku_controller.dart';
 import 'sudoku_naming.dart';
+import 'sudoku_save.dart';
+import 'sudoku_session.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
@@ -22,6 +25,7 @@ class SudokuGamePage extends StatelessWidget {
   const SudokuGamePage({
     required this.variant,
     required this.difficulty,
+    this.resume,
     super.key,
   });
 
@@ -31,7 +35,10 @@ class SudokuGamePage extends StatelessWidget {
   /// How hard the player asked for it to be.
   final SudokuDifficulty difficulty;
 
-  /// Builds a route to this page.
+  /// The puzzle to carry on with, or `null` to generate a new one.
+  final SudokuSave? resume;
+
+  /// Builds a route to a new puzzle.
   static Route<void> route(SudokuVariant variant, SudokuDifficulty difficulty) {
     return MaterialPageRoute<void>(
       builder: (BuildContext context) =>
@@ -39,14 +46,33 @@ class SudokuGamePage extends StatelessWidget {
     );
   }
 
+  /// Builds a route back into the puzzle in [save], exactly as it was left.
+  static Route<void> resumeRoute(SudokuSave save) {
+    return MaterialPageRoute<void>(
+      builder: (BuildContext context) => SudokuGamePage(
+        variant: save.variant,
+        difficulty: save.difficulty,
+        resume: save,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final SudokuSave? saved = resume;
     return ProviderScope(
       overrides: [
         sudokuVariantProvider.overrideWithValue(variant),
         sudokuDifficultyProvider.overrideWithValue(difficulty),
+        sudokuResumeProvider.overrideWithValue(saved?.game),
+        resumedElapsedProvider.overrideWithValue(
+          saved?.elapsed ?? Duration.zero,
+        ),
       ],
-      child: const _SudokuScreen(),
+      child: SudokuSession(
+        difficulty: difficulty,
+        child: const _SudokuScreen(),
+      ),
     );
   }
 }
@@ -121,10 +147,37 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          // Balances the back button so the title stays centred. The timer
-          // that lives here in the designs arrives with statistics (VIB-77).
-          const SizedBox(width: kMinTapTarget),
+          const _Clock(),
         ],
+      ),
+    );
+  }
+}
+
+/// How long this puzzle has been played for.
+///
+/// Sits where the designs put it, opposite the back button, and is wide enough
+/// to keep the title centred as the digits change — a clock that shoved the
+/// game's name sideways every time it ticked would be worse than no clock.
+class _Clock extends ConsumerWidget {
+  const _Clock();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final NookColors colors = Theme.of(context).nook;
+    final Duration elapsed = ref.watch(playClockProvider);
+    final String reading = clockReading(elapsed);
+
+    return Semantics(
+      label: AppLocalizations.of(context).gameElapsedLabel(reading),
+      excludeSemantics: true,
+      child: SizedBox(
+        width: kMinTapTarget + 14,
+        child: Text(
+          reading,
+          textAlign: TextAlign.end,
+          style: NookType.sectionLabel(colors.inkMuted),
+        ),
       ),
     );
   }
