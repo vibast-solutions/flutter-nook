@@ -131,6 +131,69 @@ void main() {
       expect(MoveHistory.fromJson(stored).moves, <BoardMove>[first, second]);
     });
 
+    test('a move carries the marks it tidied elsewhere, there and back', () {
+      // One action can rub a digit out of the notes of twenty other cells; all
+      // of it travels on the one move, so undo is the inverse of one tap and
+      // the history stays a list of things a person did.
+      const BoardMove tidied = BoardMove(
+        index: 4,
+        before: 0,
+        after: 3,
+        clearedNotes: <int, int>{0: 4, 8: 4, 12: 4},
+      );
+
+      final MoveHistory read = MoveHistory.fromJson(
+        const MoveHistory.empty().push(tidied).toJson(),
+      );
+
+      expect(read.last, tidied);
+      expect(read.last!.clearedNotes, <int, int>{0: 4, 8: 4, 12: 4});
+    });
+
+    test('and two moves that tidied differently are not the same move', () {
+      const BoardMove one = BoardMove(
+        index: 4,
+        before: 0,
+        after: 3,
+        clearedNotes: <int, int>{0: 4},
+      );
+      const BoardMove other = BoardMove(
+        index: 4,
+        before: 0,
+        after: 3,
+        clearedNotes: <int, int>{8: 4},
+      );
+
+      expect(one, isNot(other));
+      expect(one, BoardMove.fromJson(one.toJson()));
+      expect(one.hashCode, BoardMove.fromJson(one.toJson()).hashCode);
+    });
+
+    test('a move stored before any move could tidy reads back as one that '
+        'tidied nothing', () {
+      // The shape a save written by an older build has. It has to come back as
+      // the move it was rather than failing and taking the saved game with it.
+      final BoardMove old = BoardMove.fromJson(<String, Object?>{
+        'index': 4,
+        'before': 0,
+        'after': 3,
+        'notesBefore': 0,
+        'notesAfter': 0,
+      });
+
+      expect(old.clearedNotes, isEmpty);
+      expect(old, const BoardMove(index: 4, before: 0, after: 3));
+    });
+
+    test('and a move that tidied nothing is not written out any longer', () {
+      // Most moves touch one cell. Their rows on disk stay the handful of
+      // numbers they have always been.
+      expect(
+        const BoardMove(index: 4, before: 0, after: 3).toJson(),
+        isNot(contains('clearedNotes')),
+      );
+    });
+
     test('holds a full 9x9 grid and then some', () {
       expect(MoveHistory.defaultDepth, greaterThan(81));
     });
