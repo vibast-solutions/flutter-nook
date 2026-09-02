@@ -32,8 +32,24 @@ when the ticket that needs them comes up, not before.
 
 - **`puzzle_engine` must not import `package:flutter`**, touch the filesystem, or read the clock. All randomness comes from a seeded generator passed in by the caller — the same seed must always produce the same puzzle, on every platform.
 - **Every generated puzzle has exactly one solution and is solvable without guessing.** This is verified in tests, not assumed.
-- **Difficulty is rated by the techniques a human solver needs**, never by clue count.
-- **Boards are built from widgets, not CustomPainter** — accessibility semantics, hit testing and per-cell animation come free.
+- **Two solvers, two jobs.** `SudokuSolver` searches and backtracks, and exists
+  to answer "how many solutions?" for the uniqueness guarantee.
+  `SudokuLogicSolver` only makes deductions a person could make and **never
+  guesses or backtracks** — which is what makes its verdict a measure of human
+  difficulty. Never reach for the searching one to rate a puzzle.
+- **Difficulty is rated by the techniques a human solver needs**, never by clue
+  count. A puzzle the technique solver cannot finish is **discarded, never
+  promoted to a harder tier** — that is the whole of the no-guessing guarantee.
+- **Tier boundaries live in one place** (`DifficultyBoundaries`) because they
+  are expected to move. The committed corpus in
+  `packages/puzzle_engine/test/sudoku/difficulty_corpus.dart` makes any move
+  show up as a diff that has to be looked at, so retuning can never be quiet.
+- **A grid only offers the tiers it can actually generate**, and which those are
+  is a measurement rather than a decision — `SudokuRater.tiersFor`. A 4x4 is
+  Gentle however hard you carve it, and a 6x6 has no middle to its ladder.
+  Offering five buttons that hand back the same puzzle would be worse than a
+  short list.
+- **Boards are built from widgets, not CustomPainter** — accessibility semantics, hit testing and per-cell animation come free. Purely decorative chrome with nothing to hit or read out (the dashed rule on the difficulty screen's guarantee card) may still paint.
 - **Every move a player makes goes through one write** that records it in the
   shared `MoveHistory` (`chrome/move_history.dart`). A game never grows an undo
   stack of its own, and a move is a handful of plain integers — which cell, what
