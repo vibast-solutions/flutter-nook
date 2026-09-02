@@ -24,7 +24,11 @@ const Set<String> allowedLiterals = <String>{
   'sudoku-cell-',
   'sudoku-value-',
   'sudoku-notes-',
+  'sudoku-conflict-',
+  'sudoku-pulse-',
+  'sudoku-removal-',
   'board-action-',
+  'board-pace-',
   'difficulty-',
   'continue-card',
   // The finished-puzzle screen, whose parts are named one at a time because
@@ -56,6 +60,7 @@ const Set<String> allowedLiterals = <String>{
   'after',
   'notesBefore',
   'notesAfter',
+  'clearedNotes',
   // The database file, and the name the generated row class is given so that
   // it does not collide with the type the app passes around.
   'nook.sqlite',
@@ -91,7 +96,9 @@ const Set<String> allowedLiterals = <String>{
   // ---- Messages for whoever is holding the debugger ------------------------
   // `toString` output.
   'BoardMove(index: , before: , after: , ',
-  'notesBefore: , notesAfter: )',
+  'notesBefore: , notesAfter: , ',
+  'clearedNotes: )',
+  'HintRemoval( at )',
   'NoteMarks()',
   'SudokuVariant()',
   // Assertions. These fire during development and never reach a player.

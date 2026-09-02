@@ -355,6 +355,42 @@
       "value": { "type": "int", "example": "1" }
     }
   },
+  "cellGivenConflict": "Row {row}, column {column}, {value}, given, repeated in its row, column or box",
+  "@cellGivenConflict": {
+    "description": "Screen-reader label for a given cell whose digit appears again in the same row, column or box. Marking a repeat is a rule being broken, not an answer being judged \u2014 a digit that merely disagrees with the solution is never marked.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
+  "cellAnswerConflict": "Row {row}, column {column}, {value}, your answer, repeated in its row, column or box",
+  "@cellAnswerConflict": {
+    "description": "Screen-reader label for a cell the player filled in whose digit appears again in the same row, column or box.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
+  "cellHintConflict": "Row {row}, column {column}, {value}, from a hint, repeated in its row, column or box",
+  "@cellHintConflict": {
+    "description": "Screen-reader label for a hinted cell whose digit appears again in the same row, column or box \u2014 which can happen when the player has entered the same digit wrongly somewhere it can see.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
+  "cellCleared": "Row {row}, column {column}, {value} taken away, it was wrong",
+  "@cellCleared": {
+    "description": "Screen-reader label for a cell a hint has just emptied because the digit in it was wrong. Said for a moment after the hint, then the cell goes back to reading as empty.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
   "listSeparator": ", ",
   "@listSeparator": {
     "description": "What goes between items when a screen reader lists several digits, as in the pencil marks of one cell. Includes its trailing space."
@@ -368,7 +404,7 @@
   "@actionNotes": { "description": "Control that switches between writing answers and writing pencil marks." },
   "actionHint": "Hint",
   "@actionHint": {
-    "description": "Control that fills in one cell the player could have worked out. Hints are unlimited and free, so the word carries no count and no cost."
+    "description": "Control that shows the player their next move: it takes away a wrong digit if there is one, and otherwise fills in one cell they could have worked out. Hints are unlimited and free, so the word carries no count and no cost."
   },
   "actionToggleOn": "{label} on",
   "@actionToggleOn": {
@@ -396,6 +432,8 @@
   "@reasonPuzzleDone": { "description": "Why a control is unavailable: the puzzle is already solved. Reads as the end of a sentence, so lower case." },
   "reasonNothingToUndo": "nothing to take back",
   "@reasonNothingToUndo": { "description": "Why undo is unavailable: no moves have been made. Reads as the end of a sentence, so lower case." },
+  "reasonHintJustGiven": "just given, back in a moment",
+  "@reasonHintJustGiven": { "description": "Why the hint control is unavailable: one was given a few seconds ago and the control waits before offering another. This is pacing, not rationing \u2014 hints are unlimited and free, and nothing is being counted or spent. Reads as the end of a sentence, so lower case." },
 
   "padCaption": "{count, plural, =0{done} =1{1 left} other{{count} left}}",
   "@padCaption": {

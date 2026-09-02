@@ -306,6 +306,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cellGivenConflict(int row, int column, int value) {
+    return 'Row $row, column $column, $value, given, repeated in its row, column or box';
+  }
+
+  @override
+  String cellAnswerConflict(int row, int column, int value) {
+    return 'Row $row, column $column, $value, your answer, repeated in its row, column or box';
+  }
+
+  @override
+  String cellHintConflict(int row, int column, int value) {
+    return 'Row $row, column $column, $value, from a hint, repeated in its row, column or box';
+  }
+
+  @override
+  String cellCleared(int row, int column, int value) {
+    return 'Row $row, column $column, $value taken away, it was wrong';
+  }
+
+  @override
   String get listSeparator => ', ';
 
   @override
@@ -340,6 +360,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reasonNothingToUndo => 'nothing to take back';
+
+  @override
+  String get reasonHintJustGiven => 'just given, back in a moment';
 
   @override
   String padCaption(int count) {

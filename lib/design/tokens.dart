@@ -32,6 +32,9 @@ class NookColors extends ThemeExtension<NookColors> {
     required this.cellMatching,
     required this.noteInk,
     required this.hintInk,
+    required this.cellConflict,
+    required this.conflictLine,
+    required this.cellComplete,
     required this.disabledSurface,
     required this.disabledLine,
     required this.disabledInk,
@@ -112,6 +115,26 @@ class NookColors extends ThemeExtension<NookColors> {
   /// read as a player's digit drawn badly.
   final Color hintInk;
 
+  /// The background of a cell whose digit is repeated in its row, column or
+  /// box.
+  ///
+  /// Never the only thing saying so: the cell is hatched in [conflictLine] as
+  /// well, because a board that carried this meaning in a colour alone would
+  /// be silent for the players most likely to need it.
+  final Color cellConflict;
+
+  /// The hatch drawn across a conflicting cell, and the stroke of the cross a
+  /// hint draws over a wrong digit as it takes it away.
+  final Color conflictLine;
+
+  /// The wash a row, column or box is pulsed with when it is filled without a
+  /// repeat.
+  ///
+  /// [sage] rather than the accent: it is the colour Nook already uses for
+  /// something that has come out right, and the accent is the player's own
+  /// handwriting.
+  final Color cellComplete;
+
   /// A control that has nothing left to do.
   final Color disabledSurface;
 
@@ -148,6 +171,9 @@ class NookColors extends ThemeExtension<NookColors> {
     cellMatching: Color(0xFFDFE7D9),
     noteInk: Color(0xFFA08D77),
     hintInk: Color(0xFF5E8055),
+    cellConflict: Color(0xFFF6DED4),
+    conflictLine: Color(0xFFC2543A),
+    cellComplete: Color(0xFFC9DCC0),
     disabledSurface: Color(0xFFF3EBE1),
     disabledLine: Color(0xFFE8DCCA),
     disabledInk: Color(0xFFC9BAA7),
@@ -178,6 +204,9 @@ class NookColors extends ThemeExtension<NookColors> {
     Color? cellMatching,
     Color? noteInk,
     Color? hintInk,
+    Color? cellConflict,
+    Color? conflictLine,
+    Color? cellComplete,
     Color? disabledSurface,
     Color? disabledLine,
     Color? disabledInk,
@@ -206,6 +235,9 @@ class NookColors extends ThemeExtension<NookColors> {
       cellMatching: cellMatching ?? this.cellMatching,
       noteInk: noteInk ?? this.noteInk,
       hintInk: hintInk ?? this.hintInk,
+      cellConflict: cellConflict ?? this.cellConflict,
+      conflictLine: conflictLine ?? this.conflictLine,
+      cellComplete: cellComplete ?? this.cellComplete,
       disabledSurface: disabledSurface ?? this.disabledSurface,
       disabledLine: disabledLine ?? this.disabledLine,
       disabledInk: disabledInk ?? this.disabledInk,
@@ -242,6 +274,9 @@ class NookColors extends ThemeExtension<NookColors> {
       cellMatching: mix(cellMatching, other.cellMatching),
       noteInk: mix(noteInk, other.noteInk),
       hintInk: mix(hintInk, other.hintInk),
+      cellConflict: mix(cellConflict, other.cellConflict),
+      conflictLine: mix(conflictLine, other.conflictLine),
+      cellComplete: mix(cellComplete, other.cellComplete),
       disabledSurface: mix(disabledSurface, other.disabledSurface),
       disabledLine: mix(disabledLine, other.disabledLine),
       disabledInk: mix(disabledInk, other.disabledInk),

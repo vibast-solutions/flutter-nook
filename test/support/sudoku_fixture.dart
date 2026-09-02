@@ -55,6 +55,23 @@ SudokuPuzzle fixedMiniPuzzle() {
   );
 }
 
+/// The fixture 4x4 with a solution that is not its own.
+///
+/// A deliberately inconsistent puzzle, and the point of it: anything on the
+/// board that is supposed to read only the grid and the rules has to behave
+/// identically whatever the solution says. A test that swaps the solution and
+/// sees the board change has caught a reading that should not be there.
+SudokuPuzzle miniWithAnotherSolution() {
+  final SudokuPuzzle real = fixedMiniPuzzle();
+  return SudokuPuzzle(
+    spec: real.spec,
+    seed: real.seed,
+    difficulty: real.difficulty,
+    givens: real.givens,
+    solution: real.solution.reversed.toList(),
+  );
+}
+
 /// A puzzle for [variant], the same one every run.
 ///
 /// The 6x6 and 9x9 grids are generated rather than written out: the engine is
@@ -239,6 +256,41 @@ Future<void> tapDigit(WidgetTester tester, int digit) async {
   await tester.pump();
 }
 
+/// Lets the hint control's pacing run out, so it can be used again.
+///
+/// The wait is four seconds of a clock the test owns, not four seconds of
+/// anybody's life.
+Future<void> settleHintPacing(WidgetTester tester) async {
+  await tester.pump(kHintPacing);
+  await tester.pumpAndSettle();
+}
+
+/// Taps the hint control and waits out the pacing that follows it.
+Future<void> tapHint(WidgetTester tester) async {
+  await tapAction(tester, 'hint');
+  await settleHintPacing(tester);
+}
+
+/// Pencils [digits] into the cell at [index], leaving the pad in answer mode.
+Future<void> pencilInto(
+  WidgetTester tester,
+  int index,
+  List<int> digits,
+) async {
+  await tapCell(tester, index);
+  await tapAction(tester, 'notes');
+  for (final int digit in digits) {
+    await tapDigit(tester, digit);
+  }
+  await tapAction(tester, 'notes');
+}
+
+/// Writes [digit] into the cell at [index].
+Future<void> answer(WidgetTester tester, int index, int digit) async {
+  await tapCell(tester, index);
+  await tapDigit(tester, digit);
+}
+
 /// Taps the action-row control with the id [id].
 ///
 /// Controls are found by id rather than by the word on them: the word is
@@ -318,6 +370,7 @@ Future<void> pumpSudokuGame(
   TestClock? clock,
   double width = 400,
   double textScale = 1,
+  bool disableAnimations = false,
 }) async {
   final SudokuPuzzle fixed = puzzle ?? fixedPuzzle(variant);
   await setPhoneSurface(tester, width: width);
@@ -331,8 +384,10 @@ Future<void> pumpSudokuGame(
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
         builder: (BuildContext context, Widget? child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+            disableAnimations: disableAnimations,
+          ),
           child: child!,
         ),
         home: SudokuGamePage(
