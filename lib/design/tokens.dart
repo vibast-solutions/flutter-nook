@@ -31,6 +31,7 @@ class NookColors extends ThemeExtension<NookColors> {
     required this.cellPeer,
     required this.cellMatching,
     required this.noteInk,
+    required this.hintInk,
     required this.disabledSurface,
     required this.disabledLine,
     required this.disabledInk,
@@ -103,6 +104,14 @@ class NookColors extends ThemeExtension<NookColors> {
   /// [inkFaint] so nine of them at a third of the size stay legible.
   final Color noteInk;
 
+  /// A digit a hint filled in.
+  ///
+  /// A third voice on the board, and it has to be legible as one: the puzzle's
+  /// own digits are [ink] and the player's are [clay], so a hint is neither.
+  /// Green rather than a paler orange, because a shade of the accent would
+  /// read as a player's digit drawn badly.
+  final Color hintInk;
+
   /// A control that has nothing left to do.
   final Color disabledSurface;
 
@@ -138,6 +147,7 @@ class NookColors extends ThemeExtension<NookColors> {
     cellPeer: Color(0xFFF6EFE4),
     cellMatching: Color(0xFFDFE7D9),
     noteInk: Color(0xFFA08D77),
+    hintInk: Color(0xFF5E8055),
     disabledSurface: Color(0xFFF3EBE1),
     disabledLine: Color(0xFFE8DCCA),
     disabledInk: Color(0xFFC9BAA7),
@@ -167,6 +177,7 @@ class NookColors extends ThemeExtension<NookColors> {
     Color? cellPeer,
     Color? cellMatching,
     Color? noteInk,
+    Color? hintInk,
     Color? disabledSurface,
     Color? disabledLine,
     Color? disabledInk,
@@ -194,6 +205,7 @@ class NookColors extends ThemeExtension<NookColors> {
       cellPeer: cellPeer ?? this.cellPeer,
       cellMatching: cellMatching ?? this.cellMatching,
       noteInk: noteInk ?? this.noteInk,
+      hintInk: hintInk ?? this.hintInk,
       disabledSurface: disabledSurface ?? this.disabledSurface,
       disabledLine: disabledLine ?? this.disabledLine,
       disabledInk: disabledInk ?? this.disabledInk,
@@ -229,6 +241,7 @@ class NookColors extends ThemeExtension<NookColors> {
       cellPeer: mix(cellPeer, other.cellPeer),
       cellMatching: mix(cellMatching, other.cellMatching),
       noteInk: mix(noteInk, other.noteInk),
+      hintInk: mix(hintInk, other.hintInk),
       disabledSurface: mix(disabledSurface, other.disabledSurface),
       disabledLine: mix(disabledLine, other.disabledLine),
       disabledInk: mix(disabledInk, other.disabledInk),

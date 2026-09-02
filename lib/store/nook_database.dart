@@ -48,6 +48,13 @@ class SavedGames extends Table {
   /// The moves still to take back.
   TextColumn get history => text().map(const _HistoryConverter())();
 
+  /// The cells that were given away by a hint.
+  TextColumn get hints =>
+      text().map(const _DigitsConverter()).withDefault(const Constant('[]'))();
+
+  /// Whether the puzzle was ever hinted, whatever is on the board now.
+  BoolColumn get wasHinted => boolean().withDefault(const Constant(false))();
+
   /// Whether the pad was left writing pencil marks.
   BoolColumn get notesMode => boolean().withDefault(const Constant(false))();
 
@@ -86,7 +93,25 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  /// Version 2 added the two hint columns (VIB-76).
+  ///
+  /// A save from version 1 is a puzzle nobody was helped with, which is
+  /// exactly what the column defaults say, so the migration is the two columns
+  /// and nothing else. A player mid-puzzle keeps their board.
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) => m.createAll(),
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          await m.addColumn(savedGames, savedGames.hints);
+          await m.addColumn(savedGames, savedGames.wasHinted);
+        }
+      },
+    );
+  }
 
   /// Timestamps are stored as ISO-8601 text rather than as unix seconds.
   ///
@@ -162,6 +187,8 @@ class SavedGameStore {
       cells: game.cells,
       notes: game.notes,
       history: game.history,
+      hints: Value<List<int>>(game.hints),
+      wasHinted: Value<bool>(game.wasHinted),
       notesMode: Value<bool>(game.notesMode),
       elapsed: game.elapsed,
       updatedAt: game.updatedAt,
@@ -178,6 +205,8 @@ class SavedGameStore {
       cells: row.cells,
       notes: row.notes,
       history: row.history,
+      hints: row.hints,
+      wasHinted: row.wasHinted,
       notesMode: row.notesMode,
       elapsed: row.elapsed,
       updatedAt: row.updatedAt,

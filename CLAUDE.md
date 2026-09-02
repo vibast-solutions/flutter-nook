@@ -57,6 +57,14 @@ when the ticket that needs them comes up, not before.
   stack of its own, and a move is a handful of plain integers — which cell, what
   it held, and the pencil marks around it as a `NoteMarks` bitmask — because it
   has to survive being written to disk when a game is saved and resumed.
+- **A hint reveals a cell the player could have deduced**, chosen by the same
+  technique solver that measures difficulty (`SudokuHinter`), never at random.
+  A mistake already on the board is reasoned around rather than reasoned from
+  — one wrong digit makes the rest of the grid unsolvable, so a solver fed it
+  would deduce a run of wrong cells — and is left exactly where it is: Nook
+  does not mark a player's work. **Hints are unlimited and free**: there is no
+  counter, cooldown or limit anywhere in the code, and none is ever to be
+  added.
 - **A cell shows an answer or its pencil marks, never both.** Both are kept, so
   an undo can bring the marks back, but an answer is what the cell draws.
 - Generation runs on a background isolate; the UI never blocks.
@@ -127,9 +135,21 @@ when the ticket that needs them comes up, not before.
   it. Persistence lives beside the screen rather than in the controller,
   because the controller is a pure transformation of state and is tested
   without pumping a frame.
+- **A hinted cell is marked while it holds its digit; a hinted puzzle stays
+  hinted for ever.** `SudokuGameState.hints` is the cells still showing a hint,
+  and anything written into one — including an undo — hands the cell back to
+  the player. `wasHinted` is sticky, because a revealed cell cannot be
+  un-revealed by taking it back: it is what tells statistics (VIB-77) that the
+  time still counts but the personal best does not.
 - **Elapsed time is accumulated from intervals, never measured from a start
   timestamp.** A puzzle opened before bed and finished at breakfast has been
   played for four minutes, not nine hours.
+- **A schema change ships with its migration and a test that runs it.**
+  `test/store/migration_test.dart` writes the old schema out by hand, puts a
+  row in it and opens the database through the app's own code, because the
+  thing being protected is a puzzle already on somebody's phone. The old DDL
+  in that test is a record of what shipped and does not get updated when the
+  current schema moves.
 - **A widget test that touches the database uses `NookDatabase.memory()`**
   (through `nookScope` in the fixture), which closes its query streams
   synchronously. Drift normally waits an event loop before letting a stream

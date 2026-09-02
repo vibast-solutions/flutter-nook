@@ -197,22 +197,51 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
       game.copyWith(
         cells: cells,
         notes: notes,
+        // Whatever the cell held is gone, so it is no longer showing a hint —
+        // the puzzle stays marked as hinted, which is a fact about the game
+        // rather than about the cell.
+        hints: game.hints.difference(<int>{move.index}),
         selectedIndex: move.index,
         history: game.history.pop(),
       ),
     );
   }
 
+  /// Fills in one cell the player could have worked out for themselves.
+  ///
+  /// Unlimited, free, and never counted: there is no hint budget in Nook to
+  /// spend, wait for or buy back. Which cell is the whole of the design —
+  /// [SudokuHinter] picks one the technique solver can justify from the board
+  /// as it stands, so a hint shows the player what they were not seeing rather
+  /// than taking a piece of the puzzle away. A mistake already on the board is
+  /// reasoned around and left alone.
+  void hint() {
+    final SudokuGameState? game = state.value;
+    if (game == null || game.isSolved) {
+      return;
+    }
+    final SudokuHint? found = SudokuHinter(game.puzzle).hintFor(game.cells);
+    if (found == null) {
+      return;
+    }
+    // The marks in the cell go with the answer, exactly as they would if the
+    // player had settled it themselves.
+    _write(game, found.index, value: found.digit, notes: 0, hinted: true);
+  }
+
   /// Puts [value] and [notes] in the cell at [index] and records the move.
   ///
   /// The one place the board is written to, so there is one place a move can
   /// be missed from the history rather than one per control. An answer and the
-  /// marks around it change together and come back together.
+  /// marks around it change together and come back together — and so does
+  /// whether the cell is showing a hint, which is why [hinted] comes through
+  /// here rather than being stamped on afterwards.
   void _write(
     SudokuGameState game,
     int index, {
     required int value,
     required int notes,
+    bool hinted = false,
   }) {
     final int before = game.cells[index];
     final int notesBefore = game.notes[index];
@@ -225,6 +254,16 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
       game.copyWith(
         cells: List<int>.of(game.cells)..[index] = value,
         notes: List<int>.of(game.notes)..[index] = notes,
+        // A hint marks its cell; anything else written into a hinted cell
+        // makes it the player's again.
+        hints: hinted
+            ? <int>{...game.hints, index}
+            : game.hints.difference(<int>{index}),
+        wasHinted: game.wasHinted || hinted,
+        // A hint lands where the player was not looking, so the selection goes
+        // to it — otherwise the one thing that changed is the one thing they
+        // have to hunt for.
+        selectedIndex: hinted ? index : game.selectedIndex,
         history: game.history.push(
           BoardMove(
             index: index,

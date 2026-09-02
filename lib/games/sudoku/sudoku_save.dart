@@ -68,8 +68,10 @@ class SudokuSave {
         ),
         cells: save.cells,
         notes: save.notes,
+        hints: save.hints.toSet(),
         history: save.history,
         notesMode: save.notesMode,
+        wasHinted: save.wasHinted,
       ),
       elapsed: save.elapsed,
       progress: save.progress,
@@ -105,8 +107,13 @@ SavedGame savedGameFor(
     solution: game.puzzle.solution,
     cells: game.cells,
     notes: game.notes,
+    // Sorted so two saves of the same board are the same row: a set has no
+    // order of its own, and a save that differed only by iteration order
+    // would be a diff nobody could read.
+    hints: game.hints.toList()..sort(),
     history: game.history,
     notesMode: game.notesMode,
+    wasHinted: game.wasHinted,
     elapsed: elapsed,
     updatedAt: at,
   );

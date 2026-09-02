@@ -441,6 +441,12 @@ abstract class AppLocalizations {
   /// **'Row {row}, column {column}, {value}, your answer'**
   String cellAnswer(int row, int column, int value);
 
+  /// Screen-reader label for a cell that a hint filled in. Distinguishes it from the player's own answer, which is what its colour does on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, {value}, from a hint'**
+  String cellHint(int row, int column, int value);
+
   /// What goes between items when a screen reader lists several digits, as in the pencil marks of one cell. Includes its trailing space.
   ///
   /// In en, this message translates to:
@@ -464,6 +470,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notes'**
   String get actionNotes;
+
+  /// Control that fills in one cell the player could have worked out. Hints are unlimited and free, so the word carries no count and no cost.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint'**
+  String get actionHint;
 
   /// The caption under a control that is a switch and is currently on. It spells the state out in words because a player who cannot see the fill would otherwise write pencil marks they meant as answers.
   ///

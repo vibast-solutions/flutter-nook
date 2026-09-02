@@ -144,6 +144,7 @@ class _SudokuCell extends StatelessWidget {
     final int column = game.spec.columnOf(index);
     final int value = game.cells[index];
     final bool given = game.isGiven(index);
+    final bool hinted = game.isHinted(index);
     final int? selected = game.selectedIndex;
     final bool isSelected = selected == index;
 
@@ -187,6 +188,7 @@ class _SudokuCell extends StatelessWidget {
         column: column,
         value: value,
         given: given,
+        hinted: hinted,
       ),
       selected: isSelected,
       button: true,
@@ -207,8 +209,16 @@ class _SudokuCell extends StatelessWidget {
               ? Text(
                   '$value',
                   key: SudokuBoard.valueKey(index),
+                  // Three voices on one board: the puzzle's digits, the
+                  // player's, and the ones a hint gave away. A hint stays
+                  // marked for as long as it holds the cell, so where the
+                  // player got to is still readable afterwards.
                   style: NookType.cellDigit(
-                    given ? colors.ink : colors.clay,
+                    given
+                        ? colors.ink
+                        : hinted
+                        ? colors.hintInk
+                        : colors.clay,
                     extent * 0.5,
                   ),
                 )
@@ -238,6 +248,7 @@ class _SudokuCell extends StatelessWidget {
     required int column,
     required int value,
     required bool given,
+    required bool hinted,
   }) {
     final int line = row + 1;
     final int column1 = column + 1;
@@ -252,8 +263,13 @@ class _SudokuCell extends StatelessWidget {
       }
       return l10n.cellEmpty(line, column1);
     }
-    return given
-        ? l10n.cellGiven(line, column1, value)
+    if (given) {
+      return l10n.cellGiven(line, column1, value);
+    }
+    // A colour is how a sighted player tells a hint from their own answer;
+    // this is the same fact for a player who is not reading colours.
+    return hinted
+        ? l10n.cellHint(line, column1, value)
         : l10n.cellAnswer(line, column1, value);
   }
 }
