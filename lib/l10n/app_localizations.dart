@@ -531,6 +531,30 @@ abstract class AppLocalizations {
   /// **'Row {row}, column {column}, {value}, from a hint'**
   String cellHint(int row, int column, int value);
 
+  /// Screen-reader label for a given cell whose digit appears again in the same row, column or box. Marking a repeat is a rule being broken, not an answer being judged — a digit that merely disagrees with the solution is never marked.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, {value}, given, repeated in its row, column or box'**
+  String cellGivenConflict(int row, int column, int value);
+
+  /// Screen-reader label for a cell the player filled in whose digit appears again in the same row, column or box.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, {value}, your answer, repeated in its row, column or box'**
+  String cellAnswerConflict(int row, int column, int value);
+
+  /// Screen-reader label for a hinted cell whose digit appears again in the same row, column or box — which can happen when the player has entered the same digit wrongly somewhere it can see.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, {value}, from a hint, repeated in its row, column or box'**
+  String cellHintConflict(int row, int column, int value);
+
+  /// Screen-reader label for a cell a hint has just emptied because the digit in it was wrong. Said for a moment after the hint, then the cell goes back to reading as empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, {value} taken away, it was wrong'**
+  String cellCleared(int row, int column, int value);
+
   /// What goes between items when a screen reader lists several digits, as in the pencil marks of one cell. Includes its trailing space.
   ///
   /// In en, this message translates to:
@@ -555,7 +579,7 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get actionNotes;
 
-  /// Control that fills in one cell the player could have worked out. Hints are unlimited and free, so the word carries no count and no cost.
+  /// Control that shows the player their next move: it takes away a wrong digit if there is one, and otherwise fills in one cell they could have worked out. Hints are unlimited and free, so the word carries no count and no cost.
   ///
   /// In en, this message translates to:
   /// **'Hint'**
@@ -590,6 +614,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'nothing to take back'**
   String get reasonNothingToUndo;
+
+  /// Why the hint control is unavailable: one was given a few seconds ago and the control waits before offering another. This is pacing, not rationing — hints are unlimited and free, and nothing is being counted or spent. Reads as the end of a sentence, so lower case.
+  ///
+  /// In en, this message translates to:
+  /// **'just given, back in a moment'**
+  String get reasonHintJustGiven;
 
   /// The small caption under a digit on the number pad, saying how many of that digit are still to be placed.
   ///

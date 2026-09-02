@@ -4,6 +4,7 @@ import 'package:nook/board/sudoku_board.dart';
 import 'package:nook/chrome/action_row.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_save.dart';
+import 'package:nook/games/sudoku/sudoku_screen.dart';
 import 'package:nook/games/sudoku/sudoku_state.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/store/nook_database.dart';
@@ -125,9 +126,11 @@ void main() {
     testWidgets('as many times as the player asks', (
       WidgetTester tester,
     ) async {
-      // The point of the feature. There is no counter to run down, no cooldown
-      // to wait out and nothing to buy: a player can hint their way through a
-      // whole puzzle, and the control only stops when the puzzle does.
+      // The point of the feature. There is no counter to run down and nothing
+      // to buy: a player can hint their way through a whole puzzle, and the
+      // control only stops when the puzzle does. The few seconds after each
+      // one are pacing rather than rationing — nothing is spent, and the wait
+      // never gets longer however many are asked for.
       await pumpSudokuGame(tester);
 
       // Nine of the ten blanks, one hint at a time.
@@ -137,7 +140,7 @@ void main() {
           isTrue,
           reason: 'the hint ran out after $taps of them',
         );
-        await tapAction(tester, 'hint');
+        await tapHint(tester);
       }
 
       final List<int> solution = fixedMiniPuzzle().solution;
@@ -152,6 +155,7 @@ void main() {
       // alone has to be able to do.
       expect(actionEnabled(tester, 'hint'), isTrue);
       await tapAction(tester, 'hint');
+      await tester.pumpAndSettle();
 
       expect(find.text(en.gameSolved), findsOneWidget);
       expect(
@@ -162,27 +166,149 @@ void main() {
     });
   });
 
-  group('a hint leaves the player\'s own work alone', () {
-    testWidgets('it reasons around a wrong entry rather than correcting it', (
+  group('a hint takes a wrong digit away before it gives one', () {
+    testWidgets('it clears the mistake and reveals nothing', (
+      WidgetTester tester,
+    ) async {
+      // The next move on a board carrying a mistake is to be rid of the
+      // mistake. Revealing into a grid that still holds one would drop a
+      // correct digit into a poisoned unit, and the board would mark its own
+      // gift as a conflict a frame later.
+      await pumpSudokuGame(tester);
+
+      // Cell 0 takes a 1; put a 4 in it instead. Wrong, but it repeats
+      // nothing, so nothing on the board says so until the player asks.
+      await answer(tester, 0, 4);
+      final List<String?> before = boardDigits(tester);
+
+      await tapAction(tester, 'hint');
+
+      expect(digitIn(tester, 0), isNull, reason: 'the mistake was left there');
+      for (int index = 1; index < before.length; index++) {
+        expect(
+          digitIn(tester, index),
+          before[index],
+          reason:
+              'cell $index changed on a press that should only have '
+              'taken one digit away',
+        );
+      }
+    });
+
+    testWidgets('one of them per press, most recent first', (
       WidgetTester tester,
     ) async {
       await pumpSudokuGame(tester);
 
-      // Cell 3 takes a 4; put a 3 in it instead. That is the cell the hint
-      // would otherwise have chosen, so the hint has to look elsewhere.
-      await tapCell(tester, firstHintIndex);
-      await tapDigit(tester, 3);
+      // Two wrong answers, oldest first. The newer one is the one the player
+      // is still thinking about, so it goes first; taking the older one would
+      // undo whatever they built on top of it.
+      await answer(tester, 0, 4);
+      await answer(tester, 1, 4);
+
+      await tapHint(tester);
+
+      expect(digitIn(tester, 1), isNull);
+      expect(digitIn(tester, 0), '4', reason: 'both went on one press');
+
       await tapAction(tester, 'hint');
 
+      expect(digitIn(tester, 0), isNull);
+    });
+
+    testWidgets('and reveals again once the board is clean', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await answer(tester, 0, 4);
+      await tapHint(tester);
+      expect(digitIn(tester, 0), isNull);
+
+      await tapAction(tester, 'hint');
+
+      expect(digitIn(tester, firstHintIndex), '$firstHintDigit');
+    });
+
+    testWidgets('the cell says what happened to a screen reader', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        await pumpSudokuGame(tester);
+        await answer(tester, 0, 4);
+
+        await tapAction(tester, 'hint');
+
+        // Cell 0 is row 1, column 1.
+        expect(
+          find.bySemanticsLabel('Row 1, column 1, 4 taken away, it was wrong'),
+          findsOneWidget,
+        );
+        expect(find.byKey(SudokuBoard.removalKey(0)), findsOneWidget);
+      } finally {
+        handle.dispose();
+      }
+    });
+
+    testWidgets('and nothing is drawn over the gap under less motion', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        await pumpSudokuGame(tester, disableAnimations: true);
+        await answer(tester, 0, 4);
+
+        await tapAction(tester, 'hint');
+
+        expect(digitIn(tester, 0), isNull);
+        expect(
+          find.byKey(SudokuBoard.removalKey(0)),
+          findsNothing,
+          reason: 'a cross faded over a board asked to hold still',
+        );
+        // The sentence is not motion, so it is said either way.
+        expect(
+          find.bySemanticsLabel('Row 1, column 1, 4 taken away, it was wrong'),
+          findsOneWidget,
+        );
+      } finally {
+        handle.dispose();
+      }
+    });
+
+    testWidgets('undo puts the digit back', (WidgetTester tester) async {
+      await pumpSudokuGame(tester);
+      await answer(tester, 0, 4);
+
+      await tapHint(tester);
+      await tapAction(tester, 'undo');
+
+      expect(digitIn(tester, 0), '4');
+    });
+
+    testWidgets('and it still counts as having been helped', (
+      WidgetTester tester,
+    ) async {
+      // Taking help is taking help, whichever direction it moved the board.
+      // The puzzle keeps its time and sets no best (VIB-77).
+      final NookDatabase database = memoryDatabase();
+      await pumpSudokuGame(tester, database: database);
+      await answer(tester, 0, 4);
+
+      await tapAction(tester, 'hint');
+
+      final SavedGame save = (await storedSave(
+        tester,
+        database,
+        SudokuVariant.miniId,
+      ))!;
+      expect(save.wasHinted, isTrue);
       expect(
-        digitIn(tester, firstHintIndex),
-        '3',
-        reason: 'the mistake was silently corrected',
+        save.hints,
+        isEmpty,
+        reason: 'an emptied cell was marked as holding a hinted digit',
       );
-      // Cell 1 takes a 2, which is what is left once the mistake is reasoned
-      // around instead of reasoned from.
-      expect(digitIn(tester, 1), '2');
-      expect(fixedMiniPuzzle().solution[1], 2);
     });
 
     testWidgets('it never overwrites a digit the player put down', (
@@ -250,6 +376,131 @@ void main() {
 
       expect(digitIn(tester, firstHintIndex), '2');
       expect(digitColour(tester, firstHintIndex), NookColors.softClay.clay);
+    });
+  });
+
+  group('a hint is paced', () {
+    testWidgets('the control waits a few seconds, then comes back', (
+      WidgetTester tester,
+    ) async {
+      // Pacing, not rationing. The wait is the room a hint needs to land — an
+      // invitation to look at the board again rather than to tap again — and
+      // nothing anywhere is counting them.
+      await pumpSudokuGame(tester);
+
+      await tapAction(tester, 'hint');
+
+      expect(actionEnabled(tester, 'hint'), isFalse);
+      expect(
+        actionBackground(tester, 'hint'),
+        NookColors.softClay.disabledSurface,
+      );
+
+      await tester.pump(kHintPacing ~/ 2);
+      expect(actionEnabled(tester, 'hint'), isFalse);
+
+      await settleHintPacing(tester);
+
+      expect(actionEnabled(tester, 'hint'), isTrue);
+      expect(actionBackground(tester, 'hint'), NookColors.softClay.surface);
+    });
+
+    testWidgets('after a hint that only took a digit away, too', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+      await answer(tester, 0, 4);
+
+      await tapAction(tester, 'hint');
+
+      expect(actionEnabled(tester, 'hint'), isFalse);
+
+      await settleHintPacing(tester);
+
+      expect(actionEnabled(tester, 'hint'), isTrue);
+    });
+
+    testWidgets('and the wait is drawn filling back in', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester);
+
+      await tapAction(tester, 'hint');
+      await tester.pump(kHintPacing ~/ 4);
+
+      final Finder wipe = find.byKey(BoardActionRow.paceKey('hint'));
+      expect(wipe, findsOneWidget);
+      final double quarter = tester
+          .widget<FractionallySizedBox>(
+            find.descendant(
+              of: wipe,
+              matching: find.byType(FractionallySizedBox),
+            ),
+          )
+          .widthFactor!;
+
+      await tester.pump(kHintPacing ~/ 2);
+
+      final double later = tester
+          .widget<FractionallySizedBox>(
+            find.descendant(
+              of: wipe,
+              matching: find.byType(FractionallySizedBox),
+            ),
+          )
+          .widthFactor!;
+      expect(later, greaterThan(quarter), reason: 'the wait did not elapse');
+
+      await settleHintPacing(tester);
+
+      expect(
+        find.byKey(BoardActionRow.paceKey('hint')),
+        findsNothing,
+        reason: 'the wait was over and the fill was still there',
+      );
+    });
+
+    testWidgets('the wait holds without moving under less motion', (
+      WidgetTester tester,
+    ) async {
+      await pumpSudokuGame(tester, disableAnimations: true);
+
+      await tapAction(tester, 'hint');
+
+      expect(actionEnabled(tester, 'hint'), isFalse);
+      expect(
+        find.byKey(BoardActionRow.paceKey('hint')),
+        findsNothing,
+        reason: 'a bar filled across a control asked to hold still',
+      );
+
+      await settleHintPacing(tester);
+
+      expect(actionEnabled(tester, 'hint'), isTrue);
+    });
+
+    testWidgets('and a screen reader is told why it cannot be used', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        await pumpSudokuGame(tester);
+
+        await tapAction(tester, 'hint');
+
+        expect(
+          find.bySemanticsLabel(
+            en.actionUnavailableLabel(en.actionHint, en.reasonHintJustGiven),
+          ),
+          findsOneWidget,
+        );
+
+        await settleHintPacing(tester);
+
+        expect(find.bySemanticsLabel(en.actionHint), findsOneWidget);
+      } finally {
+        handle.dispose();
+      }
     });
   });
 

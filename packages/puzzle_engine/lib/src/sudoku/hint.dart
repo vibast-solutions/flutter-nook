@@ -55,9 +55,15 @@ class SudokuHint {
 /// A wrong entry does not stop it. The solver is run against the board with
 /// the player's mistakes treated as blanks, which is the true puzzle again and
 /// so still reasons correctly, and the hint lands on a cell that is genuinely
-/// empty. The wrong digit is left exactly where it is: Nook does not mark a
-/// player's work, and silently correcting a cell would be marking it in the
-/// most confusing way available.
+/// empty. What it never does is write over one: a cell the player has put
+/// something in is theirs, right or wrong.
+///
+/// Deciding what to do about a mistake is not this class's job and is
+/// deliberately left to the app, which takes one wrong digit away before it
+/// asks for a hint at all. Revealing into a grid that still holds a mistake
+/// would put a correct digit into a unit already poisoned by a wrong one, and
+/// the two would read as a conflicting pair the moment they landed — the app
+/// marking its own gift.
 class SudokuHinter {
   SudokuHinter(this.puzzle) : _solver = SudokuLogicSolver(puzzle.spec);
 

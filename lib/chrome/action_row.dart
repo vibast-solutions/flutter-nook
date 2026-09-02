@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
@@ -17,6 +19,8 @@ class BoardAction {
     required this.onTap,
     this.unavailableReason,
     this.isOn,
+    this.pacing,
+    this.pacedReason,
   });
 
   /// What this control is, independent of what it is called.
@@ -49,6 +53,20 @@ class BoardAction {
   /// player who cannot tell will write marks they meant as answers.
   final bool? isOn;
 
+  /// How long the control waits before it can be used again, or `null` for a
+  /// control that can be tapped as fast as a player likes.
+  ///
+  /// Pacing, not rationing: nothing is being counted, spent or held back, and
+  /// there is no budget anywhere behind this. It is the room a hint needs to
+  /// land — an invitation to look at the board again rather than to tap again
+  /// — and it is why a player cannot fall into asking and checking in a
+  /// rhythm that takes the puzzle away from them.
+  final Duration? pacing;
+
+  /// Why the control is unavailable while it is pacing itself, read out after
+  /// the label the way [unavailableReason] is.
+  final String? pacedReason;
+
   /// Whether the action can be used right now.
   bool get isEnabled => onTap != null;
 }
@@ -67,30 +85,98 @@ class BoardActionRow extends StatelessWidget {
   /// The key of the tile for the action with this [id].
   static Key keyFor(String id) => ValueKey<String>('board-action-$id');
 
+  /// The key of the colour wiping back into the tile for the action with this
+  /// [id] while it waits out its [BoardAction.pacing].
+  static Key paceKey(String id) => ValueKey<String>('board-pace-$id');
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
         for (int i = 0; i < actions.length; i++) ...<Widget>[
           if (i != 0) const SizedBox(width: 10),
-          Expanded(child: _ActionTile(action: actions[i])),
+          Expanded(
+            child: _ActionTile(
+              // Keyed by what the control is, so a tile that is pacing itself
+              // keeps its own timer if the row is ever rebuilt in a different
+              // order.
+              key: ValueKey<String>(actions[i].id),
+              action: actions[i],
+            ),
+          ),
         ],
       ],
     );
   }
 }
 
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({required this.action});
+/// A control, and the wait after it when it has one.
+///
+/// Stateful only for the pacing: the tile owns the clock rather than the game,
+/// because how often a control offers itself is a property of the control and
+/// every game gets the same one.
+class _ActionTile extends StatefulWidget {
+  const _ActionTile({required this.action, super.key});
 
   final BoardAction action;
 
   @override
+  State<_ActionTile> createState() => _ActionTileState();
+}
+
+class _ActionTileState extends State<_ActionTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pace = AnimationController(
+    vsync: this,
+    duration: widget.action.pacing ?? Duration.zero,
+  );
+
+  @override
+  void didUpdateWidget(_ActionTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final Duration? pacing = widget.action.pacing;
+    if (pacing != null && pacing != oldWidget.action.pacing) {
+      _pace.duration = pacing;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pace.dispose();
+    super.dispose();
+  }
+
+  /// Whether the control is in the middle of its wait.
+  bool get _pacing => _pace.isAnimating;
+
+  void _tap() {
+    final VoidCallback? onTap = widget.action.onTap;
+    if (onTap == null) {
+      return;
+    }
+    onTap();
+    if (widget.action.pacing != null) {
+      unawaited(_pace.forward(from: 0));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pace,
+      builder: (BuildContext context, Widget? child) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
+    final BoardAction action = widget.action;
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final bool enabled = action.isEnabled;
-    final String? reason = action.unavailableReason;
+    final bool paced = _pacing;
+    final bool enabled = action.isEnabled && !paced;
+    final String? reason = paced
+        ? (action.pacedReason ?? action.unavailableReason)
+        : action.unavailableReason;
     final bool? isOn = action.isOn;
     final bool lit = enabled && (isOn ?? false);
 
@@ -129,24 +215,59 @@ class _ActionTile extends StatelessWidget {
           borderRadius: const BorderRadius.all(NookRadius.key),
           side: BorderSide(color: edge),
         ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           borderRadius: const BorderRadius.all(NookRadius.key),
-          onTap: action.onTap,
+          onTap: enabled ? _tap : null,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 58),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            // The label sizes the tile and the wipe fills whatever that comes
+            // to, so a pacing control is exactly the same shape as a waiting
+            // one and the row does not shuffle as the colour comes back.
+            child: Stack(
+              alignment: Alignment.center,
               children: <Widget>[
-                Icon(action.icon, size: 19, color: content),
-                const SizedBox(height: 3),
-                Text(switch (isOn) {
-                  null => action.label,
-                  true => l10n.actionToggleOn(action.label),
-                  false => l10n.actionToggleOff(action.label),
-                }, style: NookType.actionLabel(content)),
+                if (paced) _wipe(colors),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(action.icon, size: 19, color: content),
+                    const SizedBox(height: 3),
+                    Text(switch (isOn) {
+                      null => action.label,
+                      true => l10n.actionToggleOn(action.label),
+                      false => l10n.actionToggleOff(action.label),
+                    }, style: NookType.actionLabel(content)),
+                  ],
+                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// The control's own colour coming back, left edge first.
+  ///
+  /// A filling bar rather than a number: what a player needs to know is that
+  /// the wait is short and already going, and a countdown would turn a pause
+  /// into something to watch.
+  Widget _wipe(NookColors colors) {
+    // A wipe is motion, so a player who has asked for less of it gets a plain
+    // greyed control that comes back when it comes back.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      return const SizedBox.shrink();
+    }
+    return Positioned.fill(
+      key: BoardActionRow.paceKey(widget.action.id),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: _pace.value,
+          heightFactor: 1,
+          child: ColoredBox(color: colors.surface),
         ),
       ),
     );
