@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../board/number_pad.dart';
 import '../../board/sudoku_board.dart';
@@ -10,27 +11,39 @@ import 'sudoku_controller.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
-/// The screen a player lands on after picking a Sudoku.
+/// The screen a player lands on after picking a Sudoku and a difficulty.
 ///
-/// It owns the scope the game lives in: the variant is injected here, so the
-/// controller below never has to ask which grid it is playing.
+/// It owns the scope the game lives in: the variant and the tier are injected
+/// here, so the controller below never has to ask which grid it is playing or
+/// how hard the player asked for it to be.
 class SudokuGamePage extends StatelessWidget {
-  const SudokuGamePage({required this.variant, super.key});
+  const SudokuGamePage({
+    required this.variant,
+    required this.difficulty,
+    super.key,
+  });
 
   /// Which Sudoku to play.
   final SudokuVariant variant;
 
+  /// How hard the player asked for it to be.
+  final SudokuDifficulty difficulty;
+
   /// Builds a route to this page.
-  static Route<void> route(SudokuVariant variant) {
+  static Route<void> route(SudokuVariant variant, SudokuDifficulty difficulty) {
     return MaterialPageRoute<void>(
-      builder: (BuildContext context) => SudokuGamePage(variant: variant),
+      builder: (BuildContext context) =>
+          SudokuGamePage(variant: variant, difficulty: difficulty),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      overrides: [sudokuVariantProvider.overrideWithValue(variant)],
+      overrides: [
+        sudokuVariantProvider.overrideWithValue(variant),
+        sudokuDifficultyProvider.overrideWithValue(difficulty),
+      ],
       child: const _SudokuScreen(),
     );
   }
@@ -43,6 +56,7 @@ class _SudokuScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final NookColors colors = Theme.of(context).nook;
     final SudokuVariant variant = ref.watch(sudokuVariantProvider);
+    final SudokuDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
     final AsyncValue<SudokuGameState> game = ref.watch(
       sudokuControllerProvider,
     );
@@ -52,7 +66,10 @@ class _SudokuScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            _Header(title: variant.title, subtitle: variant.sizeLabel),
+            _Header(
+              title: variant.title,
+              subtitle: '${variant.sizeLabel} · ${difficulty.label}',
+            ),
             Expanded(
               child: game.when(
                 loading: () => const _Generating(),

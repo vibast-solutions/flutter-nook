@@ -29,14 +29,14 @@ class SudokuVariant {
     spec: SudokuSpec.mini,
   );
 
-  /// Sudoku Light — 6x6. Not playable yet; VIB-73 turns it on.
+  /// Sudoku Light — 6x6.
   static const SudokuVariant light = SudokuVariant(
     id: 'sudoku-light',
     title: 'Sudoku Light',
     spec: SudokuSpec.light,
   );
 
-  /// Sudoku Classic — 9x9. Not playable yet; VIB-73 turns it on.
+  /// Sudoku Classic — 9x9.
   static const SudokuVariant classic = SudokuVariant(
     id: 'sudoku-classic',
     title: 'Sudoku Classic',
@@ -45,6 +45,12 @@ class SudokuVariant {
 
   /// `4x4`, `6x6`, `9x9` — the grid size in words.
   String get sizeLabel => '${spec.size}x${spec.size}';
+
+  /// The difficulties this grid can actually produce, easiest first.
+  ///
+  /// Not every size spans the whole ladder — the engine measured which ones do
+  /// — and a tier that cannot be generated is one the screen must not offer.
+  List<SudokuDifficulty> get tiers => SudokuRater.tiersFor(spec);
 
   @override
   bool operator ==(Object other) => other is SudokuVariant && other.id == id;

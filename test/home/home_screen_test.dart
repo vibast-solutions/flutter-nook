@@ -21,7 +21,7 @@ Future<void> pumpHome(
     ProviderScope(
       overrides: [
         sudokuPuzzleSourceProvider.overrideWithValue(
-          (SudokuSpec spec, int seed) async => fixed,
+          (SudokuSpec spec, SudokuDifficulty tier, int seed) async => fixed,
         ),
       ],
       child: MaterialApp(
@@ -72,14 +72,38 @@ void main() {
     });
 
     for (final SudokuVariant variant in allVariants) {
-      testWidgets('opens ${variant.title}', (WidgetTester tester) async {
+      testWidgets('opens the difficulties for ${variant.title}', (
+        WidgetTester tester,
+      ) async {
         await pumpHome(tester, variant: variant);
 
         await tester.tap(find.text(variant.title));
         await tester.pumpAndSettle();
 
+        // A game leads to its difficulties, not straight onto a board: the
+        // player says how hard they want to think before a puzzle is made.
+        expect(find.byType(SudokuBoard), findsNothing);
+        expect(find.text('START A NEW ONE'), findsOneWidget);
+        for (final SudokuDifficulty tier in variant.tiers) {
+          expect(find.text(tier.label), findsOneWidget);
+        }
+      });
+
+      testWidgets('reaches a ${variant.title} board through a tier', (
+        WidgetTester tester,
+      ) async {
+        await pumpHome(tester, variant: variant);
+
+        await tester.tap(find.text(variant.title));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(SudokuDifficulty.gentle.label));
+        await tester.pumpAndSettle();
+
         expect(find.byType(SudokuBoard), findsOneWidget);
-        expect(find.text(variant.sizeLabel), findsOneWidget);
+        expect(
+          find.text('${variant.sizeLabel} · ${SudokuDifficulty.gentle.label}'),
+          findsOneWidget,
+        );
       });
     }
 
@@ -91,21 +115,28 @@ void main() {
       await tester.tap(find.text('Stars'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(SudokuBoard), findsNothing);
+      expect(find.text('START A NEW ONE'), findsNothing);
       expect(find.byType(HomeScreen), findsOneWidget);
     });
 
-    testWidgets('the board can be left again', (WidgetTester tester) async {
+    testWidgets('every screen can be backed out of', (
+      WidgetTester tester,
+    ) async {
       await pumpHome(tester);
 
       await tester.tap(find.text('Sudoku Mini'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(SudokuDifficulty.gentle.label));
       await tester.pumpAndSettle();
       expect(find.byType(SudokuBoard), findsOneWidget);
 
       await tester.tap(find.bySemanticsLabel('Back to the game list'));
       await tester.pumpAndSettle();
-
       expect(find.byType(SudokuBoard), findsNothing);
+      expect(find.text('START A NEW ONE'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Back to the game list'));
+      await tester.pumpAndSettle();
       expect(find.byType(HomeScreen), findsOneWidget);
     });
   });

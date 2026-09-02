@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
 import '../design/typography.dart';
-import '../games/sudoku/sudoku_screen.dart';
+import '../games/sudoku/difficulty_screen.dart';
 import '../games/sudoku/sudoku_variant.dart';
 
 /// A game in the list on the home screen.
@@ -73,7 +73,7 @@ class HomeScreen extends StatelessWidget {
       icon: icon,
       accent: true,
       open: (BuildContext context) =>
-          Navigator.of(context).push(SudokuGamePage.route(variant)),
+          Navigator.of(context).push(SudokuDifficultyPage.route(variant)),
     );
   }
 

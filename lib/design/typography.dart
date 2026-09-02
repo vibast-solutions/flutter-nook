@@ -48,6 +48,18 @@ abstract final class NookType {
     letterSpacing: -0.4,
   );
 
+  /// The name of a screen, in the display face.
+  ///
+  /// Smaller than the [wordmark]: the home screen says "Nook", every screen
+  /// below it says where you are.
+  static TextStyle screenTitle(Color color) => nookText(
+    size: 23,
+    weight: 600,
+    family: NookFonts.display,
+    color: color,
+    letterSpacing: -0.2,
+  );
+
   /// A screen or card title.
   static TextStyle title(Color color) =>
       nookText(size: 17, weight: 800, color: color);

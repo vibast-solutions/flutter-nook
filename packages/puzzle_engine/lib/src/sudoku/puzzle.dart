@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart';
 
+import 'difficulty.dart';
 import 'spec.dart';
 
 /// A generated Sudoku: the grid the player starts from, and its one solution.
@@ -14,16 +15,25 @@ class SudokuPuzzle {
     required this.seed,
     required List<int> givens,
     required List<int> solution,
+    this.difficulty,
   }) : givens = List<int>.unmodifiable(givens),
        solution = List<int>.unmodifiable(solution);
 
   /// The shape of the grid.
   final SudokuSpec spec;
 
-  /// The seed this puzzle was generated from. The same seed and spec always
-  /// reproduce it exactly, which is what lets a save store a seed rather than
-  /// a grid.
+  /// The seed this puzzle was generated from.
+  ///
+  /// The spec, the seed and [difficulty] together reproduce this puzzle
+  /// exactly, on any platform and any Dart version — which is what lets a save
+  /// store three small values instead of a grid.
   final int seed;
+
+  /// The measured tier, or `null` for a puzzle generated without a target.
+  ///
+  /// Measured by running a solver that only makes deductions a person could
+  /// make, never inferred from [givenCount].
+  final SudokuDifficulty? difficulty;
 
   /// The starting grid, `0` for the cells the player must fill.
   final List<int> givens;
