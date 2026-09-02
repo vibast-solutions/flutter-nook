@@ -5,7 +5,9 @@ import 'package:nook/board/sudoku_board.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
+import 'package:nook/games/sudoku/sudoku_naming.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
+import 'package:nook/l10n/app_localizations.dart';
 import 'package:nook/home/home_screen.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
@@ -25,6 +27,8 @@ Future<void> pumpHome(
         ),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
         home: const HomeScreen(),
       ),
@@ -72,12 +76,12 @@ void main() {
     });
 
     for (final SudokuVariant variant in allVariants) {
-      testWidgets('opens the difficulties for ${variant.title}', (
+      testWidgets('opens the difficulties for ${variant.title(en)}', (
         WidgetTester tester,
       ) async {
         await pumpHome(tester, variant: variant);
 
-        await tester.tap(find.text(variant.title));
+        await tester.tap(find.text(variant.title(en)));
         await tester.pumpAndSettle();
 
         // A game leads to its difficulties, not straight onto a board: the
@@ -85,23 +89,28 @@ void main() {
         expect(find.byType(SudokuBoard), findsNothing);
         expect(find.text('START A NEW ONE'), findsOneWidget);
         for (final SudokuDifficulty tier in variant.tiers) {
-          expect(find.text(tier.label), findsOneWidget);
+          expect(find.text(tier.label(en)), findsOneWidget);
         }
       });
 
-      testWidgets('reaches a ${variant.title} board through a tier', (
+      testWidgets('reaches a ${variant.title(en)} board through a tier', (
         WidgetTester tester,
       ) async {
         await pumpHome(tester, variant: variant);
 
-        await tester.tap(find.text(variant.title));
+        await tester.tap(find.text(variant.title(en)));
         await tester.pumpAndSettle();
-        await tester.tap(find.text(SudokuDifficulty.gentle.label));
+        await tester.tap(find.text(SudokuDifficulty.gentle.label(en)));
         await tester.pumpAndSettle();
 
         expect(find.byType(SudokuBoard), findsOneWidget);
         expect(
-          find.text('${variant.sizeLabel} · ${SudokuDifficulty.gentle.label}'),
+          find.text(
+            en.gameSubtitle(
+              variant.sizeLabel(en),
+              SudokuDifficulty.gentle.label(en),
+            ),
+          ),
           findsOneWidget,
         );
       });
@@ -126,7 +135,7 @@ void main() {
 
       await tester.tap(find.text('Sudoku Mini'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(SudokuDifficulty.gentle.label));
+      await tester.tap(find.text(SudokuDifficulty.gentle.label(en)));
       await tester.pumpAndSettle();
       expect(find.byType(SudokuBoard), findsOneWidget);
 

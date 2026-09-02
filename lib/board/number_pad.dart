@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
 import '../design/typography.dart';
+import '../l10n/app_localizations.dart';
 
 /// The row of digits under the board, each showing how many of it are left to
 /// place.
@@ -108,11 +109,15 @@ class _PadKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final bool spent = remaining == 0;
-    final String caption = spent ? 'done' : '$remaining left';
+    // Both of these are plural messages rather than a count glued to a word:
+    // English gets away with one form, most languages do not, and "none left"
+    // is its own case in several.
+    final String caption = l10n.padCaption(remaining);
 
     return Semantics(
-      label: spent ? '$digit, all placed' : '$digit, $remaining left to place',
+      label: l10n.padKeyLabel(digit, remaining),
       button: true,
       excludeSemantics: true,
       child: Material(

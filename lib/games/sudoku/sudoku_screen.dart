@@ -7,7 +7,9 @@ import '../../board/sudoku_board.dart';
 import '../../chrome/action_row.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
+import '../../l10n/app_localizations.dart';
 import 'sudoku_controller.dart';
+import 'sudoku_naming.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
@@ -55,6 +57,7 @@ class _SudokuScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final SudokuVariant variant = ref.watch(sudokuVariantProvider);
     final SudokuDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
     final AsyncValue<SudokuGameState> game = ref.watch(
@@ -67,8 +70,11 @@ class _SudokuScreen extends ConsumerWidget {
         child: Column(
           children: <Widget>[
             _Header(
-              title: variant.title,
-              subtitle: '${variant.sizeLabel} · ${difficulty.label}',
+              title: variant.title(l10n),
+              subtitle: l10n.gameSubtitle(
+                variant.sizeLabel(l10n),
+                difficulty.label(l10n),
+              ),
             ),
             Expanded(
               child: game.when(
@@ -102,7 +108,7 @@ class _Header extends StatelessWidget {
       child: Row(
         children: <Widget>[
           _IconButtonTile(
-            semanticLabel: 'Back to the game list',
+            semanticLabel: AppLocalizations.of(context).backToGameList,
             icon: Icons.arrow_back_ios_new_rounded,
             onTap: () => Navigator.of(context).maybePop(),
           ),
@@ -175,7 +181,7 @@ class _Generating extends StatelessWidget {
           CircularProgressIndicator(color: colors.clay, strokeWidth: 3),
           const SizedBox(height: 18),
           Text(
-            'Making you a puzzle',
+            AppLocalizations.of(context).gameGenerating,
             style: NookType.rowSubtitle(colors.inkMuted),
           ),
         ],
@@ -192,6 +198,7 @@ class _GenerationFailed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -199,12 +206,12 @@ class _GenerationFailed extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
-              'That puzzle did not come out right.',
+              l10n.gameGenerationFailed,
               textAlign: TextAlign.center,
               style: NookType.title(colors.ink),
             ),
             const SizedBox(height: 18),
-            _PrimaryButton(label: 'Try again', onTap: onRetry),
+            _PrimaryButton(label: l10n.gameTryAgain, onTap: onRetry),
           ],
         ),
       ),
@@ -220,6 +227,7 @@ class _Playing extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final SudokuController controller = ref.read(
       sudokuControllerProvider.notifier,
     );
@@ -250,28 +258,31 @@ class _Playing extends ConsumerWidget {
               BoardActionRow(
                 actions: <BoardAction>[
                   BoardAction(
-                    label: 'Undo',
+                    id: 'undo',
+                    label: l10n.actionUndo,
                     icon: Icons.undo_rounded,
                     onTap: game.canUndo ? controller.undo : null,
                     unavailableReason: game.isSolved
-                        ? 'the puzzle is done'
-                        : 'nothing to take back',
+                        ? l10n.reasonPuzzleDone
+                        : l10n.reasonNothingToUndo,
                   ),
                   BoardAction(
+                    id: 'erase',
                     // The designs draw an eraser; the bundled icon set has no
                     // eraser, and this is the glyph every keyboard already
                     // uses for taking a character back out.
-                    label: 'Erase',
+                    label: l10n.actionErase,
                     icon: Icons.backspace_rounded,
                     onTap: game.isSolved ? null : controller.erase,
-                    unavailableReason: 'the puzzle is done',
+                    unavailableReason: l10n.reasonPuzzleDone,
                   ),
                   BoardAction(
-                    label: 'Notes',
+                    id: 'notes',
+                    label: l10n.actionNotes,
                     icon: Icons.edit_rounded,
                     isOn: game.notesMode,
                     onTap: game.isSolved ? null : controller.toggleNotes,
-                    unavailableReason: 'the puzzle is done',
+                    unavailableReason: l10n.reasonPuzzleDone,
                   ),
                   // The hint (VIB-76) joins this row.
                 ],
@@ -287,7 +298,7 @@ class _Playing extends ConsumerWidget {
                 _Solved(onNewPuzzle: controller.startNewPuzzle)
               else
                 Text(
-                  'Tap a cell, then a number',
+                  l10n.gameInstruction,
                   style: NookType.footnote(colors.inkGhost),
                 ),
             ],
@@ -311,6 +322,7 @@ class _Solved extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Semantics(
       liveRegion: true,
       container: true,
@@ -326,9 +338,9 @@ class _Solved extends StatelessWidget {
           children: <Widget>[
             Icon(Icons.check_rounded, size: 34, color: colors.sage),
             const SizedBox(height: 8),
-            Text('Solved', style: NookType.title(colors.sageInk)),
+            Text(l10n.gameSolved, style: NookType.title(colors.sageInk)),
             const SizedBox(height: 16),
-            _PrimaryButton(label: 'New puzzle', onTap: onNewPuzzle),
+            _PrimaryButton(label: l10n.gameNewPuzzle, onTap: onNewPuzzle),
           ],
         ),
       ),

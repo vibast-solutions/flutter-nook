@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../chrome/note_marks.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
+import '../games/sudoku/sudoku_naming.dart';
 import '../games/sudoku/sudoku_state.dart';
+import '../l10n/app_localizations.dart';
 
 /// The Sudoku grid.
 ///
@@ -65,6 +67,7 @@ class SudokuBoard extends StatelessWidget {
 
   Widget _build(BuildContext context, double edge) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final int size = game.size;
     // The frame sits outside the cells, so the cells share what is left.
     final double cell = (edge - ruleWidth * 2) / size;
@@ -77,7 +80,7 @@ class SudokuBoard extends StatelessWidget {
     return MediaQuery.withNoTextScaling(
       child: Semantics(
         container: true,
-        label: '${game.variant.title} board, $size by $size',
+        label: l10n.boardLabel(game.variant.title(l10n), size),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: colors.surface,
@@ -178,7 +181,13 @@ class _SudokuCell extends StatelessWidget {
           );
 
     return Semantics(
-      label: _describe(row: row, column: column, value: value, given: given),
+      label: _describe(
+        AppLocalizations.of(context),
+        row: row,
+        column: column,
+        value: value,
+        given: given,
+      ),
       selected: isSelected,
       button: true,
       excludeSemantics: true,
@@ -219,21 +228,33 @@ class _SudokuCell extends StatelessWidget {
 
   /// What a screen reader reads out for this cell. Rows and columns are
   /// counted from one, because that is how a person describes a grid.
-  String _describe({
+  ///
+  /// One whole message per state rather than a position with an ending stuck
+  /// on it: where the coordinates fall in the sentence is a property of the
+  /// language, and a translator needs the whole sentence to move them.
+  String _describe(
+    AppLocalizations l10n, {
     required int row,
     required int column,
     required int value,
     required bool given,
   }) {
-    final String position = 'Row ${row + 1}, column ${column + 1}';
+    final int line = row + 1;
+    final int column1 = column + 1;
     if (value == 0) {
       final NoteMarks marks = game.notesAt(index);
       if (marks.isNotEmpty) {
-        return '$position, notes ${marks.digits.join(', ')}';
+        return l10n.cellNotes(
+          line,
+          column1,
+          marks.digits.join(l10n.listSeparator),
+        );
       }
-      return '$position, empty';
+      return l10n.cellEmpty(line, column1);
     }
-    return '$position, $value, ${given ? 'given' : 'your answer'}';
+    return given
+        ? l10n.cellGiven(line, column1, value)
+        : l10n.cellAnswer(line, column1, value);
   }
 }
 

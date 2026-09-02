@@ -6,7 +6,16 @@ import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
 import 'package:nook/games/sudoku/sudoku_screen.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
+import 'package:nook/l10n/app_localizations.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+
+/// The English strings, for a test that wants to say what a screen should show
+/// without writing the words out a second time.
+///
+/// English is what the app ships, so the assertions below still read as plain
+/// sentences; going through the lookup is what keeps them honest if a word
+/// changes in the `.arb` and nowhere else.
+final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
 /// A 4x4 puzzle with a known solution, so a test can say what it expects.
 ///
@@ -88,6 +97,8 @@ Future<void> pumpSudokuGame(
         ),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
         builder: (BuildContext context, Widget? child) => MediaQuery(
           data: MediaQuery.of(context)

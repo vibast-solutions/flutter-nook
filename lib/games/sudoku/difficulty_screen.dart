@@ -5,6 +5,8 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
+import '../../l10n/app_localizations.dart';
+import 'sudoku_naming.dart';
 import 'sudoku_screen.dart';
 import 'sudoku_variant.dart';
 
@@ -28,17 +30,6 @@ class SudokuDifficultyPage extends StatelessWidget {
   /// Fiendish says "needs notes" instead of showing a full meter.
   static const int meterRungs = 4;
 
-  /// What each tier feels like to play. Screen copy, so it lives here rather
-  /// than on the engine's enum.
-  static const Map<SudokuDifficulty, String> _describe =
-      <SudokuDifficulty, String>{
-        SudokuDifficulty.gentle: 'One cell at a time',
-        SudokuDifficulty.easy: 'A little more looking',
-        SudokuDifficulty.medium: 'Some ruling out',
-        SudokuDifficulty.hard: 'A lot of ruling out',
-        SudokuDifficulty.fiendish: 'Chains across the grid',
-      };
-
   /// Builds a route to this page.
   static Route<void> route(SudokuVariant variant) {
     return MaterialPageRoute<void>(
@@ -53,6 +44,7 @@ class SudokuDifficultyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final List<SudokuDifficulty> tiers = variant.tiers;
 
     return Scaffold(
@@ -60,7 +52,7 @@ class SudokuDifficultyPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            _Header(title: variant.title),
+            _Header(title: variant.title(l10n)),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 10, 24, 8),
@@ -69,14 +61,13 @@ class SudokuDifficultyPage extends StatelessWidget {
                   // save and resume (VIB-75); until a saved game can exist,
                   // there is nothing true to put here.
                   Text(
-                    'START A NEW ONE',
+                    l10n.difficultyStartNew,
                     style: NookType.sectionLabel(colors.inkFaint),
                   ),
                   const SizedBox(height: 10),
                   for (final SudokuDifficulty tier in tiers) ...<Widget>[
                     _TierRow(
                       difficulty: tier,
-                      description: _describe[tier]!,
                       onTap: () =>
                           Navigator.of(context)
                               .push(SudokuGamePage.route(variant, tier)),
@@ -112,7 +103,7 @@ class _Header extends StatelessWidget {
       child: Row(
         children: <Widget>[
           Semantics(
-            label: 'Back to the game list',
+            label: AppLocalizations.of(context).backToGameList,
             button: true,
             excludeSemantics: true,
             child: Material(
@@ -146,28 +137,28 @@ class _Header extends StatelessWidget {
 
 /// One difficulty, and the way in.
 class _TierRow extends StatelessWidget {
-  const _TierRow({
-    required this.difficulty,
-    required this.description,
-    required this.onTap,
-  });
+  const _TierRow({required this.difficulty, required this.onTap});
 
   final SudokuDifficulty difficulty;
-  final String description;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String name = difficulty.label(l10n);
+    final String description = difficulty.blurb(l10n);
     // The designs mark Fiendish with words rather than a full meter: four
     // filled bars would say "hardest", where what a player needs to know is
     // that this is the tier they will want to write notes for.
     final bool needsNotes = difficulty == SudokuDifficulty.fiendish;
 
     return Semantics(
-      label:
-          '${difficulty.label}. $description'
-          '${needsNotes ? '. Needs notes' : ''}',
+      // Two whole messages rather than one with a bolted-on tail: a language
+      // that puts the warning first has nowhere to put it otherwise.
+      label: needsNotes
+          ? l10n.difficultyTierLabelNeedsNotes(name, description)
+          : l10n.difficultyTierLabel(name, description),
       button: true,
       excludeSemantics: true,
       child: Material(
@@ -190,10 +181,7 @@ class _TierRow extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(
-                          difficulty.label,
-                          style: NookType.rowTitle(colors.ink),
-                        ),
+                        Text(name, style: NookType.rowTitle(colors.ink)),
                         const SizedBox(height: 3),
                         // The designs put a best time and a solved count here.
                         // Neither exists until statistics do (VIB-77), and a
@@ -209,7 +197,7 @@ class _TierRow extends StatelessWidget {
                   const SizedBox(width: 14),
                   if (needsNotes)
                     Text(
-                      'needs notes',
+                      l10n.difficultyNeedsNotes,
                       style: NookType.actionLabel(colors.inkMuted),
                     )
                   else
@@ -278,16 +266,16 @@ class _ShortLadderNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String size = variant.sizeLabel(l10n);
     final bool single = variant.tiers.length == 1;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Text(
         single
-            ? 'A ${variant.sizeLabel} grid always leaves a cell you can read '
-                  'on its own, so it only comes one way.'
-            : 'A ${variant.sizeLabel} grid is too small for the middle of the '
-                  'ladder — it either falls out or it needs a chain.',
+            ? l10n.difficultyOnlyOneTier(size)
+            : l10n.difficultyMissingMiddleTiers(size),
         style: NookType.footnote(colors.inkGhost),
       ),
     );
@@ -317,8 +305,7 @@ class _Guarantee extends StatelessWidget {
               const SizedBox(width: 11),
               Expanded(
                 child: Text(
-                  'Every puzzle has exactly one solution — you will never '
-                  'need to guess.',
+                  AppLocalizations.of(context).difficultyGuarantee,
                   style: NookType.rowSubtitle(colors.inkMuted),
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
 import '../design/typography.dart';
+import '../l10n/app_localizations.dart';
 
 /// One control in the row under a board.
 ///
@@ -10,6 +11,7 @@ import '../design/typography.dart';
 @immutable
 class BoardAction {
   const BoardAction({
+    required this.id,
     required this.label,
     required this.icon,
     required this.onTap,
@@ -17,7 +19,14 @@ class BoardAction {
     this.isOn,
   });
 
-  /// The word under the icon.
+  /// What this control is, independent of what it is called.
+  ///
+  /// Keys are built from this rather than from [label] because the label is
+  /// translated: a widget key that changes with the player's language is not a
+  /// key, and a test looking for one would pass or fail by locale.
+  final String id;
+
+  /// The word under the icon, already in the player's language.
   final String label;
 
   /// The glyph above it.
@@ -55,9 +64,8 @@ class BoardActionRow extends StatelessWidget {
   /// The controls, left to right. They share the width evenly.
   final List<BoardAction> actions;
 
-  /// The key of the tile for the action labelled [label].
-  static Key keyFor(String label) =>
-      ValueKey<String>('board-action-${label.toLowerCase()}');
+  /// The key of the tile for the action with this [id].
+  static Key keyFor(String id) => ValueKey<String>('board-action-$id');
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +88,7 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final bool enabled = action.isEnabled;
     final String? reason = action.unavailableReason;
     final bool? isOn = action.isOn;
@@ -108,13 +117,13 @@ class _ActionTile extends StatelessWidget {
     return Semantics(
       label: enabled || reason == null
           ? action.label
-          : '${action.label}, $reason',
+          : l10n.actionUnavailableLabel(action.label, reason),
       button: true,
       enabled: enabled,
       toggled: isOn,
       excludeSemantics: true,
       child: Material(
-        key: BoardActionRow.keyFor(action.label),
+        key: BoardActionRow.keyFor(action.id),
         color: background,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(NookRadius.key),
@@ -130,12 +139,11 @@ class _ActionTile extends StatelessWidget {
               children: <Widget>[
                 Icon(action.icon, size: 19, color: content),
                 const SizedBox(height: 3),
-                Text(
-                  isOn == null
-                      ? action.label
-                      : '${action.label} ${isOn ? 'on' : 'off'}',
-                  style: NookType.actionLabel(content),
-                ),
+                Text(switch (isOn) {
+                  null => action.label,
+                  true => l10n.actionToggleOn(action.label),
+                  false => l10n.actionToggleOff(action.label),
+                }, style: NookType.actionLabel(content)),
               ],
             ),
           ),

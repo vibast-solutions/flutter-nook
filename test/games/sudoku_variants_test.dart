@@ -4,6 +4,7 @@ import 'package:nook/board/number_pad.dart';
 import 'package:nook/board/sudoku_board.dart';
 import 'package:nook/chrome/action_row.dart';
 import 'package:nook/design/tokens.dart';
+import 'package:nook/games/sudoku/sudoku_naming.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
@@ -24,7 +25,7 @@ void main() {
     for (final SudokuVariant variant in allVariants) {
       final int size = variant.spec.size;
 
-      testWidgets('${variant.sizeLabel}: the board has a cell per square', (
+      testWidgets('${variant.sizeLabel(en)}: the board has a cell per square', (
         WidgetTester tester,
       ) async {
         await pumpSudokuGame(tester, variant: variant);
@@ -38,17 +39,17 @@ void main() {
           expect(
             find.byKey(SudokuBoard.cellKey(index)),
             findsOneWidget,
-            reason: 'cell $index is missing from a ${variant.sizeLabel}',
+            reason: 'cell $index is missing from a ${variant.sizeLabel(en)}',
           );
         }
         expect(
           find.byKey(SudokuBoard.cellKey(variant.spec.cellCount)),
           findsNothing,
-          reason: 'a ${variant.sizeLabel} drew a cell too many',
+          reason: 'a ${variant.sizeLabel(en)} drew a cell too many',
         );
       });
 
-      testWidgets('${variant.sizeLabel}: the pad has a key per digit', (
+      testWidgets('${variant.sizeLabel(en)}: the pad has a key per digit', (
         WidgetTester tester,
       ) async {
         await pumpSudokuGame(tester, variant: variant);
@@ -59,23 +60,24 @@ void main() {
         expect(find.byKey(NumberPad.keyFor(size + 1)), findsNothing);
       });
 
-      testWidgets('${variant.sizeLabel}: the board says its size out loud', (
-        WidgetTester tester,
-      ) async {
-        final SemanticsHandle handle = tester.ensureSemantics();
-        try {
-          await pumpSudokuGame(tester, variant: variant);
+      testWidgets(
+        '${variant.sizeLabel(en)}: the board says its size out loud',
+        (WidgetTester tester) async {
+          final SemanticsHandle handle = tester.ensureSemantics();
+          try {
+            await pumpSudokuGame(tester, variant: variant);
 
-          expect(
-            find.bySemanticsLabel('${variant.title} board, $size by $size'),
-            findsOneWidget,
-          );
-        } finally {
-          handle.dispose();
-        }
-      });
+            expect(
+              find.bySemanticsLabel(en.boardLabel(variant.title(en), size)),
+              findsOneWidget,
+            );
+          } finally {
+            handle.dispose();
+          }
+        },
+      );
 
-      testWidgets('${variant.sizeLabel}: an answer can be entered', (
+      testWidgets('${variant.sizeLabel(en)}: an answer can be entered', (
         WidgetTester tester,
       ) async {
         final SudokuPuzzle puzzle = fixedPuzzle(variant);
@@ -95,7 +97,7 @@ void main() {
         );
       });
 
-      testWidgets('${variant.sizeLabel}: the board fits the screen', (
+      testWidgets('${variant.sizeLabel(en)}: the board fits the screen', (
         WidgetTester tester,
       ) async {
         await pumpSudokuGame(
@@ -139,14 +141,12 @@ void main() {
         expect(key.height, greaterThanOrEqualTo(kMinTapTarget));
       }
 
-      for (final String label in <String>['Undo', 'Erase', 'Notes']) {
-        final Size tile = tester.getSize(
-          find.byKey(BoardActionRow.keyFor(label)),
-        );
+      for (final String id in <String>['undo', 'erase', 'notes']) {
+        final Size tile = tester.getSize(find.byKey(BoardActionRow.keyFor(id)));
         expect(
           tile.width,
           greaterThanOrEqualTo(kMinTapTarget),
-          reason: '$label is too narrow to hit',
+          reason: '$id is too narrow to hit',
         );
         expect(tile.height, greaterThanOrEqualTo(kMinTapTarget));
       }
@@ -214,7 +214,7 @@ void main() {
 
       await tester.tap(find.byKey(SudokuBoard.cellKey(blank.index)));
       await tester.pump();
-      await tester.tap(find.byKey(BoardActionRow.keyFor('Notes')));
+      await tester.tap(find.byKey(BoardActionRow.keyFor('notes')));
       await tester.pump();
       for (int digit = 1; digit <= 9; digit++) {
         await tester.tap(find.byKey(NumberPad.keyFor(digit)));
@@ -235,9 +235,8 @@ void main() {
       }
 
       expect(
-        MediaQuery.textScalerOf(
-          tester.element(find.text('Tap a cell, then a number')),
-        ).scale(15),
+        MediaQuery.textScalerOf(tester.element(find.text(en.gameInstruction)))
+            .scale(15),
         30,
         reason: 'the setting should still reach everything else',
       );
