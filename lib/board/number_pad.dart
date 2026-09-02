@@ -27,15 +27,31 @@ class NumberPad extends StatelessWidget {
   /// Called with the tapped digit.
   final ValueChanged<int> onDigit;
 
-  /// Nine keys wrap onto two rows; four or six fit on one.
-  static const int _maxPerRow = 5;
+  /// The most keys Nook will put in one row.
+  ///
+  /// Past this the keys get too narrow to hit comfortably on the smallest
+  /// phone the app supports, so the pad takes a second row instead.
+  static const int maxPerRow = 5;
+
+  /// How many keys go in each row of a pad with [digits] of them.
+  ///
+  /// Rows are balanced rather than filled to the brim: six digits become two
+  /// rows of three, not a row of five and a lone key, and nine become the five
+  /// and four the designs draw. Four still fit on one row.
+  static int columnsFor(int digits) {
+    if (digits <= maxPerRow) {
+      return digits;
+    }
+    final int rows = (digits / maxPerRow).ceil();
+    return (digits / rows).ceil();
+  }
 
   /// The key of the pad key for [digit].
   static Key keyFor(int digit) => ValueKey<String>('pad-key-$digit');
 
   @override
   Widget build(BuildContext context) {
-    final int columns = digits <= _maxPerRow ? digits : _maxPerRow;
+    final int columns = columnsFor(digits);
     final List<Widget> rows = <Widget>[];
     for (int start = 1; start <= digits; start += columns) {
       final int end = (start + columns - 1).clamp(start, digits);
