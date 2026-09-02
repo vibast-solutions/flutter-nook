@@ -11,6 +11,7 @@ import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
 import 'package:nook/games/sudoku/sudoku_screen.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
+import 'package:nook/l10n/app_localizations.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
@@ -27,17 +28,18 @@ Future<void> tapDigit(WidgetTester tester, int digit) async {
   await tester.pump();
 }
 
-/// Taps the action-row control labelled [label].
-Future<void> tapAction(WidgetTester tester, String label) async {
-  await tester.tap(find.byKey(BoardActionRow.keyFor(label)));
+/// Taps the action-row control with the id [id].
+///
+/// Controls are found by id rather than by the word on them: the word is
+/// translated, and a test that hunted for it would only pass in English.
+Future<void> tapAction(WidgetTester tester, String id) async {
+  await tester.tap(find.byKey(BoardActionRow.keyFor(id)));
   await tester.pump();
 }
 
-/// The colour the action-row control labelled [label] is filled with.
-Color actionBackground(WidgetTester tester, String label) {
-  return tester
-      .widget<Material>(find.byKey(BoardActionRow.keyFor(label)))
-      .color!;
+/// The colour the action-row control with the id [id] is filled with.
+Color actionBackground(WidgetTester tester, String id) {
+  return tester.widget<Material>(find.byKey(BoardActionRow.keyFor(id))).color!;
 }
 
 /// Every digit on the board, with `null` for an empty cell.
@@ -283,13 +285,13 @@ void main() {
         boardWith(<int, String>{0: '1', 4: '3', 15: '1'}),
       );
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(boardDigits(tester), boardWith(<int, String>{0: '1', 4: '3'}));
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(boardDigits(tester), boardWith(<int, String>{0: '1'}));
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(
         boardDigits(tester),
         givenBoard(),
@@ -306,7 +308,7 @@ void main() {
       await tapDigit(tester, 1);
       await tapCell(tester, 15);
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
 
       expect(digitIn(tester, 0), isNull);
       expect(
@@ -324,7 +326,7 @@ void main() {
       await tapDigit(tester, 3); // Wrong.
       await tapDigit(tester, 1); // Corrected.
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
 
       expect(digitIn(tester, 0), '3');
     });
@@ -334,18 +336,18 @@ void main() {
     ) async {
       await pumpSudokuGame(tester);
 
-      expect(actionBackground(tester, 'Undo'), colors.disabledSurface);
+      expect(actionBackground(tester, 'undo'), colors.disabledSurface);
 
       // Tapping it anyway is a no-op rather than an error.
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(boardDigits(tester), givenBoard());
 
       await tapCell(tester, 0);
       await tapDigit(tester, 1);
-      expect(actionBackground(tester, 'Undo'), colors.surface);
+      expect(actionBackground(tester, 'undo'), colors.surface);
 
-      await tapAction(tester, 'Undo');
-      expect(actionBackground(tester, 'Undo'), colors.disabledSurface);
+      await tapAction(tester, 'undo');
+      expect(actionBackground(tester, 'undo'), colors.disabledSurface);
     });
 
     testWidgets('erase clears the player\'s digit', (
@@ -357,7 +359,7 @@ void main() {
       await tapDigit(tester, 1);
       expect(digitIn(tester, 0), '1');
 
-      await tapAction(tester, 'Erase');
+      await tapAction(tester, 'erase');
 
       expect(digitIn(tester, 0), isNull);
     });
@@ -366,11 +368,11 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 6); // A given 1.
-      await tapAction(tester, 'Erase');
+      await tapAction(tester, 'erase');
 
       expect(digitIn(tester, 6), '1');
       expect(
-        actionBackground(tester, 'Undo'),
+        actionBackground(tester, 'undo'),
         colors.disabledSurface,
         reason: 'nothing happened, so there is nothing to undo',
       );
@@ -381,7 +383,7 @@ void main() {
     ) async {
       await pumpSudokuGame(tester);
 
-      await tapAction(tester, 'Erase');
+      await tapAction(tester, 'erase');
 
       expect(boardDigits(tester), givenBoard());
     });
@@ -391,10 +393,10 @@ void main() {
 
       await tapCell(tester, 0);
       await tapDigit(tester, 1);
-      await tapAction(tester, 'Erase');
+      await tapAction(tester, 'erase');
       expect(digitIn(tester, 0), isNull);
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
 
       expect(digitIn(tester, 0), '1');
     });
@@ -414,11 +416,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Solved'), findsOneWidget);
-      expect(actionBackground(tester, 'Undo'), colors.disabledSurface);
-      expect(actionBackground(tester, 'Erase'), colors.disabledSurface);
+      expect(actionBackground(tester, 'undo'), colors.disabledSurface);
+      expect(actionBackground(tester, 'erase'), colors.disabledSurface);
 
-      await tapAction(tester, 'Undo');
-      await tapAction(tester, 'Erase');
+      await tapAction(tester, 'undo');
+      await tapAction(tester, 'erase');
 
       expect(find.text('Solved'), findsOneWidget, reason: 'still solved');
     });
@@ -431,23 +433,23 @@ void main() {
       await pumpSudokuGame(tester);
 
       expect(find.text('Notes off'), findsOneWidget);
-      expect(actionBackground(tester, 'Notes'), colors.surface);
+      expect(actionBackground(tester, 'notes'), colors.surface);
 
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
 
       expect(find.text('Notes on'), findsOneWidget);
       expect(
-        actionBackground(tester, 'Notes'),
+        actionBackground(tester, 'notes'),
         colors.clay,
         reason:
             'notes mode changes what every later tap means, so it is the '
             'loudest thing in the row while it is on',
       );
 
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
 
       expect(find.text('Notes off'), findsOneWidget);
-      expect(actionBackground(tester, 'Notes'), colors.surface);
+      expect(actionBackground(tester, 'notes'), colors.surface);
     });
 
     testWidgets('digits go in as marks and the same tap rubs them out', (
@@ -456,7 +458,7 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 0);
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 1);
       await tapDigit(tester, 4);
 
@@ -474,7 +476,7 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 0);
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 2);
 
       expect(noteColour(tester, 0), colors.noteInk);
@@ -491,7 +493,7 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 0);
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 4);
       final Offset four = tester.getCenter(find.text('4').last);
 
@@ -510,12 +512,12 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 0);
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 1);
       await tapDigit(tester, 3);
       expect(notesIn(tester, 0), <int>[1, 3]);
 
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 1);
       expect(digitIn(tester, 0), '1');
       expect(
@@ -524,7 +526,7 @@ void main() {
         reason: 'a cell shows an answer or its marks, never both',
       );
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
 
       expect(digitIn(tester, 0), isNull);
       expect(notesIn(tester, 0), <int>[1, 3]);
@@ -537,13 +539,13 @@ void main() {
 
       await tapCell(tester, 0);
       await tapDigit(tester, 3);
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 1);
 
       expect(digitIn(tester, 0), isNull);
       expect(notesIn(tester, 0), <int>[1]);
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
 
       expect(digitIn(tester, 0), '3');
       expect(find.byKey(SudokuBoard.notesKey(0)), findsNothing);
@@ -553,15 +555,15 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 0);
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 2);
       await tapDigit(tester, 3);
 
-      await tapAction(tester, 'Erase');
+      await tapAction(tester, 'erase');
 
       expect(find.byKey(SudokuBoard.notesKey(0)), findsNothing);
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(notesIn(tester, 0), <int>[2, 3]);
     });
 
@@ -571,21 +573,21 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 0);
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 1);
       await tapDigit(tester, 2);
       await tapDigit(tester, 3);
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(notesIn(tester, 0), <int>[1, 2]);
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(notesIn(tester, 0), <int>[1]);
 
-      await tapAction(tester, 'Undo');
+      await tapAction(tester, 'undo');
       expect(find.byKey(SudokuBoard.notesKey(0)), findsNothing);
       expect(
-        actionBackground(tester, 'Undo'),
+        actionBackground(tester, 'undo'),
         colors.disabledSurface,
         reason: 'the marks were the whole history',
       );
@@ -595,13 +597,13 @@ void main() {
       await pumpSudokuGame(tester);
 
       await tapCell(tester, 6); // A given 1.
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapDigit(tester, 3);
 
       expect(digitIn(tester, 6), '1');
       expect(find.byKey(SudokuBoard.notesKey(6)), findsNothing);
       expect(
-        actionBackground(tester, 'Undo'),
+        actionBackground(tester, 'undo'),
         colors.disabledSurface,
         reason: 'nothing happened, so there is nothing to undo',
       );
@@ -612,7 +614,7 @@ void main() {
     ) async {
       await pumpSudokuGame(tester);
 
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
       await tapCell(tester, 0);
       await tapDigit(tester, 2);
       await tapCell(tester, 15);
@@ -637,9 +639,9 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(actionBackground(tester, 'Notes'), colors.disabledSurface);
+      expect(actionBackground(tester, 'notes'), colors.disabledSurface);
 
-      await tapAction(tester, 'Notes');
+      await tapAction(tester, 'notes');
 
       expect(find.text('Notes off'), findsOneWidget);
       expect(find.text('Solved'), findsOneWidget);
@@ -787,6 +789,8 @@ void main() {
             ),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: buildNookTheme(NookColors.softClay),
             home: const SudokuGamePage(
               variant: SudokuVariant.mini,

@@ -12,6 +12,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Localisation. Both are first-party (shipped with the SDK / maintained by
+  # the Dart team); Nook uses no third-party localisation package.
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
   # State. Chosen for being testable without widgets — see the technical design.
   flutter_riverpod: ^3.0.0
 
@@ -27,10 +33,14 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Turns lib/l10n/*.arb into the AppLocalizations class. See l10n.yaml.
+  generate: true
+
   # Bundled rather than fetched: Nook makes no network requests, and a font
   # downloaded on first launch would break that and look wrong offline.
   # Both families are licensed under the SIL Open Font License; the licences
-  # are in assets/fonts alongside them.
+  # are in assets/fonts alongside them. Both are subsets — what each one can
+  # actually draw is checked in test/design/font_coverage_test.dart.
   fonts:
     - family: Nunito
       fonts:

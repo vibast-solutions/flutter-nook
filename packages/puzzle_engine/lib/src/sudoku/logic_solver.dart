@@ -56,7 +56,7 @@ class SudokuSolveReport {
   @override
   String toString() =>
       'SudokuSolveReport(${isSolved ? 'solved' : 'stalled'}, '
-      'hardest ${hardest?.label ?? 'none'})';
+      'hardest ${hardest?.name ?? 'none'})';
 }
 
 /// Solves a Sudoku using only deductions a person could make.

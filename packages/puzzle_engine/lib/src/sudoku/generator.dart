@@ -25,7 +25,7 @@ class SudokuGenerationException implements Exception {
 
   @override
   String toString() =>
-      'SudokuGenerationException: no ${target.label} $spec after '
+      'SudokuGenerationException: no ${target.name} $spec after '
       '$attempts attempts.';
 }
 

@@ -6,7 +6,9 @@ import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/difficulty_screen.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
+import 'package:nook/games/sudoku/sudoku_naming.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
+import 'package:nook/l10n/app_localizations.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
@@ -28,6 +30,8 @@ Future<void> pumpDifficulty(
         ),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
         home: SudokuDifficultyPage(variant: variant),
       ),
@@ -56,26 +60,26 @@ int filledRungs(WidgetTester tester, SudokuDifficulty difficulty) {
 void main() {
   group('the difficulty screen offers what the grid can make', () {
     for (final SudokuVariant variant in allVariants) {
-      testWidgets('${variant.title} lists exactly its own tiers', (
+      testWidgets('${variant.title(en)} lists exactly its own tiers', (
         WidgetTester tester,
       ) async {
         await pumpDifficulty(tester, variant: variant);
 
-        expect(find.text(variant.title), findsOneWidget);
+        expect(find.text(variant.title(en)), findsOneWidget);
         for (final SudokuDifficulty tier in SudokuDifficulty.values) {
           final bool offered = variant.tiers.contains(tier);
           expect(
             find.byKey(SudokuDifficultyPage.tierKey(tier)),
             offered ? findsOneWidget : findsNothing,
             reason: offered
-                ? '${tier.label} should be offered on ${variant.title}'
-                : '${tier.label} cannot be generated for ${variant.title}, '
+                ? '${tier.label(en)} should be offered on ${variant.title(en)}'
+                : '${tier.label(en)} cannot be generated for ${variant.title(en)}, '
                       'so offering it would be a button that lies',
           );
         }
       });
 
-      testWidgets('${variant.title} locks nothing', (
+      testWidgets('${variant.title(en)} locks nothing', (
         WidgetTester tester,
       ) async {
         // Tiers are never gated — not behind progress, not behind payment. A
@@ -92,12 +96,12 @@ void main() {
           expect(
             way.onTap,
             isNotNull,
-            reason: '${tier.label} was not tappable',
+            reason: '${tier.label(en)} was not tappable',
           );
         }
       });
 
-      testWidgets('${variant.title} keeps its rows tappable at 320', (
+      testWidgets('${variant.title(en)} keeps its rows tappable at 320', (
         WidgetTester tester,
       ) async {
         await pumpDifficulty(
@@ -113,7 +117,7 @@ void main() {
           expect(
             row.height,
             greaterThanOrEqualTo(kMinTapTarget),
-            reason: '${tier.label} is too short to hit comfortably',
+            reason: '${tier.label(en)} is too short to hit comfortably',
           );
         }
         final Size back = tester.getSize(
@@ -243,6 +247,8 @@ void main() {
             }),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: buildNookTheme(NookColors.softClay),
             home: const SudokuDifficultyPage(variant: SudokuVariant.classic),
           ),

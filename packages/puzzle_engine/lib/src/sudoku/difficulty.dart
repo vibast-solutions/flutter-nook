@@ -10,29 +10,25 @@ import 'technique.dart';
 /// were left blank: two puzzles with the same number of givens routinely sit
 /// two tiers apart. Tiers are never locked — a new player may start on
 /// [fiendish].
+///
+/// The tiers carry no names. A name a player reads has to be translated, and
+/// this package is pure Dart on purpose — so naming a tier is the app's job.
+/// What lives here is the order, which is the part the rating depends on.
 enum SudokuDifficulty {
   /// Every cell can be read off on its own.
-  gentle('Gentle'),
+  gentle,
 
   /// Still only scanning, but the board has to be searched for it.
-  easy('Easy'),
+  easy,
 
   /// At least one deduction that rules candidates out before placing.
-  medium('Medium'),
+  medium,
 
   /// Those deductions again and again.
-  hard('Hard'),
+  hard,
 
   /// Reasoning across the whole grid at once.
-  fiendish('Fiendish');
-
-  const SudokuDifficulty(this.label);
-
-  /// The tier's name. Part of the model rather than screen copy: a save and a
-  /// statistics row both need to name a tier, and the app should not be
-  /// capitalising an enum to do it. Anything longer than the name — what the
-  /// tier feels like to play — is the screen's business.
-  final String label;
+  fiendish,
 }
 
 /// Where one tier stops and the next begins.
