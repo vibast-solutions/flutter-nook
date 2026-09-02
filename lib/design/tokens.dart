@@ -265,3 +265,14 @@ abstract final class NookRadius {
 ///
 /// Both stores recommend it and Nook treats it as a floor, not a target.
 const double kMinTapTarget = 44;
+
+/// The narrowest screen Nook lays out for, in logical pixels.
+///
+/// Every control has to stay at [kMinTapTarget] at this width — a 9x9 board
+/// with its nine-key pad under it is the tightest thing Nook draws, so this is
+/// the number that decides whether the pad takes one row or two.
+///
+/// Board cells are the deliberate exception: nine of them across a phone
+/// cannot each be 44 wide, and no Sudoku on any phone manages it. They take
+/// as much of the width as the page can spare instead.
+const double kSmallestSupportedWidth = 320;

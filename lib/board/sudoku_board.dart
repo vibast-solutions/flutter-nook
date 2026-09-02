@@ -69,41 +69,48 @@ class SudokuBoard extends StatelessWidget {
     // The frame sits outside the cells, so the cells share what is left.
     final double cell = (edge - ruleWidth * 2) / size;
 
-    return Semantics(
-      container: true,
-      label: '${game.variant.title} board, $size by $size',
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border.all(color: colors.boardRule, width: ruleWidth),
-          borderRadius: const BorderRadius.all(NookRadius.board),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: colors.ink.withValues(alpha: 0.10),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.all(NookRadius.board),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              for (int row = 0; row < size; row++)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    for (int column = 0; column < size; column++)
-                      _SudokuCell(
-                        game: game,
-                        index: row * size + column,
-                        extent: cell,
-                        onTap: onSelect,
-                      ),
-                  ],
-                ),
+    // Every glyph on the board is a fraction of a cell, and a cell is a
+    // fraction of the screen — so the board already grows with the device.
+    // Letting the system text setting scale it a second time only pushes a
+    // 9x9's digits past the cell that holds them, which is the opposite of
+    // legible. Everything outside the board scales normally.
+    return MediaQuery.withNoTextScaling(
+      child: Semantics(
+        container: true,
+        label: '${game.variant.title} board, $size by $size',
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            border: Border.all(color: colors.boardRule, width: ruleWidth),
+            borderRadius: const BorderRadius.all(NookRadius.board),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: colors.ink.withValues(alpha: 0.10),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.all(NookRadius.board),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                for (int row = 0; row < size; row++)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      for (int column = 0; column < size; column++)
+                        _SudokuCell(
+                          game: game,
+                          index: row * size + column,
+                          extent: cell,
+                          onTap: onSelect,
+                        ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
