@@ -58,14 +58,60 @@ when the ticket that needs them comes up, not before.
   stack of its own, and a move is a handful of plain integers — which cell, what
   it held, and the pencil marks around it as a `NoteMarks` bitmask — because it
   has to survive being written to disk when a game is saved and resumed.
-- **A hint reveals a cell the player could have deduced**, chosen by the same
-  technique solver that measures difficulty (`SudokuHinter`), never at random.
-  A mistake already on the board is reasoned around rather than reasoned from
-  — one wrong digit makes the rest of the grid unsolvable, so a solver fed it
-  would deduce a run of wrong cells — and is left exactly where it is: Nook
-  does not mark a player's work. **Hints are unlimited and free**: there is no
-  counter, cooldown or limit anywhere in the code, and none is ever to be
-  added.
+- **Undo is the strict inverse of one move, and every control obeys that.** One
+  move is one thing the player did, even when it changed cells they never
+  touched: writing a digit **rubs that digit out of the pencil marks of every
+  cell in its row, column and box**, and the cells it took them from ride along
+  on the move in `BoardMove.clearedNotes` so undo can put them back exactly.
+  That tidying reads the digit the player claimed and the shape of the grid,
+  never `puzzle.solution` — a wrong digit tidies exactly as a right one does,
+  because the app is applying the claim rather than the truth. Erase and
+  clearing a cell by re-tapping its digit are moves *forward*: they take the
+  digit out and leave the tidying alone, because a control that reversed a move
+  it did not make would make undo the only thing nobody could predict.
+- **The board marks a repeated digit, and only ever a repeated digit.** A cell
+  conflicts when another cell in its row, column or box holds the same digit;
+  both halves are marked, givens included, because deciding which of the two is
+  the intruder would mean knowing the answer. A digit that disagrees with the
+  solution but repeats nothing is silent. The same reasoning sets the trigger
+  for the completed-unit pulse: *full and free of repeats*, never *correct*.
+  Both are computed on `SudokuGameState` from the grid alone, and the tests
+  swap the puzzle's solution for a different one and assert that nothing on the
+  board changes — which is the guard that no solution reading ever creeps in.
+- **Colour never carries a meaning by itself.** A conflicting cell is hatched
+  as well as washed (`_ConflictHatch`), the way region colours are, so the
+  board is readable without reading colour.
+- **Motion is optional and the words are not.** Anything that moves — the
+  completed-unit pulse, the cross a hint draws over a wrong digit, the hint
+  control's colour wiping back in — checks `MediaQuery.disableAnimations` and
+  simply does not draw. What a screen reader is told never depends on that
+  setting: a cell a hint emptied says so either way.
+- **A hint is the player's next move, not a reveal.** With a wrong digit on the
+  board it **takes one away** — the most recently entered, crossed out in red
+  and faded off — and reveals nothing; with none, it fills in a cell the player
+  could have deduced, chosen by the same technique solver that measures
+  difficulty (`SudokuHinter`), never at random. Removing first is what stops
+  the app contradicting itself: a digit revealed into a unit already poisoned
+  by a mistake would be marked as a conflict by the same board that had just
+  given it. Inside the engine a mistake is still reasoned *around* rather than
+  reasoned *from* — one wrong digit makes the rest of the grid unsolvable, so a
+  solver fed it would deduce a run of wrong cells — and the hinter never writes
+  over a filled cell; what to do about a mistake is the app's decision, made
+  before it asks. Either kind of hint counts as help, so the puzzle sets no
+  personal best.
+- **This is the only place Nook judges an entry against the solution, and it
+  happens because the player asked.** The board never volunteers it: no "check
+  my work", no wrong-digit marking, no correctness animation. Nothing is
+  protected by that — unlimited hints could always reveal any cell — but a
+  board that graded silently would be an oracle to brute-force rather than a
+  puzzle to solve.
+- **Hints are unlimited and free**: nothing is gated, sold, counted, spent or
+  rationed, and none of that is ever to be added. The control does **pace**
+  itself — it waits `kHintPacing` (four seconds) after each one, greyed with
+  its colour wiping back in from the left. That is the room a hint needs to
+  land, and what stops removal-by-hint becoming a guess-and-check rhythm; it is
+  the same wait for everybody, every time, for ever. It lives on `BoardAction`
+  in `chrome/action_row.dart` so every game inherits it.
 - **Finishing is the one moment Nook never spends.** The finished-puzzle
   screen asks nothing: no rating prompt, no tip, no "enjoying Nook?", no
   promotion of anything. It says what the player did, offers another puzzle,

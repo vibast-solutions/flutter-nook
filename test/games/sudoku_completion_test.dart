@@ -26,10 +26,17 @@ Future<void> playAndSolve(
   TestClock clock, {
   Duration after = const Duration(minutes: 1),
   bool withHint = false,
+  bool withHintedRemoval = false,
 }) async {
   clock.advance(after);
   if (withHint) {
     await tapAction(tester, 'hint');
+  }
+  if (withHintedRemoval) {
+    // A wrong digit, then the hint that takes it away again. Cell 0 takes a 1,
+    // and a 4 in it repeats nothing, so the board says nothing until asked.
+    await answer(tester, 0, 4);
+    await tapHint(tester);
   }
   await solvePuzzle(tester, fixedMiniPuzzle());
 }
@@ -177,6 +184,36 @@ void main() {
 
       final GameStats stats = (await storedStats(tester, database)).single;
       expect(stats.solved, 1, reason: 'a hinted puzzle is still solved');
+      expect(stats.bestTime, isNull);
+    });
+
+    testWidgets('a hint that only took a digit away still sets none', (
+      WidgetTester tester,
+    ) async {
+      // Taking help is taking help, whichever direction it moved the board.
+      // The puzzle counts and keeps its time; the best is what it does not
+      // touch.
+      final NookDatabase database = memoryDatabase();
+      final TestClock clock = TestClock();
+      await pumpSudokuGame(tester, database: database, clock: clock);
+
+      await playAndSolve(
+        tester,
+        clock,
+        after: const Duration(seconds: 30),
+        withHintedRemoval: true,
+      );
+
+      expect(figureOn(tester, SudokuCompletionView.timeKey), '00:30');
+      expect(figureOn(tester, SudokuCompletionView.solvedKey), '1');
+      expect(
+        find.byKey(SudokuCompletionView.personalBestKey),
+        findsNothing,
+        reason: 'a hint that cleared a mistake set a personal best',
+      );
+
+      final GameStats stats = (await storedStats(tester, database)).single;
+      expect(stats.solved, 1);
       expect(stats.bestTime, isNull);
     });
 
