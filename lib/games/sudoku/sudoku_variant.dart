@@ -48,6 +48,27 @@ class SudokuVariant {
     spec: SudokuSpec.classic,
   );
 
+  /// The three Sudokus, smallest first.
+  static const List<SudokuVariant> values = <SudokuVariant>[
+    mini,
+    light,
+    classic,
+  ];
+
+  /// The variant with this [id], or `null` if no Sudoku has it.
+  ///
+  /// `null` rather than a throw: an id can come off disk, written by a build
+  /// that had a variant this one does not, and a save nobody can read is a card
+  /// that stays hidden rather than a crash on the home screen.
+  static SudokuVariant? byId(String id) {
+    for (final SudokuVariant variant in values) {
+      if (variant.id == id) {
+        return variant;
+      }
+    }
+    return null;
+  }
+
   /// The difficulties this grid can actually produce, easiest first.
   ///
   /// Not every size spans the whole ladder — the engine measured which ones do

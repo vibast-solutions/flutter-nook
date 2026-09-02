@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/number_pad.dart';
 import 'package:nook/board/sudoku_board.dart';
-import 'package:nook/chrome/action_row.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
@@ -15,58 +14,6 @@ import 'package:nook/l10n/app_localizations.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
-
-/// Taps the board cell at [index].
-Future<void> tapCell(WidgetTester tester, int index) async {
-  await tester.tap(find.byKey(SudokuBoard.cellKey(index)));
-  await tester.pump();
-}
-
-/// Taps the number-pad key for [digit].
-Future<void> tapDigit(WidgetTester tester, int digit) async {
-  await tester.tap(find.byKey(NumberPad.keyFor(digit)));
-  await tester.pump();
-}
-
-/// Taps the action-row control with the id [id].
-///
-/// Controls are found by id rather than by the word on them: the word is
-/// translated, and a test that hunted for it would only pass in English.
-Future<void> tapAction(WidgetTester tester, String id) async {
-  await tester.tap(find.byKey(BoardActionRow.keyFor(id)));
-  await tester.pump();
-}
-
-/// The colour the action-row control with the id [id] is filled with.
-Color actionBackground(WidgetTester tester, String id) {
-  return tester.widget<Material>(find.byKey(BoardActionRow.keyFor(id))).color!;
-}
-
-/// Every digit on the board, with `null` for an empty cell.
-List<String?> boardDigits(WidgetTester tester) {
-  return <String?>[for (int i = 0; i < 16; i++) digitIn(tester, i)];
-}
-
-/// The digit currently drawn in the cell at [index], or `null` if it is empty.
-String? digitIn(WidgetTester tester, int index) {
-  final Finder text = find.byKey(SudokuBoard.valueKey(index));
-  if (text.evaluate().isEmpty) {
-    return null;
-  }
-  return tester.widget<Text>(text).data;
-}
-
-/// The pencil marks drawn in the cell at [index], smallest first.
-List<int> notesIn(WidgetTester tester, int index) {
-  final Finder marks = find.descendant(
-    of: find.byKey(SudokuBoard.notesKey(index)),
-    matching: find.byType(Text),
-  );
-  return <int>[
-    for (final Text mark in tester.widgetList<Text>(marks))
-      int.parse(mark.data!),
-  ];
-}
 
 /// The colour a pencil mark in the cell at [index] is drawn in.
 Color noteColour(WidgetTester tester, int index) {
