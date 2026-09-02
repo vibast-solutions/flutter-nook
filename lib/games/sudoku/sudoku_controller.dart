@@ -7,13 +7,14 @@ import '../../chrome/note_marks.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
-/// Produces a puzzle for a grid shape and a seed.
+/// Produces a puzzle of a given shape and difficulty from a seed.
 ///
 /// A function rather than a direct call so tests can hand the controller a
 /// fixed puzzle instead of waiting on a real generation, and so the isolate
 /// hop stays in one place.
 typedef SudokuPuzzleSource = Future<SudokuPuzzle> Function(
   SudokuSpec spec,
+  SudokuDifficulty difficulty,
   int seed,
 );
 
@@ -27,6 +28,19 @@ final Provider<SudokuVariant> sudokuVariantProvider = Provider<SudokuVariant>(
   ),
   name: 'sudokuVariant',
 );
+
+/// Which tier the screen below asked for.
+///
+/// Scoped like [sudokuVariantProvider] and for the same reason: a screen must
+/// say what it is playing, and the puzzle a player gets has to be the one they
+/// chose rather than whatever the generator happened to produce.
+final Provider<SudokuDifficulty> sudokuDifficultyProvider =
+    Provider<SudokuDifficulty>(
+      (Ref ref) => throw UnimplementedError(
+        'sudokuDifficultyProvider must be overridden by the game screen.',
+      ),
+      name: 'sudokuDifficulty',
+    );
 
 /// Where new puzzles come from. Overridden in tests.
 final Provider<SudokuPuzzleSource> sudokuPuzzleSourceProvider =
@@ -55,7 +69,7 @@ sudokuControllerProvider =
       // Declared so the controller is rebuilt inside the scope the game screen
       // opens, where the variant is overridden. Without it the controller resolves
       // in the root container and never sees which Sudoku it is playing.
-      dependencies: [sudokuVariantProvider],
+      dependencies: [sudokuVariantProvider, sudokuDifficultyProvider],
     );
 
 /// Holds one Sudoku and applies the player's moves to it.
@@ -67,9 +81,10 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
   @override
   Future<SudokuGameState> build() async {
     final SudokuVariant variant = ref.watch(sudokuVariantProvider);
+    final SudokuDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
     final SudokuPuzzleSource source = ref.watch(sudokuPuzzleSourceProvider);
     final int seed = ref.watch(sudokuSeedSourceProvider)();
-    final SudokuPuzzle puzzle = await source(variant.spec, seed);
+    final SudokuPuzzle puzzle = await source(variant.spec, difficulty, seed);
     return SudokuGameState.fresh(variant: variant, puzzle: puzzle);
   }
 
@@ -220,20 +235,26 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
 
 /// Generates a puzzle on a background isolate.
 ///
-/// A 4x4 is instant, but a Fiendish 9x9 is not, and the UI is never allowed to
-/// stutter — so the hop exists from the first puzzle rather than being added
-/// once someone notices a dropped frame.
-Future<SudokuPuzzle> generateSudokuOffThread(SudokuSpec spec, int seed) {
-  return compute(_generate, _GenerateRequest(spec, seed));
+/// A 4x4 is instant, but a Fiendish 9x9 is not: it can carve and measure
+/// dozens of grids before one lands on the tier that was asked for. The UI is
+/// never allowed to stutter, so the hop exists from the first puzzle rather
+/// than being added once someone notices a dropped frame.
+Future<SudokuPuzzle> generateSudokuOffThread(
+  SudokuSpec spec,
+  SudokuDifficulty difficulty,
+  int seed,
+) {
+  return compute(_generate, _GenerateRequest(spec, difficulty, seed));
 }
 
 @immutable
 class _GenerateRequest {
-  const _GenerateRequest(this.spec, this.seed);
+  const _GenerateRequest(this.spec, this.difficulty, this.seed);
 
   final SudokuSpec spec;
+  final SudokuDifficulty difficulty;
   final int seed;
 }
 
 SudokuPuzzle _generate(_GenerateRequest request) =>
-    SudokuGenerator(request.spec).generate(request.seed);
+    SudokuGenerator(request.spec).generateAt(request.difficulty, request.seed);

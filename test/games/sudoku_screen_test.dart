@@ -113,7 +113,9 @@ void main() {
       await pumpSudokuGame(tester);
 
       expect(find.text('Sudoku Mini'), findsOneWidget);
-      expect(find.text('4x4'), findsOneWidget);
+      // The header names the grid and the tier the player chose, so a puzzle
+      // is never anonymous about how hard it was asked to be.
+      expect(find.text('4x4 · Gentle'), findsOneWidget);
       // The six givens are on the board, and the ten empty cells are empty.
       expect(digitIn(tester, 6), '1');
       expect(digitIn(tester, 7), '2');
@@ -780,12 +782,16 @@ void main() {
         ProviderScope(
           overrides: [
             sudokuPuzzleSourceProvider.overrideWithValue(
-              (SudokuSpec spec, int seed) => pending.future,
+              (SudokuSpec spec, SudokuDifficulty tier, int seed) =>
+                  pending.future,
             ),
           ],
           child: MaterialApp(
             theme: buildNookTheme(NookColors.softClay),
-            home: const SudokuGamePage(variant: SudokuVariant.mini),
+            home: const SudokuGamePage(
+              variant: SudokuVariant.mini,
+              difficulty: SudokuDifficulty.gentle,
+            ),
           ),
         ),
       );
@@ -805,10 +811,12 @@ void main() {
       // one place the isolate hop and the generator are exercised together.
       final SudokuPuzzle puzzle = await generateSudokuOffThread(
         SudokuSpec.mini,
+        SudokuDifficulty.gentle,
         4242,
       );
 
       expect(puzzle.seed, 4242);
+      expect(puzzle.difficulty, SudokuDifficulty.gentle);
       expect(puzzle.givens, hasLength(16));
       expect(puzzle.givenCount, greaterThan(0));
       expect(puzzle.givenCount, lessThan(16));

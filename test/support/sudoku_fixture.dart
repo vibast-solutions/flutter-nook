@@ -17,6 +17,7 @@ SudokuPuzzle fixedMiniPuzzle() {
   return SudokuPuzzle(
     spec: SudokuSpec.mini,
     seed: 0,
+    difficulty: SudokuDifficulty.gentle,
     givens: <int>[
       0, 0, 0, 0, //
       0, 0, 1, 2, //
@@ -43,7 +44,8 @@ SudokuPuzzle fixedPuzzle(SudokuVariant variant) {
   if (variant == SudokuVariant.mini) {
     return fixedMiniPuzzle();
   }
-  return SudokuGenerator(variant.spec).generate(2026);
+  return SudokuGenerator(variant.spec)
+      .generateAt(SudokuDifficulty.gentle, 2026);
 }
 
 /// The three Sudokus, for a test that has to hold for all of them.
@@ -71,6 +73,7 @@ Future<void> setPhoneSurface(WidgetTester tester, {double width = 400}) async {
 Future<void> pumpSudokuGame(
   WidgetTester tester, {
   SudokuVariant variant = SudokuVariant.mini,
+  SudokuDifficulty difficulty = SudokuDifficulty.gentle,
   SudokuPuzzle? puzzle,
   double width = 400,
   double textScale = 1,
@@ -81,7 +84,7 @@ Future<void> pumpSudokuGame(
     ProviderScope(
       overrides: [
         sudokuPuzzleSourceProvider.overrideWithValue(
-          (SudokuSpec spec, int seed) async => fixed,
+          (SudokuSpec spec, SudokuDifficulty tier, int seed) async => fixed,
         ),
       ],
       child: MaterialApp(
@@ -91,7 +94,7 @@ Future<void> pumpSudokuGame(
               .copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
-        home: SudokuGamePage(variant: variant),
+        home: SudokuGamePage(variant: variant, difficulty: difficulty),
       ),
     ),
   );
