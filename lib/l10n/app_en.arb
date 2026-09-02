@@ -1,0 +1,282 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Nook",
+  "@appTitle": {
+    "description": "The name of the app, shown in the task switcher and as the wordmark on the home screen. A brand name: leave it untranslated."
+  },
+
+  "homeAllGames": "ALL GAMES",
+  "@homeAllGames": {
+    "description": "Heading above the list of games on the home screen. Upper case in English by design; use whatever the language's convention for a small section heading is."
+  },
+  "homePromise": "No ads. No tracking. No account. Ever.",
+  "@homePromise": {
+    "description": "The footer of the home screen. Nook's central promise, so keep it short and flat rather than enthusiastic."
+  },
+  "gameRowLabel": "{title}. {subtitle}",
+  "@gameRowLabel": {
+    "description": "Screen-reader label for a playable game in the home list.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Sudoku Classic" },
+      "subtitle": { "type": "String", "example": "9x9 · the full grid" }
+    }
+  },
+  "gameRowUnavailableLabel": "{title}. Not available yet",
+  "@gameRowUnavailableLabel": {
+    "description": "Screen-reader label for a game in the home list that is listed but cannot be played yet.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Stars" }
+    }
+  },
+  "gameRowSubtitle": "{size} · {description}",
+  "@gameRowSubtitle": {
+    "description": "The second line of a Sudoku row on the home screen: the grid size, then what the grid feels like.",
+    "placeholders": {
+      "size": { "type": "String", "example": "9x9" },
+      "description": { "type": "String", "example": "the full grid" }
+    }
+  },
+
+  "sudokuClassicTitle": "Sudoku Classic",
+  "@sudokuClassicTitle": { "description": "Name of the 9x9 Sudoku." },
+  "sudokuLightTitle": "Sudoku Light",
+  "@sudokuLightTitle": { "description": "Name of the 6x6 Sudoku." },
+  "sudokuMiniTitle": "Sudoku Mini",
+  "@sudokuMiniTitle": { "description": "Name of the 4x4 Sudoku." },
+
+  "sudokuClassicBlurb": "the full grid",
+  "@sudokuClassicBlurb": {
+    "description": "One phrase saying what the 9x9 is like. Lower case: it follows the grid size in the middle of a line."
+  },
+  "sudokuLightBlurb": "a gentler grid",
+  "@sudokuLightBlurb": {
+    "description": "One phrase saying what the 6x6 is like. Lower case: it follows the grid size in the middle of a line."
+  },
+  "sudokuMiniBlurb": "a few quiet minutes",
+  "@sudokuMiniBlurb": {
+    "description": "One phrase saying what the 4x4 is like. Lower case: it follows the grid size in the middle of a line."
+  },
+
+  "starsTitle": "Stars",
+  "@starsTitle": { "description": "Name of the Stars puzzle, listed on the home screen before it is playable." },
+  "starsSubtitle": "One star per row, column and region · coming soon",
+  "@starsSubtitle": { "description": "What Stars is, plus a note that it is not playable yet." },
+  "duoTitle": "Duo",
+  "@duoTitle": { "description": "Name of the Duo puzzle, listed on the home screen before it is playable." },
+  "duoSubtitle": "Circles and squares, never three in a row · coming soon",
+  "@duoSubtitle": { "description": "What Duo is, plus a note that it is not playable yet." },
+
+  "gridSize": "{size}x{size}",
+  "@gridSize": {
+    "description": "A square grid's size, as a player reads it aloud: 4x4, 6x6, 9x9.",
+    "placeholders": {
+      "size": { "type": "int", "example": "9" }
+    }
+  },
+
+  "difficultyGentle": "Gentle",
+  "@difficultyGentle": { "description": "Name of the easiest difficulty tier." },
+  "difficultyEasy": "Easy",
+  "@difficultyEasy": { "description": "Name of the second-easiest difficulty tier." },
+  "difficultyMedium": "Medium",
+  "@difficultyMedium": { "description": "Name of the middle difficulty tier." },
+  "difficultyHard": "Hard",
+  "@difficultyHard": { "description": "Name of the second-hardest difficulty tier." },
+  "difficultyFiendish": "Fiendish",
+  "@difficultyFiendish": { "description": "Name of the hardest difficulty tier." },
+
+  "difficultyGentleBlurb": "One cell at a time",
+  "@difficultyGentleBlurb": { "description": "What solving a Gentle puzzle feels like. Describes the thinking, never the clue count." },
+  "difficultyEasyBlurb": "A little more looking",
+  "@difficultyEasyBlurb": { "description": "What solving an Easy puzzle feels like." },
+  "difficultyMediumBlurb": "Some ruling out",
+  "@difficultyMediumBlurb": { "description": "What solving a Medium puzzle feels like. 'Ruling out' means eliminating candidates before placing a digit." },
+  "difficultyHardBlurb": "A lot of ruling out",
+  "@difficultyHardBlurb": { "description": "What solving a Hard puzzle feels like." },
+  "difficultyFiendishBlurb": "Chains across the grid",
+  "@difficultyFiendishBlurb": { "description": "What solving a Fiendish puzzle feels like. A 'chain' is a line of reasoning linking cells across the whole board." },
+
+  "difficultyStartNew": "START A NEW ONE",
+  "@difficultyStartNew": { "description": "Heading above the list of difficulties. Upper case in English by design." },
+  "difficultyNeedsNotes": "needs notes",
+  "@difficultyNeedsNotes": { "description": "Shown beside the hardest tier instead of a difficulty meter, warning that pencil marks are effectively required." },
+  "difficultyTierLabel": "{name}. {description}",
+  "@difficultyTierLabel": {
+    "description": "Screen-reader label for a difficulty row.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Medium" },
+      "description": { "type": "String", "example": "Some ruling out" }
+    }
+  },
+  "difficultyTierLabelNeedsNotes": "{name}. {description}. Needs notes",
+  "@difficultyTierLabelNeedsNotes": {
+    "description": "Screen-reader label for the hardest difficulty row, which additionally warns that pencil marks are needed.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Fiendish" },
+      "description": { "type": "String", "example": "Chains across the grid" }
+    }
+  },
+  "difficultyOnlyOneTier": "A {size} grid always leaves a cell you can read on its own, so it only comes one way.",
+  "@difficultyOnlyOneTier": {
+    "description": "Explains why a grid offers a single difficulty: it is too small to ever be hard.",
+    "placeholders": {
+      "size": { "type": "String", "example": "4x4" }
+    }
+  },
+  "difficultyMissingMiddleTiers": "A {size} grid is too small for the middle of the ladder — it either falls out or it needs a chain.",
+  "@difficultyMissingMiddleTiers": {
+    "description": "Explains why a grid offers the easiest and hardest tiers but nothing in between.",
+    "placeholders": {
+      "size": { "type": "String", "example": "6x6" }
+    }
+  },
+  "difficultyGuarantee": "Every puzzle has exactly one solution — you will never need to guess.",
+  "@difficultyGuarantee": { "description": "Nook's promise about its puzzles, stated on the way into a game." },
+
+  "backToGameList": "Back to the game list",
+  "@backToGameList": { "description": "Screen-reader label for the back button in a screen header." },
+
+  "gameSubtitle": "{size} · {difficulty}",
+  "@gameSubtitle": {
+    "description": "The second line of the game screen header: which grid, and how hard the player asked for it to be.",
+    "placeholders": {
+      "size": { "type": "String", "example": "9x9" },
+      "difficulty": { "type": "String", "example": "Medium" }
+    }
+  },
+  "gameGenerating": "Making you a puzzle",
+  "@gameGenerating": { "description": "Shown while a puzzle is being generated." },
+  "gameGenerationFailed": "That puzzle did not come out right.",
+  "@gameGenerationFailed": { "description": "Shown when generating a puzzle failed. Plain and blameless: it is not the player's doing." },
+  "gameTryAgain": "Try again",
+  "@gameTryAgain": { "description": "Button that asks for another puzzle after generation failed." },
+  "gameInstruction": "Tap a cell, then a number",
+  "@gameInstruction": { "description": "The one line of instruction under the number pad, shown until the puzzle is solved." },
+  "gameSolved": "Solved",
+  "@gameSolved": { "description": "Announced and shown when the player finishes a puzzle." },
+  "gameNewPuzzle": "New puzzle",
+  "@gameNewPuzzle": { "description": "Button that starts another puzzle after finishing one." },
+
+  "boardLabel": "{name} board, {size} by {size}",
+  "@boardLabel": {
+    "description": "Screen-reader label announcing the board as a whole.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Sudoku Mini" },
+      "size": { "type": "int", "example": "4" }
+    }
+  },
+  "cellEmpty": "Row {row}, column {column}, empty",
+  "@cellEmpty": {
+    "description": "Screen-reader label for a cell holding nothing. Rows and columns are counted from one.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellNotes": "Row {row}, column {column}, notes {notes}",
+  "@cellNotes": {
+    "description": "Screen-reader label for a cell holding pencil marks rather than an answer.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "notes": { "type": "String", "example": "2, 4" }
+    }
+  },
+  "cellGiven": "Row {row}, column {column}, {value}, given",
+  "@cellGiven": {
+    "description": "Screen-reader label for a cell whose digit came with the puzzle and cannot be changed.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
+  "cellAnswer": "Row {row}, column {column}, {value}, your answer",
+  "@cellAnswer": {
+    "description": "Screen-reader label for a cell the player filled in themselves.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "value": { "type": "int", "example": "1" }
+    }
+  },
+  "listSeparator": ", ",
+  "@listSeparator": {
+    "description": "What goes between items when a screen reader lists several digits, as in the pencil marks of one cell. Includes its trailing space."
+  },
+
+  "actionUndo": "Undo",
+  "@actionUndo": { "description": "Control that takes back the last move." },
+  "actionErase": "Erase",
+  "@actionErase": { "description": "Control that clears the selected cell." },
+  "actionNotes": "Notes",
+  "@actionNotes": { "description": "Control that switches between writing answers and writing pencil marks." },
+  "actionToggleOn": "{label} on",
+  "@actionToggleOn": {
+    "description": "The caption under a control that is a switch and is currently on. It spells the state out in words because a player who cannot see the fill would otherwise write pencil marks they meant as answers.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Notes" }
+    }
+  },
+  "actionToggleOff": "{label} off",
+  "@actionToggleOff": {
+    "description": "The caption under a control that is a switch and is currently off.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Notes" }
+    }
+  },
+  "actionUnavailableLabel": "{label}, {reason}",
+  "@actionUnavailableLabel": {
+    "description": "Screen-reader label for a control that cannot be used, giving the reason a sighted player reads from it being greyed out.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Undo" },
+      "reason": { "type": "String", "example": "nothing to take back" }
+    }
+  },
+  "reasonPuzzleDone": "the puzzle is done",
+  "@reasonPuzzleDone": { "description": "Why a control is unavailable: the puzzle is already solved. Reads as the end of a sentence, so lower case." },
+  "reasonNothingToUndo": "nothing to take back",
+  "@reasonNothingToUndo": { "description": "Why undo is unavailable: no moves have been made. Reads as the end of a sentence, so lower case." },
+
+  "padCaption": "{count, plural, =0{done} =1{1 left} other{{count} left}}",
+  "@padCaption": {
+    "description": "The small caption under a digit on the number pad, saying how many of that digit are still to be placed.",
+    "placeholders": {
+      "count": { "type": "int", "example": "3" }
+    }
+  },
+  "padKeyLabel": "{count, plural, =0{{digit}, all placed} =1{{digit}, 1 left to place} other{{digit}, {count} left to place}}",
+  "@padKeyLabel": {
+    "description": "Screen-reader label for a digit on the number pad. A digit with none left is still tappable, because a wrong one is taken back by tapping it again.",
+    "placeholders": {
+      "digit": { "type": "int", "example": "4" },
+      "count": { "type": "int", "example": "3" }
+    }
+  },
+
+  "techniqueNakedSingle": "Naked single",
+  "@techniqueNakedSingle": { "description": "Sudoku technique: a cell with one candidate left." },
+  "techniqueHiddenSingle": "Hidden single",
+  "@techniqueHiddenSingle": { "description": "Sudoku technique: a digit with one possible cell left in a row, column or box." },
+  "techniqueNakedPair": "Naked pair",
+  "@techniqueNakedPair": { "description": "Sudoku technique: two cells in a unit holding the same two candidates." },
+  "techniqueHiddenPair": "Hidden pair",
+  "@techniqueHiddenPair": { "description": "Sudoku technique: two digits in a unit confined to the same two cells." },
+  "techniquePointingPair": "Pointing pair",
+  "@techniquePointingPair": { "description": "Sudoku technique: a digit whose candidates in a box all share one line." },
+  "techniqueBoxLineReduction": "Box/line reduction",
+  "@techniqueBoxLineReduction": { "description": "Sudoku technique: a digit whose candidates on a line all share one box." },
+  "techniqueNakedTriple": "Naked triple",
+  "@techniqueNakedTriple": { "description": "Sudoku technique: a naked pair with three cells and three digits." },
+  "techniqueHiddenTriple": "Hidden triple",
+  "@techniqueHiddenTriple": { "description": "Sudoku technique: a hidden pair with three digits and three cells." },
+  "techniqueXWing": "X-wing",
+  "@techniqueXWing": { "description": "Sudoku technique: a digit confined to the same two columns in two rows, or the transpose." },
+  "techniqueSwordfish": "Swordfish",
+  "@techniqueSwordfish": { "description": "Sudoku technique: an X-wing across three lines instead of two." },
+  "techniqueXyWing": "XY-wing",
+  "@techniqueXyWing": { "description": "Sudoku technique: a two-candidate cell whose candidates each pair with a third digit in a cell it can see." },
+  "techniqueSimpleColouring": "Simple colouring",
+  "@techniqueSimpleColouring": { "description": "Sudoku technique: following a chain of either-or links for one digit until it contradicts itself." }
+}

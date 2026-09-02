@@ -1,0 +1,12 @@
+# Turns lib/l10n/app_*.arb into lib/l10n/app_localizations*.dart.
+#
+# The generated files are committed rather than built on the fly so that a
+# checkout analyses and tests without a code-generation step, and so a diff
+# shows what a copy change actually did to the app. Regenerate with
+# `flutter gen-l10n` after editing an .arb.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
