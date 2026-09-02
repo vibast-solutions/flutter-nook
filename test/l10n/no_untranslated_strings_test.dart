@@ -26,6 +26,9 @@ const Set<String> allowedLiterals = <String>{
   'sudoku-notes-',
   'board-action-',
   'difficulty-',
+  'continue-card',
+  'discard-confirm',
+  'discard-keep',
 
   // ---- Identifiers that outlive a language ---------------------------------
   // Variant ids reach saved games and statistics: a save written on an English
@@ -43,6 +46,10 @@ const Set<String> allowedLiterals = <String>{
   'after',
   'notesBefore',
   'notesAfter',
+  // The database file, and the name the generated row class is given so that
+  // it does not collide with the type the app passes around.
+  'nook.sqlite',
+  'SavedGameRow',
 
   // ---- Typography ----------------------------------------------------------
   // Font families, matching the `family:` keys in pubspec.yaml. Translating
@@ -59,6 +66,13 @@ const Set<String> allowedLiterals = <String>{
   'sudokuPuzzleSource',
   'sudokuSeedSource',
   'sudokuController',
+  'sudokuResume',
+  'now',
+  'resumedElapsed',
+  'playClock',
+  'nookDatabase',
+  'savedGameStore',
+  'savedGames',
 
   // ---- Messages for whoever is holding the debugger ------------------------
   // `toString` output.
@@ -70,11 +84,19 @@ const Set<String> allowedLiterals = <String>{
   'sudokuVariantProvider must be overridden by the game screen.',
   'sudokuDifficultyProvider must be overridden by the game screen.',
   'A history has to be able to hold a move.',
+  // How a failed save is filed when one is reported.
+  'nook',
+  'saving a puzzle in progress',
 };
 
-/// Files under `lib/` the guard does not read: the generated localisations and
-/// the `.arb` they come from are where the words are supposed to be.
-bool isExempt(String path) => path.startsWith('lib/l10n/');
+/// Files under `lib/` the guard does not read.
+///
+/// The localisations, because the `.arb` and the class generated from it are
+/// where the words are supposed to be; and generated code, because nobody
+/// writes it — its strings are column names and SQL, and the way to change one
+/// is to change the table it came from.
+bool isExempt(String path) =>
+    path.startsWith('lib/l10n/') || path.endsWith('.g.dart');
 
 /// Whether [text] may stay in the source as it is.
 bool isAllowed(String text) =>

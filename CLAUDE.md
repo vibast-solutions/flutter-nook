@@ -16,11 +16,12 @@ packages/puzzle_engine/   pure Dart, no Flutter — solvers, generators, difficu
 lib/                      the app
   design/                 tokens, themes, typography
   board/                  shared board widgets, selection, gestures
-  chrome/                 controls around a board: undo, erase and notes, later timer/hints
+  chrome/                 the furniture around a game: undo, erase, notes, the
+                          clock, the Continue card, the discard question
   games/                  per-game state and screens (thin)
   home/                   the game list
   l10n/                   app_en.arb (the words) + the generated AppLocalizations
-  store/                  persistence (Drift/SQLite) (not built yet)
+  store/                  persistence: the Drift database and saved games
   content/                bundled pack loading (not built yet)
 assets/fonts/             Nunito + Fredoka, bundled
 assets/packs/             generated starter packs (not built yet)
@@ -105,6 +106,36 @@ when the ticket that needs them comes up, not before.
   `ProviderScope` further down the tree) must declare it in `dependencies:`.
   Without that it resolves in the root container and silently gets the wrong
   value — see `sudokuControllerProvider`.
+- **A provider may not be written to while the widget tree is.** `initState`
+  and `dispose` are both build lifecycles, so anything a screen has to start
+  or stop there must not publish state — see `PlayClock`, where only the tick
+  and an explicit pause do, and a resumed puzzle's starting time arrives
+  through a scoped provider rather than being written in after the fact.
+- **A saved game stores the grids, not just the seed.** A puzzle is
+  reproducible from its seed, but restoring one that way would make every save
+  in the world depend on the generator behaving identically for ever: one
+  change to the carving order and a player's entries come back sitting on
+  somebody else's givens. The seed is kept as provenance.
+- **`lib/store/` knows nothing about any one game.** A `SavedGame` holds a game
+  id, a tier name and lists of small integers, because that describes a saved
+  Sudoku, Stars and Duo alike. `games/sudoku/sudoku_save.dart` is where those
+  identifiers become types again, and it returns `null` rather than throwing
+  for anything it cannot read: a save can outlive the build that wrote it.
+- **Progress is saved as it happens, by `SudokuSession`.** Every change is
+  written, so there is no such thing as an unsaved move and nothing depends on
+  the app being closed politely. Solving discards the save instead of writing
+  it. Persistence lives beside the screen rather than in the controller,
+  because the controller is a pure transformation of state and is tested
+  without pumping a frame.
+- **Elapsed time is accumulated from intervals, never measured from a start
+  timestamp.** A puzzle opened before bed and finished at breakfast has been
+  played for four minutes, not nine hours.
+- **A widget test that touches the database uses `NookDatabase.memory()`**
+  (through `nookScope` in the fixture), which closes its query streams
+  synchronously. Drift normally waits an event loop before letting a stream
+  go, and a timer outliving a widget test is what the test framework fails a
+  test for. Reads from a test go through `storedSave`, which runs outside the
+  fake clock.
 
 ## Commands
 
@@ -112,7 +143,12 @@ when the ticket that needs them comes up, not before.
 flutter analyze && flutter test          # the app
 dart analyze && dart test                # from packages/puzzle_engine
 flutter gen-l10n                         # after editing lib/l10n/*.arb
+dart run build_runner build              # after editing lib/store/*.dart
 ```
+
+The Drift mapping (`lib/store/nook_database.g.dart`) is generated and
+committed, like the localisations, so a checkout analyses without a build
+step. Change a table, run `build_runner`, commit both files.
 
 CI also runs `dart format --output=none --set-exit-if-changed`, so format
 before pushing.
