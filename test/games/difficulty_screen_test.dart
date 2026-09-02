@@ -383,4 +383,130 @@ void main() {
       expect(find.byType(SudokuBoard), findsOneWidget);
     });
   });
+
+  group('what a tier says about itself', () {
+    /// Writes [solved] finished puzzles at [tier] into [database], the fastest
+    /// of them taking [best] unless there is no best time to have.
+    Future<void> record(
+      NookDatabase database, {
+      required SudokuDifficulty tier,
+      int solved = 1,
+      Duration? best = const Duration(minutes: 1),
+      String gameId = SudokuVariant.classicId,
+    }) async {
+      final GameStatsStore store = GameStatsStore(database);
+      for (int puzzle = 0; puzzle < solved; puzzle++) {
+        await store.record(
+          gameId: gameId,
+          difficulty: tier.name,
+          // A helped puzzle counts and sets no best, which is the only way to
+          // arrive at a tier with a count and no time.
+          time: best ?? const Duration(minutes: 9),
+          hinted: best == null,
+        );
+      }
+    }
+
+    /// The line under [tier]'s name.
+    String lineUnder(WidgetTester tester, SudokuDifficulty tier) {
+      final Iterable<Text> lines = tester.widgetList<Text>(
+        find.descendant(
+          of: find.byKey(SudokuDifficultyPage.tierKey(tier)),
+          matching: find.byType(Text),
+        ),
+      );
+      return lines.elementAt(1).data!;
+    }
+
+    testWidgets('a tier nobody has finished describes the puzzle', (
+      WidgetTester tester,
+    ) async {
+      // Rather than "not solved yet", which is true and tells a player
+      // choosing a tier for the first time nothing at all.
+      await pumpDifficulty(tester);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.medium),
+        SudokuDifficulty.medium.blurb(en),
+      );
+    });
+
+    testWidgets('a tier with a best time shows it, and the count', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await record(database, tier: SudokuDifficulty.medium, solved: 3);
+
+      await pumpDifficulty(tester, database: database);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.medium),
+        en.difficultyTierBest('01:00', 3),
+      );
+      expect(find.text('best 01:00 · 3 solved'), findsOneWidget);
+    });
+
+    testWidgets('a tier only ever finished with help shows just the count', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await record(database, tier: SudokuDifficulty.hard, best: null);
+
+      await pumpDifficulty(tester, database: database);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.hard),
+        en.difficultyTierSolved(1),
+      );
+      expect(find.text('1 solved'), findsOneWidget);
+    });
+
+    testWidgets('and the figures belong to one tier of one game', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await record(database, tier: SudokuDifficulty.gentle);
+      await record(
+        database,
+        tier: SudokuDifficulty.easy,
+        gameId: SudokuVariant.miniId,
+      );
+
+      await pumpDifficulty(tester, database: database);
+
+      expect(
+        lineUnder(tester, SudokuDifficulty.gentle),
+        en.difficultyTierBest('01:00', 1),
+      );
+      expect(
+        lineUnder(tester, SudokuDifficulty.easy),
+        SudokuDifficulty.easy.blurb(en),
+        reason: 'a Sudoku Mini time was shown on Sudoku Classic',
+      );
+    });
+
+    testWidgets('and a screen reader hears them too', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        final NookDatabase database = memoryDatabase();
+        await record(database, tier: SudokuDifficulty.gentle, solved: 2);
+
+        await pumpDifficulty(tester, database: database);
+
+        expect(
+          find.bySemanticsLabel(
+            en.difficultyTierLabel(
+              en.difficultyGentle,
+              en.difficultyTierBest('01:00', 2),
+            ),
+          ),
+          findsOneWidget,
+        );
+      } finally {
+        handle.dispose();
+      }
+    });
+  });
 }
