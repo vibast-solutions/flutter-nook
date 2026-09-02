@@ -5,14 +5,18 @@ import 'package:nook/board/sudoku_board.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
+import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/home/home_screen.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/sudoku_fixture.dart';
 
-Future<void> pumpHome(WidgetTester tester) async {
+Future<void> pumpHome(
+  WidgetTester tester, {
+  SudokuVariant variant = SudokuVariant.mini,
+}) async {
   await setPhoneSurface(tester);
-  final SudokuPuzzle fixed = fixedMiniPuzzle();
+  final SudokuPuzzle fixed = fixedPuzzle(variant);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -60,20 +64,24 @@ void main() {
     ) async {
       await pumpHome(tester);
 
-      // Four of the five are still to come; Sudoku Mini is not among them.
-      expect(find.textContaining('coming soon'), findsNWidgets(4));
+      // Every Sudoku is playable now; only Stars and Duo are still to come.
+      expect(find.textContaining('coming soon'), findsNWidgets(2));
+      expect(find.text('9x9 · the full grid'), findsOneWidget);
+      expect(find.text('6x6 · a gentler grid'), findsOneWidget);
       expect(find.text('4x4 · a few quiet minutes'), findsOneWidget);
     });
 
-    testWidgets('opens Sudoku Mini', (WidgetTester tester) async {
-      await pumpHome(tester);
+    for (final SudokuVariant variant in allVariants) {
+      testWidgets('opens ${variant.title}', (WidgetTester tester) async {
+        await pumpHome(tester, variant: variant);
 
-      await tester.tap(find.text('Sudoku Mini'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text(variant.title));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(SudokuBoard), findsOneWidget);
-      expect(find.text('4x4'), findsOneWidget);
-    });
+        expect(find.byType(SudokuBoard), findsOneWidget);
+        expect(find.text(variant.sizeLabel), findsOneWidget);
+      });
+    }
 
     testWidgets('does nothing when a game that is not ready is tapped', (
       WidgetTester tester,
