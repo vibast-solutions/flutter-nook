@@ -83,6 +83,31 @@ class $SavedGamesTable extends SavedGames
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<MoveHistory>($SavedGamesTable.$converterhistory);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<int>, String> hints =
+      GeneratedColumn<String>(
+        'hints',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      ).withConverter<List<int>>($SavedGamesTable.$converterhints);
+  static const VerificationMeta _wasHintedMeta = const VerificationMeta(
+    'wasHinted',
+  );
+  @override
+  late final GeneratedColumn<bool> wasHinted = GeneratedColumn<bool>(
+    'was_hinted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("was_hinted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _notesModeMeta = const VerificationMeta(
     'notesMode',
   );
@@ -128,6 +153,8 @@ class $SavedGamesTable extends SavedGames
     cells,
     notes,
     history,
+    hints,
+    wasHinted,
     notesMode,
     elapsed,
     updatedAt,
@@ -167,6 +194,12 @@ class $SavedGamesTable extends SavedGames
       );
     } else if (isInserting) {
       context.missing(_seedMeta);
+    }
+    if (data.containsKey('was_hinted')) {
+      context.handle(
+        _wasHintedMeta,
+        wasHinted.isAcceptableOrUnknown(data['was_hinted']!, _wasHintedMeta),
+      );
     }
     if (data.containsKey('notes_mode')) {
       context.handle(
@@ -233,6 +266,16 @@ class $SavedGamesTable extends SavedGames
           data['${effectivePrefix}history'],
         )!,
       ),
+      hints: $SavedGamesTable.$converterhints.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}hints'],
+        )!,
+      ),
+      wasHinted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}was_hinted'],
+      )!,
       notesMode: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}notes_mode'],
@@ -265,6 +308,8 @@ class $SavedGamesTable extends SavedGames
       const _DigitsConverter();
   static TypeConverter<MoveHistory, String> $converterhistory =
       const _HistoryConverter();
+  static TypeConverter<List<int>, String> $converterhints =
+      const _DigitsConverter();
   static TypeConverter<Duration, int> $converterelapsed =
       const _DurationConverter();
 }
@@ -294,6 +339,12 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
   /// The moves still to take back.
   final MoveHistory history;
 
+  /// The cells that were given away by a hint.
+  final List<int> hints;
+
+  /// Whether the puzzle was ever hinted, whatever is on the board now.
+  final bool wasHinted;
+
   /// Whether the pad was left writing pencil marks.
   final bool notesMode;
 
@@ -311,6 +362,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     required this.cells,
     required this.notes,
     required this.history,
+    required this.hints,
+    required this.wasHinted,
     required this.notesMode,
     required this.elapsed,
     required this.updatedAt,
@@ -346,6 +399,12 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
         $SavedGamesTable.$converterhistory.toSql(history),
       );
     }
+    {
+      map['hints'] = Variable<String>(
+        $SavedGamesTable.$converterhints.toSql(hints),
+      );
+    }
+    map['was_hinted'] = Variable<bool>(wasHinted);
     map['notes_mode'] = Variable<bool>(notesMode);
     {
       map['elapsed'] = Variable<int>(
@@ -366,6 +425,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       cells: Value(cells),
       notes: Value(notes),
       history: Value(history),
+      hints: Value(hints),
+      wasHinted: Value(wasHinted),
       notesMode: Value(notesMode),
       elapsed: Value(elapsed),
       updatedAt: Value(updatedAt),
@@ -386,6 +447,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       cells: serializer.fromJson<List<int>>(json['cells']),
       notes: serializer.fromJson<List<int>>(json['notes']),
       history: serializer.fromJson<MoveHistory>(json['history']),
+      hints: serializer.fromJson<List<int>>(json['hints']),
+      wasHinted: serializer.fromJson<bool>(json['wasHinted']),
       notesMode: serializer.fromJson<bool>(json['notesMode']),
       elapsed: serializer.fromJson<Duration>(json['elapsed']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -403,6 +466,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       'cells': serializer.toJson<List<int>>(cells),
       'notes': serializer.toJson<List<int>>(notes),
       'history': serializer.toJson<MoveHistory>(history),
+      'hints': serializer.toJson<List<int>>(hints),
+      'wasHinted': serializer.toJson<bool>(wasHinted),
       'notesMode': serializer.toJson<bool>(notesMode),
       'elapsed': serializer.toJson<Duration>(elapsed),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -418,6 +483,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     List<int>? cells,
     List<int>? notes,
     MoveHistory? history,
+    List<int>? hints,
+    bool? wasHinted,
     bool? notesMode,
     Duration? elapsed,
     DateTime? updatedAt,
@@ -430,6 +497,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     cells: cells ?? this.cells,
     notes: notes ?? this.notes,
     history: history ?? this.history,
+    hints: hints ?? this.hints,
+    wasHinted: wasHinted ?? this.wasHinted,
     notesMode: notesMode ?? this.notesMode,
     elapsed: elapsed ?? this.elapsed,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -446,6 +515,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       cells: data.cells.present ? data.cells.value : this.cells,
       notes: data.notes.present ? data.notes.value : this.notes,
       history: data.history.present ? data.history.value : this.history,
+      hints: data.hints.present ? data.hints.value : this.hints,
+      wasHinted: data.wasHinted.present ? data.wasHinted.value : this.wasHinted,
       notesMode: data.notesMode.present ? data.notesMode.value : this.notesMode,
       elapsed: data.elapsed.present ? data.elapsed.value : this.elapsed,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -463,6 +534,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
           ..write('cells: $cells, ')
           ..write('notes: $notes, ')
           ..write('history: $history, ')
+          ..write('hints: $hints, ')
+          ..write('wasHinted: $wasHinted, ')
           ..write('notesMode: $notesMode, ')
           ..write('elapsed: $elapsed, ')
           ..write('updatedAt: $updatedAt')
@@ -480,6 +553,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     cells,
     notes,
     history,
+    hints,
+    wasHinted,
     notesMode,
     elapsed,
     updatedAt,
@@ -496,6 +571,8 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
           other.cells == this.cells &&
           other.notes == this.notes &&
           other.history == this.history &&
+          other.hints == this.hints &&
+          other.wasHinted == this.wasHinted &&
           other.notesMode == this.notesMode &&
           other.elapsed == this.elapsed &&
           other.updatedAt == this.updatedAt);
@@ -510,6 +587,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
   final Value<List<int>> cells;
   final Value<List<int>> notes;
   final Value<MoveHistory> history;
+  final Value<List<int>> hints;
+  final Value<bool> wasHinted;
   final Value<bool> notesMode;
   final Value<Duration> elapsed;
   final Value<DateTime> updatedAt;
@@ -523,6 +602,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     this.cells = const Value.absent(),
     this.notes = const Value.absent(),
     this.history = const Value.absent(),
+    this.hints = const Value.absent(),
+    this.wasHinted = const Value.absent(),
     this.notesMode = const Value.absent(),
     this.elapsed = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -537,6 +618,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     required List<int> cells,
     required List<int> notes,
     required MoveHistory history,
+    this.hints = const Value.absent(),
+    this.wasHinted = const Value.absent(),
     this.notesMode = const Value.absent(),
     required Duration elapsed,
     required DateTime updatedAt,
@@ -560,6 +643,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     Expression<String>? cells,
     Expression<String>? notes,
     Expression<String>? history,
+    Expression<String>? hints,
+    Expression<bool>? wasHinted,
     Expression<bool>? notesMode,
     Expression<int>? elapsed,
     Expression<DateTime>? updatedAt,
@@ -574,6 +659,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
       if (cells != null) 'cells': cells,
       if (notes != null) 'notes': notes,
       if (history != null) 'history': history,
+      if (hints != null) 'hints': hints,
+      if (wasHinted != null) 'was_hinted': wasHinted,
       if (notesMode != null) 'notes_mode': notesMode,
       if (elapsed != null) 'elapsed': elapsed,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -590,6 +677,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     Value<List<int>>? cells,
     Value<List<int>>? notes,
     Value<MoveHistory>? history,
+    Value<List<int>>? hints,
+    Value<bool>? wasHinted,
     Value<bool>? notesMode,
     Value<Duration>? elapsed,
     Value<DateTime>? updatedAt,
@@ -604,6 +693,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
       cells: cells ?? this.cells,
       notes: notes ?? this.notes,
       history: history ?? this.history,
+      hints: hints ?? this.hints,
+      wasHinted: wasHinted ?? this.wasHinted,
       notesMode: notesMode ?? this.notesMode,
       elapsed: elapsed ?? this.elapsed,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -648,6 +739,14 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
         $SavedGamesTable.$converterhistory.toSql(history.value),
       );
     }
+    if (hints.present) {
+      map['hints'] = Variable<String>(
+        $SavedGamesTable.$converterhints.toSql(hints.value),
+      );
+    }
+    if (wasHinted.present) {
+      map['was_hinted'] = Variable<bool>(wasHinted.value);
+    }
     if (notesMode.present) {
       map['notes_mode'] = Variable<bool>(notesMode.value);
     }
@@ -676,6 +775,8 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
           ..write('cells: $cells, ')
           ..write('notes: $notes, ')
           ..write('history: $history, ')
+          ..write('hints: $hints, ')
+          ..write('wasHinted: $wasHinted, ')
           ..write('notesMode: $notesMode, ')
           ..write('elapsed: $elapsed, ')
           ..write('updatedAt: $updatedAt, ')
@@ -705,6 +806,8 @@ typedef $$SavedGamesTableCreateCompanionBuilder = SavedGamesCompanion Function({
   required List<int> cells,
   required List<int> notes,
   required MoveHistory history,
+  Value<List<int>> hints,
+  Value<bool> wasHinted,
   Value<bool> notesMode,
   required Duration elapsed,
   required DateTime updatedAt,
@@ -719,6 +822,8 @@ typedef $$SavedGamesTableUpdateCompanionBuilder = SavedGamesCompanion Function({
   Value<List<int>> cells,
   Value<List<int>> notes,
   Value<MoveHistory> history,
+  Value<List<int>> hints,
+  Value<bool> wasHinted,
   Value<bool> notesMode,
   Value<Duration> elapsed,
   Value<DateTime> updatedAt,
@@ -777,6 +882,17 @@ class $$SavedGamesTableFilterComposer
   get history => $composableBuilder(
     column: $table.history,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<int>, List<int>, String> get hints =>
+      $composableBuilder(
+        column: $table.hints,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<bool> get wasHinted => $composableBuilder(
+    column: $table.wasHinted,
+    builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<bool> get notesMode => $composableBuilder(
@@ -845,6 +961,16 @@ class $$SavedGamesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get hints => $composableBuilder(
+    column: $table.hints,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get wasHinted => $composableBuilder(
+    column: $table.wasHinted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get notesMode => $composableBuilder(
     column: $table.notesMode,
     builder: (column) => ColumnOrderings(column),
@@ -896,6 +1022,12 @@ class $$SavedGamesTableAnnotationComposer
   GeneratedColumnWithTypeConverter<MoveHistory, String> get history =>
       $composableBuilder(column: $table.history, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<List<int>, String> get hints =>
+      $composableBuilder(column: $table.hints, builder: (column) => column);
+
+  GeneratedColumn<bool> get wasHinted =>
+      $composableBuilder(column: $table.wasHinted, builder: (column) => column);
+
   GeneratedColumn<bool> get notesMode =>
       $composableBuilder(column: $table.notesMode, builder: (column) => column);
 
@@ -945,6 +1077,8 @@ class $$SavedGamesTableTableManager
                 Value<List<int>> cells = const Value.absent(),
                 Value<List<int>> notes = const Value.absent(),
                 Value<MoveHistory> history = const Value.absent(),
+                Value<List<int>> hints = const Value.absent(),
+                Value<bool> wasHinted = const Value.absent(),
                 Value<bool> notesMode = const Value.absent(),
                 Value<Duration> elapsed = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -958,6 +1092,8 @@ class $$SavedGamesTableTableManager
                 cells: cells,
                 notes: notes,
                 history: history,
+                hints: hints,
+                wasHinted: wasHinted,
                 notesMode: notesMode,
                 elapsed: elapsed,
                 updatedAt: updatedAt,
@@ -973,6 +1109,8 @@ class $$SavedGamesTableTableManager
                 required List<int> cells,
                 required List<int> notes,
                 required MoveHistory history,
+                Value<List<int>> hints = const Value.absent(),
+                Value<bool> wasHinted = const Value.absent(),
                 Value<bool> notesMode = const Value.absent(),
                 required Duration elapsed,
                 required DateTime updatedAt,
@@ -986,6 +1124,8 @@ class $$SavedGamesTableTableManager
                 cells: cells,
                 notes: notes,
                 history: history,
+                hints: hints,
+                wasHinted: wasHinted,
                 notesMode: notesMode,
                 elapsed: elapsed,
                 updatedAt: updatedAt,

@@ -29,12 +29,15 @@ class SavedGame {
     required this.history,
     required this.elapsed,
     required DateTime updatedAt,
+    List<int>? hints,
     this.notesMode = false,
+    this.wasHinted = false,
   }) : updatedAt = updatedAt.toUtc(),
        givens = List<int>.unmodifiable(givens),
        solution = List<int>.unmodifiable(solution),
        cells = List<int>.unmodifiable(cells),
-       notes = List<int>.unmodifiable(notes);
+       notes = List<int>.unmodifiable(notes),
+       hints = List<int>.unmodifiable(hints ?? const <int>[]);
 
   /// Which game this is a save of — the stable identifier, never a name the
   /// player reads. One save per game id: starting another discards this one.
@@ -64,6 +67,20 @@ class SavedGame {
 
   /// The pencil marks in each cell, one bitmask per cell.
   final List<int> notes;
+
+  /// The cells whose contents were given away rather than worked out.
+  ///
+  /// Indices into [cells], and the same idea in every game: a Sudoku digit, a
+  /// Stars mark or a Duo symbol the player was handed. Kept so a resumed
+  /// puzzle still shows which cells it made its own way to.
+  final List<int> hints;
+
+  /// Whether this puzzle was ever helped along, however much was undone since.
+  ///
+  /// Separate from [hints] because it answers a different question. A hint can
+  /// be taken back off the board; that it was once shown is what a personal
+  /// best has to be told about (VIB-77).
+  final bool wasHinted;
 
   /// The moves still to take back, oldest first.
   final MoveHistory history;
