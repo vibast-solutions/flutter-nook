@@ -7,7 +7,10 @@
 library;
 
 export 'src/random.dart';
+export 'src/sudoku/difficulty.dart';
 export 'src/sudoku/generator.dart';
+export 'src/sudoku/logic_solver.dart';
 export 'src/sudoku/puzzle.dart';
 export 'src/sudoku/solver.dart';
 export 'src/sudoku/spec.dart';
+export 'src/sudoku/technique.dart';
