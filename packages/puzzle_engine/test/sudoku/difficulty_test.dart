@@ -18,10 +18,10 @@ void main() {
       final SudokuRater rater = SudokuRater(spec);
 
       for (final SudokuDifficulty tier in SudokuRater.tiersFor(spec)) {
-        test('$name ${tier.label}', () {
+        test('$name ${tier.name}', () {
           for (int seed = 1; seed <= 8; seed++) {
             final SudokuPuzzle puzzle = generator.generateAt(tier, seed);
-            final String where = '$name ${tier.label} seed $seed';
+            final String where = '$name ${tier.name} seed $seed';
 
             expect(puzzle.difficulty, tier, reason: '$where: wrong label');
             expect(
@@ -138,7 +138,7 @@ void main() {
             lowA <= highB && lowB <= highA,
             isTrue,
             reason:
-                '${a.label} ($lowA..$highA) and ${b.label} ($lowB..$highB) '
+                '${a.name} ($lowA..$highA) and ${b.name} ($lowB..$highB) '
                 'no longer overlap, so clue count would separate them',
           );
         }
@@ -172,7 +172,7 @@ void main() {
           expect(
             tier == SudokuDifficulty.hard ? steps >= line : steps < line,
             isTrue,
-            reason: '${tier.label} seed $seed used $steps of them',
+            reason: '${tier.name} seed $seed used $steps of them',
           );
         }
       }
@@ -188,7 +188,7 @@ void main() {
         final SudokuPuzzle first = generator.generateAt(tier, 77);
         final SudokuPuzzle second = SudokuGenerator(SudokuSpec.classic)
             .generateAt(tier, 77);
-        expect(second.givens, first.givens, reason: '${tier.label} drifted');
+        expect(second.givens, first.givens, reason: '${tier.name} drifted');
         expect(second.solution, first.solution);
         expect(second.difficulty, tier);
       }
@@ -221,7 +221,7 @@ void main() {
     for (final CorpusEntry entry in difficultyCorpus) {
       final String name =
           '${entry.spec.size}x${entry.spec.size} '
-          '${entry.difficulty.label} seed ${entry.seed}';
+          '${entry.difficulty.name} seed ${entry.seed}';
       test(name, () {
         final SudokuPuzzle puzzle = SudokuGenerator(entry.spec)
             .generateAt(entry.difficulty, entry.seed);
