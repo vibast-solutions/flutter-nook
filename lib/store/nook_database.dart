@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../chrome/move_history.dart';
+import 'game_stats.dart';
 import 'saved_game.dart';
 
 part 'nook_database.g.dart';
@@ -68,12 +69,42 @@ class SavedGames extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{gameId};
 }
 
+/// What has been finished, one row per game and tier.
+///
+/// The whole of Nook's statistics: a count and a best time. Nothing is kept
+/// about an individual solve — not when it was, not how long it took, not
+/// which puzzle it was — because nothing on any screen asks, and a puzzle
+/// diary nobody reads is a record of somebody's evenings sitting on their
+/// phone for no reason.
+///
+/// The generated row class is named `GameStatsRow` so that [GameStats], the
+/// type the rest of the app passes around, keeps its name.
+@DataClassName('GameStatsRow')
+class Statistics extends Table {
+  /// Which game, as the same stable identifier a save uses.
+  TextColumn get gameId => text()();
+
+  /// Which tier of it, as an identifier rather than a name a player reads.
+  TextColumn get difficulty => text()();
+
+  /// How many puzzles have been finished here.
+  IntColumn get solved => integer().withDefault(const Constant(0))();
+
+  /// The fastest hint-free solve, or null if there has not been one.
+  IntColumn get bestTime =>
+      integer().map(const _DurationConverter()).nullable()();
+
+  /// A game and a tier name one set of figures between them.
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{gameId, difficulty};
+}
+
 /// Everything Nook keeps on the device.
 ///
-/// One database for saves and, later, statistics (VIB-77) — they are the same
-/// data seen twice, and a puzzle's result is only interesting next to the ones
-/// before it.
-@DriftDatabase(tables: <Type>[SavedGames])
+/// One database for saves and statistics: they are the same data seen twice —
+/// a puzzle in progress, and what was left of it once it was finished — and a
+/// result is only interesting next to the ones before it.
+@DriftDatabase(tables: <Type>[SavedGames, Statistics])
 class NookDatabase extends _$NookDatabase {
   NookDatabase(super.e);
 
@@ -93,13 +124,17 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
-  /// Version 2 added the two hint columns (VIB-76).
+  /// Version 2 added the two hint columns (VIB-76); version 3 the statistics
+  /// table (VIB-77).
   ///
   /// A save from version 1 is a puzzle nobody was helped with, which is
-  /// exactly what the column defaults say, so the migration is the two columns
-  /// and nothing else. A player mid-puzzle keeps their board.
+  /// exactly what the column defaults say. A player who arrives at version 3
+  /// has solved puzzles Nook was not counting, and those are gone: there is
+  /// nothing on disk to count them from, and inventing a number would be
+  /// worse than starting from none. A player mid-puzzle keeps their board
+  /// through both.
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
@@ -108,6 +143,9 @@ class NookDatabase extends _$NookDatabase {
         if (from < 2) {
           await m.addColumn(savedGames, savedGames.hints);
           await m.addColumn(savedGames, savedGames.wasHinted);
+        }
+        if (from < 3) {
+          await m.createTable(statistics);
         }
       },
     );
@@ -214,6 +252,91 @@ class SavedGameStore {
   }
 }
 
+/// Reading and writing what has been solved.
+///
+/// Separate from [SavedGameStore] because the two tables are written at
+/// opposite moments — one as a puzzle is played, the other once it is over —
+/// and a class that did both would be the only place in the app where
+/// finishing and saving met.
+class GameStatsStore {
+  const GameStatsStore(this._db);
+
+  final NookDatabase _db;
+
+  /// Counts a finished puzzle and says what it did to the figures.
+  ///
+  /// The read and the write are one transaction: [SolveOutcome.previousBest]
+  /// is the number the player has just beaten, and it stops existing the
+  /// instant the new best is stored.
+  ///
+  /// [hinted] is the whole of the personal-best rule. A hinted puzzle counts
+  /// as solved and keeps its time; it just never becomes the time to beat,
+  /// because a best that a hint could set would mean nothing.
+  Future<SolveOutcome> record({
+    required String gameId,
+    required String difficulty,
+    required Duration time,
+    required bool hinted,
+  }) {
+    return _db.transaction(() async {
+      final GameStatsRow? before =
+          await (_db.select(_db.statistics)..where(
+                ($StatisticsTable row) =>
+                    row.gameId.equals(gameId) &
+                    row.difficulty.equals(difficulty),
+              ))
+              .getSingleOrNull();
+      final Duration? previousBest = before?.bestTime;
+      final bool isPersonalBest =
+          !hinted && (previousBest == null || time < previousBest);
+      final int solved = (before?.solved ?? 0) + 1;
+
+      await _db
+          .into(_db.statistics)
+          .insertOnConflictUpdate(
+            StatisticsCompanion.insert(
+              gameId: gameId,
+              difficulty: difficulty,
+              solved: Value<int>(solved),
+              bestTime: Value<Duration?>(isPersonalBest ? time : previousBest),
+            ),
+          );
+
+      return SolveOutcome(
+        time: time,
+        previousBest: previousBest,
+        solved: solved,
+        wasHinted: hinted,
+        isPersonalBest: isPersonalBest,
+      );
+    });
+  }
+
+  /// Every figure Nook holds, for every game and tier.
+  ///
+  /// One stream for the whole set, like saved games and for the same reason:
+  /// there are a handful of rows in total, and a screen that showed five tiers
+  /// would otherwise open five queries to fill in five lines.
+  Stream<List<GameStats>> watchAll() {
+    return (_db.select(_db.statistics)
+          ..orderBy(<OrderingTerm Function($StatisticsTable)>[
+            ($StatisticsTable row) => OrderingTerm(expression: row.gameId),
+            ($StatisticsTable row) => OrderingTerm(expression: row.difficulty),
+          ]))
+        .map(_statsOf)
+        .watch();
+  }
+
+  GameStats _statsOf(GameStatsRow row) {
+    return GameStats(
+      gameId: row.gameId,
+      difficulty: row.difficulty,
+      solved: row.solved,
+      bestTime: row.bestTime,
+    );
+  }
+}
+
 /// The database itself. Overridden in tests with an in-memory one.
 final Provider<NookDatabase> nookDatabaseProvider = Provider<NookDatabase>((
   Ref ref,
@@ -238,6 +361,24 @@ final StreamProvider<List<SavedGame>> savedGamesProvider =
     StreamProvider<List<SavedGame>>(
       (Ref ref) => ref.watch(savedGameStoreProvider).watchAll(),
       name: 'savedGames',
+    );
+
+/// Solved counts and best times, read and written.
+final Provider<GameStatsStore> gameStatsStoreProvider =
+    Provider<GameStatsStore>(
+      (Ref ref) => GameStatsStore(ref.watch(nookDatabaseProvider)),
+      name: 'gameStatsStore',
+    );
+
+/// What has been solved, for every game and tier.
+///
+/// The difficulty screen reads its own game's rows out of this; the finished
+/// screen is told its numbers by the write that produced them instead, because
+/// it needs the best time as it was a moment ago.
+final StreamProvider<List<GameStats>> gameStatsProvider =
+    StreamProvider<List<GameStats>>(
+      (Ref ref) => ref.watch(gameStatsStoreProvider).watchAll(),
+      name: 'gameStats',
     );
 
 /// A list of small integers, as one text column.
