@@ -27,6 +27,15 @@ const Set<String> allowedLiterals = <String>{
   'board-action-',
   'difficulty-',
   'continue-card',
+  // The finished-puzzle screen, whose parts are named one at a time because
+  // there are seven of them and no two are built from the same loop.
+  'completion-time',
+  'completion-previous',
+  'completion-solved',
+  'completion-personal-best',
+  'completion-another',
+  'completion-home',
+  'completion-close',
   'discard-confirm',
   'discard-keep',
 
@@ -51,6 +60,7 @@ const Set<String> allowedLiterals = <String>{
   // it does not collide with the type the app passes around.
   'nook.sqlite',
   'SavedGameRow',
+  'GameStatsRow',
 
   // ---- Typography ----------------------------------------------------------
   // Font families, matching the `family:` keys in pubspec.yaml. Translating
@@ -74,6 +84,9 @@ const Set<String> allowedLiterals = <String>{
   'nookDatabase',
   'savedGameStore',
   'savedGames',
+  'gameStatsStore',
+  'gameStats',
+  'solveOutcome',
 
   // ---- Messages for whoever is holding the debugger ------------------------
   // `toString` output.

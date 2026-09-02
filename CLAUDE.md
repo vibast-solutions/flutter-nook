@@ -21,7 +21,8 @@ lib/                      the app
   games/                  per-game state and screens (thin)
   home/                   the game list
   l10n/                   app_en.arb (the words) + the generated AppLocalizations
-  store/                  persistence: the Drift database and saved games
+  store/                  persistence: the Drift database, saved games,
+                          and the solved counts and best times
   content/                bundled pack loading (not built yet)
 assets/fonts/             Nunito + Fredoka, bundled
 assets/packs/             generated starter packs (not built yet)
@@ -65,6 +66,28 @@ when the ticket that needs them comes up, not before.
   does not mark a player's work. **Hints are unlimited and free**: there is no
   counter, cooldown or limit anywhere in the code, and none is ever to be
   added.
+- **Finishing is the one moment Nook never spends.** The finished-puzzle
+  screen asks nothing: no rating prompt, no tip, no "enjoying Nook?", no
+  promotion of anything. It says what the player did, offers another puzzle,
+  and gets out of the way. This is a feature, not a gap waiting to be filled,
+  and `test/games/sudoku_completion_test.dart` counts the controls on it so
+  that a third one cannot appear quietly.
+- **A finished puzzle takes the whole screen.** The board it was played on has
+  nothing left to do and the clock has stopped, so both give way rather than
+  sitting there greyed out — and the next puzzle starts on a clock at zero
+  (`PlayClock.restart`), because a new puzzle is a new time.
+- **Statistics are a count and a best time, per game and per tier, and
+  nothing else.** No record is kept of an individual solve, there is no
+  failure statistic anywhere (an abandoned puzzle is simply not recorded), and
+  nothing is ever compared with anybody else — the only thing a player is
+  measured against is themselves, last time. **A hinted puzzle counts as
+  solved, keeps its time, and never sets a best**, which is what
+  `SavedGame.wasHinted` is for.
+- **The screen is told its figures by the write that produced them.** The time
+  a player has just beaten stops existing the moment the new best is stored,
+  so `GameStatsStore.record` reads and writes in one transaction and hands
+  back a `SolveOutcome`. Only the difficulty screen, which is looking at
+  history rather than at a result, reads the figures back.
 - **A cell shows an answer or its pencil marks, never both.** Both are kept, so
   an undo can bring the marks back, but an answer is what the cell draws.
 - Generation runs on a background isolate; the UI never blocks.
@@ -144,6 +167,11 @@ when the ticket that needs them comes up, not before.
 - **Elapsed time is accumulated from intervals, never measured from a start
   timestamp.** A puzzle opened before bed and finished at breakfast has been
   played for four minutes, not nine hours.
+- **A tier that has been played talks about the player; one that has not
+  talks about the puzzle.** The line under a difficulty is the best time and
+  the count once there is one, and what the tier feels like before that —
+  "not solved yet" is true and tells a player choosing a tier for the first
+  time nothing at all.
 - **A schema change ships with its migration and a test that runs it.**
   `test/store/migration_test.dart` writes the old schema out by hand, puts a
   row in it and opens the database through the app's own code, because the

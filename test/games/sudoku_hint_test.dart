@@ -130,7 +130,8 @@ void main() {
       // whole puzzle, and the control only stops when the puzzle does.
       await pumpSudokuGame(tester);
 
-      for (int taps = 0; taps < 10; taps++) {
+      // Nine of the ten blanks, one hint at a time.
+      for (int taps = 0; taps < 9; taps++) {
         expect(
           actionEnabled(tester, 'hint'),
           isTrue,
@@ -139,11 +140,25 @@ void main() {
         await tapAction(tester, 'hint');
       }
 
-      expect(boardDigits(tester), <String>[
-        for (final int digit in fixedMiniPuzzle().solution) '$digit',
-      ]);
+      final List<int> solution = fixedMiniPuzzle().solution;
+      for (int index = 0; index < solution.length; index++) {
+        final String? digit = digitIn(tester, index);
+        if (digit != null) {
+          expect(digit, '${solution[index]}', reason: 'cell $index is wrong');
+        }
+      }
+
+      // And the tenth finishes it, which is what a player leaning on hints
+      // alone has to be able to do.
+      expect(actionEnabled(tester, 'hint'), isTrue);
+      await tapAction(tester, 'hint');
+
       expect(find.text(en.gameSolved), findsOneWidget);
-      expect(actionEnabled(tester, 'hint'), isFalse);
+      expect(
+        find.byKey(BoardActionRow.keyFor('hint')),
+        findsNothing,
+        reason: 'the control outlived the puzzle it belonged to',
+      );
     });
   });
 

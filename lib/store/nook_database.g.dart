@@ -786,15 +786,338 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
   }
 }
 
+class $StatisticsTable extends Statistics
+    with TableInfo<$StatisticsTable, GameStatsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StatisticsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _gameIdMeta = const VerificationMeta('gameId');
+  @override
+  late final GeneratedColumn<String> gameId = GeneratedColumn<String>(
+    'game_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _difficultyMeta = const VerificationMeta(
+    'difficulty',
+  );
+  @override
+  late final GeneratedColumn<String> difficulty = GeneratedColumn<String>(
+    'difficulty',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _solvedMeta = const VerificationMeta('solved');
+  @override
+  late final GeneratedColumn<int> solved = GeneratedColumn<int>(
+    'solved',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Duration?, int> bestTime =
+      GeneratedColumn<int>(
+        'best_time',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Duration?>($StatisticsTable.$converterbestTimen);
+  @override
+  List<GeneratedColumn> get $columns => [gameId, difficulty, solved, bestTime];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'statistics';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GameStatsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('game_id')) {
+      context.handle(
+        _gameIdMeta,
+        gameId.isAcceptableOrUnknown(data['game_id']!, _gameIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_gameIdMeta);
+    }
+    if (data.containsKey('difficulty')) {
+      context.handle(
+        _difficultyMeta,
+        difficulty.isAcceptableOrUnknown(data['difficulty']!, _difficultyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_difficultyMeta);
+    }
+    if (data.containsKey('solved')) {
+      context.handle(
+        _solvedMeta,
+        solved.isAcceptableOrUnknown(data['solved']!, _solvedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {gameId, difficulty};
+  @override
+  GameStatsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GameStatsRow(
+      gameId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}game_id'],
+      )!,
+      difficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulty'],
+      )!,
+      solved: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}solved'],
+      )!,
+      bestTime: $StatisticsTable.$converterbestTimen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}best_time'],
+        ),
+      ),
+    );
+  }
+
+  @override
+  $StatisticsTable createAlias(String alias) {
+    return $StatisticsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Duration, int> $converterbestTime =
+      const _DurationConverter();
+  static TypeConverter<Duration?, int?> $converterbestTimen =
+      NullAwareTypeConverter.wrap($converterbestTime);
+}
+
+class GameStatsRow extends DataClass implements Insertable<GameStatsRow> {
+  /// Which game, as the same stable identifier a save uses.
+  final String gameId;
+
+  /// Which tier of it, as an identifier rather than a name a player reads.
+  final String difficulty;
+
+  /// How many puzzles have been finished here.
+  final int solved;
+
+  /// The fastest hint-free solve, or null if there has not been one.
+  final Duration? bestTime;
+  const GameStatsRow({
+    required this.gameId,
+    required this.difficulty,
+    required this.solved,
+    this.bestTime,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['game_id'] = Variable<String>(gameId);
+    map['difficulty'] = Variable<String>(difficulty);
+    map['solved'] = Variable<int>(solved);
+    if (!nullToAbsent || bestTime != null) {
+      map['best_time'] = Variable<int>(
+        $StatisticsTable.$converterbestTimen.toSql(bestTime),
+      );
+    }
+    return map;
+  }
+
+  StatisticsCompanion toCompanion(bool nullToAbsent) {
+    return StatisticsCompanion(
+      gameId: Value(gameId),
+      difficulty: Value(difficulty),
+      solved: Value(solved),
+      bestTime: bestTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bestTime),
+    );
+  }
+
+  factory GameStatsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GameStatsRow(
+      gameId: serializer.fromJson<String>(json['gameId']),
+      difficulty: serializer.fromJson<String>(json['difficulty']),
+      solved: serializer.fromJson<int>(json['solved']),
+      bestTime: serializer.fromJson<Duration?>(json['bestTime']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'gameId': serializer.toJson<String>(gameId),
+      'difficulty': serializer.toJson<String>(difficulty),
+      'solved': serializer.toJson<int>(solved),
+      'bestTime': serializer.toJson<Duration?>(bestTime),
+    };
+  }
+
+  GameStatsRow copyWith({
+    String? gameId,
+    String? difficulty,
+    int? solved,
+    Value<Duration?> bestTime = const Value.absent(),
+  }) => GameStatsRow(
+    gameId: gameId ?? this.gameId,
+    difficulty: difficulty ?? this.difficulty,
+    solved: solved ?? this.solved,
+    bestTime: bestTime.present ? bestTime.value : this.bestTime,
+  );
+  GameStatsRow copyWithCompanion(StatisticsCompanion data) {
+    return GameStatsRow(
+      gameId: data.gameId.present ? data.gameId.value : this.gameId,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
+      solved: data.solved.present ? data.solved.value : this.solved,
+      bestTime: data.bestTime.present ? data.bestTime.value : this.bestTime,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameStatsRow(')
+          ..write('gameId: $gameId, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('solved: $solved, ')
+          ..write('bestTime: $bestTime')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(gameId, difficulty, solved, bestTime);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GameStatsRow &&
+          other.gameId == this.gameId &&
+          other.difficulty == this.difficulty &&
+          other.solved == this.solved &&
+          other.bestTime == this.bestTime);
+}
+
+class StatisticsCompanion extends UpdateCompanion<GameStatsRow> {
+  final Value<String> gameId;
+  final Value<String> difficulty;
+  final Value<int> solved;
+  final Value<Duration?> bestTime;
+  final Value<int> rowid;
+  const StatisticsCompanion({
+    this.gameId = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.solved = const Value.absent(),
+    this.bestTime = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StatisticsCompanion.insert({
+    required String gameId,
+    required String difficulty,
+    this.solved = const Value.absent(),
+    this.bestTime = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : gameId = Value(gameId),
+       difficulty = Value(difficulty);
+  static Insertable<GameStatsRow> custom({
+    Expression<String>? gameId,
+    Expression<String>? difficulty,
+    Expression<int>? solved,
+    Expression<int>? bestTime,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (gameId != null) 'game_id': gameId,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (solved != null) 'solved': solved,
+      if (bestTime != null) 'best_time': bestTime,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StatisticsCompanion copyWith({
+    Value<String>? gameId,
+    Value<String>? difficulty,
+    Value<int>? solved,
+    Value<Duration?>? bestTime,
+    Value<int>? rowid,
+  }) {
+    return StatisticsCompanion(
+      gameId: gameId ?? this.gameId,
+      difficulty: difficulty ?? this.difficulty,
+      solved: solved ?? this.solved,
+      bestTime: bestTime ?? this.bestTime,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (gameId.present) {
+      map['game_id'] = Variable<String>(gameId.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<String>(difficulty.value);
+    }
+    if (solved.present) {
+      map['solved'] = Variable<int>(solved.value);
+    }
+    if (bestTime.present) {
+      map['best_time'] = Variable<int>(
+        $StatisticsTable.$converterbestTimen.toSql(bestTime.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StatisticsCompanion(')
+          ..write('gameId: $gameId, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('solved: $solved, ')
+          ..write('bestTime: $bestTime, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$NookDatabase extends GeneratedDatabase {
   _$NookDatabase(QueryExecutor e) : super(e);
   $NookDatabaseManager get managers => $NookDatabaseManager(this);
   late final $SavedGamesTable savedGames = $SavedGamesTable(this);
+  late final $StatisticsTable statistics = $StatisticsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [savedGames];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [savedGames, statistics];
 }
 
 typedef $$SavedGamesTableCreateCompanionBuilder = SavedGamesCompanion Function({
@@ -1156,10 +1479,194 @@ typedef $$SavedGamesTableProcessedTableManager =
       SavedGameRow,
       PrefetchHooks Function()
     >;
+typedef $$StatisticsTableCreateCompanionBuilder = StatisticsCompanion Function({
+  required String gameId,
+  required String difficulty,
+  Value<int> solved,
+  Value<Duration?> bestTime,
+  Value<int> rowid,
+});
+typedef $$StatisticsTableUpdateCompanionBuilder = StatisticsCompanion Function({
+  Value<String> gameId,
+  Value<String> difficulty,
+  Value<int> solved,
+  Value<Duration?> bestTime,
+  Value<int> rowid,
+});
+
+class $$StatisticsTableFilterComposer
+    extends Composer<_$NookDatabase, $StatisticsTable> {
+  $$StatisticsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get gameId => $composableBuilder(
+    column: $table.gameId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get solved => $composableBuilder(
+    column: $table.solved,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Duration?, Duration, int> get bestTime =>
+      $composableBuilder(
+        column: $table.bestTime,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+}
+
+class $$StatisticsTableOrderingComposer
+    extends Composer<_$NookDatabase, $StatisticsTable> {
+  $$StatisticsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get gameId => $composableBuilder(
+    column: $table.gameId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get solved => $composableBuilder(
+    column: $table.solved,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bestTime => $composableBuilder(
+    column: $table.bestTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StatisticsTableAnnotationComposer
+    extends Composer<_$NookDatabase, $StatisticsTable> {
+  $$StatisticsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get gameId =>
+      $composableBuilder(column: $table.gameId, builder: (column) => column);
+
+  GeneratedColumn<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get solved =>
+      $composableBuilder(column: $table.solved, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Duration?, int> get bestTime =>
+      $composableBuilder(column: $table.bestTime, builder: (column) => column);
+}
+
+class $$StatisticsTableTableManager
+    extends
+        RootTableManager<
+          _$NookDatabase,
+          $StatisticsTable,
+          GameStatsRow,
+          $$StatisticsTableFilterComposer,
+          $$StatisticsTableOrderingComposer,
+          $$StatisticsTableAnnotationComposer,
+          $$StatisticsTableCreateCompanionBuilder,
+          $$StatisticsTableUpdateCompanionBuilder,
+          (
+            GameStatsRow,
+            BaseReferences<_$NookDatabase, $StatisticsTable, GameStatsRow>,
+          ),
+          GameStatsRow,
+          PrefetchHooks Function()
+        > {
+  $$StatisticsTableTableManager(_$NookDatabase db, $StatisticsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StatisticsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StatisticsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StatisticsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> gameId = const Value.absent(),
+                Value<String> difficulty = const Value.absent(),
+                Value<int> solved = const Value.absent(),
+                Value<Duration?> bestTime = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StatisticsCompanion(
+                gameId: gameId,
+                difficulty: difficulty,
+                solved: solved,
+                bestTime: bestTime,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String gameId,
+                required String difficulty,
+                Value<int> solved = const Value.absent(),
+                Value<Duration?> bestTime = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StatisticsCompanion.insert(
+                gameId: gameId,
+                difficulty: difficulty,
+                solved: solved,
+                bestTime: bestTime,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StatisticsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NookDatabase,
+      $StatisticsTable,
+      GameStatsRow,
+      $$StatisticsTableFilterComposer,
+      $$StatisticsTableOrderingComposer,
+      $$StatisticsTableAnnotationComposer,
+      $$StatisticsTableCreateCompanionBuilder,
+      $$StatisticsTableUpdateCompanionBuilder,
+      (
+        GameStatsRow,
+        BaseReferences<_$NookDatabase, $StatisticsTable, GameStatsRow>,
+      ),
+      GameStatsRow,
+      PrefetchHooks Function()
+    >;
 
 class $NookDatabaseManager {
   final _$NookDatabase _db;
   $NookDatabaseManager(this._db);
   $$SavedGamesTableTableManager get savedGames =>
       $$SavedGamesTableTableManager(_db, _db.savedGames);
+  $$StatisticsTableTableManager get statistics =>
+      $$StatisticsTableTableManager(_db, _db.statistics);
 }

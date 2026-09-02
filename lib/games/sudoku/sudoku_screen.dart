@@ -9,6 +9,7 @@ import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
+import 'completion_view.dart';
 import 'sudoku_controller.dart';
 import 'sudoku_naming.dart';
 import 'sudoku_save.dart';
@@ -89,6 +90,17 @@ class _SudokuScreen extends ConsumerWidget {
     final AsyncValue<SudokuGameState> game = ref.watch(
       sudokuControllerProvider,
     );
+
+    // A finished puzzle takes the whole screen. The board it was played on is
+    // complete and has nothing left to do, and the clock in the header has
+    // stopped — leaving them up would be leaving the furniture of a game that
+    // is over around the one moment the app has to celebrate.
+    if (game.value?.isSolved ?? false) {
+      return Scaffold(
+        backgroundColor: colors.sand,
+        body: const SudokuCompletionView(),
+      );
+    }
 
     return Scaffold(
       backgroundColor: colors.sand,
@@ -353,56 +365,14 @@ class _Playing extends ConsumerWidget {
                 onDigit: controller.enter,
               ),
               const SizedBox(height: 22),
-              if (game.isSolved)
-                _Solved(onNewPuzzle: controller.startNewPuzzle)
-              else
-                Text(
-                  l10n.gameInstruction,
-                  style: NookType.footnote(colors.inkGhost),
-                ),
+              Text(
+                l10n.gameInstruction,
+                style: NookType.footnote(colors.inkGhost),
+              ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-/// What the player sees on finishing.
-///
-/// The medallion, the times and the streak in the designs need a clock and a
-/// history to be honest about; both arrive with statistics (VIB-77). Until
-/// then this says the true thing and nothing more.
-class _Solved extends StatelessWidget {
-  const _Solved({required this.onNewPuzzle});
-
-  final VoidCallback onNewPuzzle;
-
-  @override
-  Widget build(BuildContext context) {
-    final NookColors colors = Theme.of(context).nook;
-    final AppLocalizations l10n = AppLocalizations.of(context);
-    return Semantics(
-      liveRegion: true,
-      container: true,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: colors.sageSoft,
-          border: Border.all(color: colors.sageLine),
-          borderRadius: const BorderRadius.all(NookRadius.card),
-        ),
-        child: Column(
-          children: <Widget>[
-            Icon(Icons.check_rounded, size: 34, color: colors.sage),
-            const SizedBox(height: 8),
-            Text(l10n.gameSolved, style: NookType.title(colors.sageInk)),
-            const SizedBox(height: 16),
-            _PrimaryButton(label: l10n.gameNewPuzzle, onTap: onNewPuzzle),
-          ],
-        ),
-      ),
     );
   }
 }

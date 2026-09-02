@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/number_pad.dart';
 import 'package:nook/board/sudoku_board.dart';
+import 'package:nook/chrome/action_row.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_controller.dart';
@@ -348,9 +349,12 @@ void main() {
       expect(digitIn(tester, 0), '1');
     });
 
-    testWidgets('both controls switch off once the puzzle is solved', (
+    testWidgets('and both give way with the board once it is solved', (
       WidgetTester tester,
     ) async {
+      // There is nothing left to take back or rub out on a finished puzzle,
+      // so the controls do not sit there greyed out — the whole board goes,
+      // and the finished screen takes its place.
       await pumpSudokuGame(tester);
 
       final SudokuPuzzle puzzle = fixedMiniPuzzle();
@@ -362,14 +366,10 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(find.text('Solved'), findsOneWidget);
-      expect(actionBackground(tester, 'undo'), colors.disabledSurface);
-      expect(actionBackground(tester, 'erase'), colors.disabledSurface);
-
-      await tapAction(tester, 'undo');
-      await tapAction(tester, 'erase');
-
-      expect(find.text('Solved'), findsOneWidget, reason: 'still solved');
+      expect(find.text(en.gameSolved), findsOneWidget);
+      expect(find.byType(SudokuBoard), findsNothing);
+      expect(find.byKey(BoardActionRow.keyFor('undo')), findsNothing);
+      expect(find.byKey(BoardActionRow.keyFor('erase')), findsNothing);
     });
   });
 
@@ -572,7 +572,7 @@ void main() {
       expect(find.text('Notes on'), findsOneWidget);
     });
 
-    testWidgets('the toggle switches off with the rest once solved', (
+    testWidgets('the toggle goes with the pad once the puzzle is solved', (
       WidgetTester tester,
     ) async {
       await pumpSudokuGame(tester);
@@ -586,12 +586,9 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(actionBackground(tester, 'notes'), colors.disabledSurface);
-
-      await tapAction(tester, 'notes');
-
-      expect(find.text('Notes off'), findsOneWidget);
-      expect(find.text('Solved'), findsOneWidget);
+      expect(find.text(en.gameSolved), findsOneWidget);
+      expect(find.byType(NumberPad), findsNothing);
+      expect(find.byKey(BoardActionRow.keyFor('notes')), findsNothing);
     });
   });
 
@@ -711,7 +708,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('New puzzle'));
+      await tester.tap(find.text(en.completionAnother(en.difficultyGentle)));
       await tester.pumpAndSettle();
 
       // The fixture is handed back, so the board resets to its givens.

@@ -91,6 +91,19 @@ class PlayClock extends Notifier<Duration> {
     _ticker ??= Timer.periodic(tick, (Timer _) => state = elapsed);
   }
 
+  /// Puts the clock back to zero and starts it counting again.
+  ///
+  /// For the puzzle after this one: the time it took has already been written
+  /// down, and the next one is not a continuation of it. Publishes, unlike
+  /// [start], because the reading on screen has to go back to zero at once
+  /// rather than at the next tick.
+  void restart() {
+    _accumulated = Duration.zero;
+    _runningSince = _now();
+    _ticker ??= Timer.periodic(tick, (Timer _) => state = elapsed);
+    state = Duration.zero;
+  }
+
   /// Stops the clock, keeping what it has counted so far.
   ///
   /// Pausing something already paused is deliberately harmless: the app is
