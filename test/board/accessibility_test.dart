@@ -86,6 +86,49 @@ void main() {
       });
     });
 
+    testWidgets('a cell reads out what is pencilled into it', (
+      WidgetTester tester,
+    ) async {
+      await withSemantics(tester, () async {
+        await pumpSudokuGame(tester);
+
+        await tester.tap(find.bySemanticsLabel('Row 1, column 1, empty'));
+        await tester.pump();
+        await tester.tap(find.bySemanticsLabel('Notes'));
+        await tester.pump();
+        await tester.tap(find.bySemanticsLabel('4, 4 left to place'));
+        await tester.pump();
+        await tester.tap(find.bySemanticsLabel('2, 2 left to place'));
+        await tester.pump();
+
+        expect(
+          find.bySemanticsLabel('Row 1, column 1, notes 2, 4'),
+          findsOneWidget,
+        );
+      });
+    });
+
+    testWidgets('the notes toggle reads as a switch, not a button', (
+      WidgetTester tester,
+    ) async {
+      await withSemantics(tester, () async {
+        await pumpSudokuGame(tester);
+
+        expect(
+          tester.getSemantics(find.bySemanticsLabel('Notes')),
+          isSemantics(hasToggledState: true, isToggled: false),
+        );
+
+        await tester.tap(find.bySemanticsLabel('Notes'));
+        await tester.pump();
+
+        expect(
+          tester.getSemantics(find.bySemanticsLabel('Notes')),
+          isSemantics(hasToggledState: true, isToggled: true),
+        );
+      });
+    });
+
     testWidgets('the board itself is announced', (WidgetTester tester) async {
       await withSemantics(tester, () async {
         await pumpSudokuGame(tester);

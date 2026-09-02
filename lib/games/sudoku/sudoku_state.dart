@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../chrome/move_history.dart';
+import '../../chrome/note_marks.dart';
 import 'sudoku_variant.dart';
 
 /// A Sudoku in progress: the puzzle, what the player has entered so far, and
@@ -15,9 +16,14 @@ class SudokuGameState {
     required this.variant,
     required this.puzzle,
     required List<int> cells,
+    List<int>? notes,
     this.selectedIndex,
     this.history = const MoveHistory.empty(),
-  }) : cells = List<int>.unmodifiable(cells);
+    this.notesMode = false,
+  }) : cells = List<int>.unmodifiable(cells),
+       notes = List<int>.unmodifiable(
+         notes ?? List<int>.filled(cells.length, 0),
+       );
 
   /// Starts a fresh game from a generated [puzzle], with nothing selected.
   factory SudokuGameState.fresh({
@@ -41,8 +47,22 @@ class SudokuGameState {
   /// `0` means empty.
   final List<int> cells;
 
+  /// The pencil marks in each cell, one [NoteMarks] bitmask per cell.
+  ///
+  /// A plain list of integers rather than a list of sets: it is the shape a
+  /// saved game wants (VIB-75), and reading a cell's marks back out is a
+  /// wrapper away.
+  final List<int> notes;
+
   /// The cell the number pad will write to, or `null` if none is selected.
   final int? selectedIndex;
+
+  /// Whether the number pad is writing pencil marks instead of answers.
+  ///
+  /// Part of the game rather than the screen: it decides what a tap does, and
+  /// a player who put the pad in notes mode expects to find it there when they
+  /// come back to the puzzle.
+  final bool notesMode;
 
   /// The moves the player can still take back.
   ///
@@ -59,6 +79,16 @@ class SudokuGameState {
 
   /// Whether the cell at [index] came with the puzzle and cannot be changed.
   bool isGiven(int index) => puzzle.isGiven(index);
+
+  /// The pencil marks in the cell at [index].
+  NoteMarks notesAt(int index) => NoteMarks(notes[index]);
+
+  /// Whether the cell at [index] is showing pencil marks.
+  ///
+  /// A cell shows an answer or its marks, never both: an answer is what the
+  /// player has settled on, and the marks that led there are noise once it is
+  /// down.
+  bool showsNotes(int index) => cells[index] == 0 && notes[index] != 0;
 
   /// The digit in the selected cell, or `0` if it is empty or nothing is
   /// selected.
@@ -117,15 +147,19 @@ class SudokuGameState {
   /// allowing it would mean an extra sentinel for no gain.
   SudokuGameState copyWith({
     List<int>? cells,
+    List<int>? notes,
     int? selectedIndex,
     MoveHistory? history,
+    bool? notesMode,
   }) {
     return SudokuGameState(
       variant: variant,
       puzzle: puzzle,
       cells: cells ?? this.cells,
+      notes: notes ?? this.notes,
       selectedIndex: selectedIndex ?? this.selectedIndex,
       history: history ?? this.history,
+      notesMode: notesMode ?? this.notesMode,
     );
   }
 }

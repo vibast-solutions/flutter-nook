@@ -2,25 +2,36 @@ import 'package:flutter/foundation.dart';
 
 /// One change to one cell of a board.
 ///
-/// Deliberately plain: three integers and nothing else. Every Nook game is a
-/// grid whose cells hold a small number — a Sudoku digit, a Stars mark, a Duo
-/// symbol — so this describes a move in all of them, and it can be written
-/// straight to disk when a game has to survive being closed (VIB-75) without a
-/// per-game encoder.
+/// Deliberately plain: a handful of integers and nothing else. Every Nook game
+/// is a grid whose cells hold a small number — a Sudoku digit, a Stars mark, a
+/// Duo symbol — plus whatever the player has pencilled in, so this describes a
+/// move in all of them, and it can be written straight to disk when a game has
+/// to survive being closed (VIB-75) without a per-game encoder.
+///
+/// A cell's pencil marks travel as a `NoteMarks` bitmask, so taking a move
+/// back restores what was written and what was noted together rather than
+/// leaving one of them behind.
 @immutable
 class BoardMove {
   const BoardMove({
     required this.index,
     required this.before,
     required this.after,
+    this.notesBefore = 0,
+    this.notesAfter = 0,
   });
 
   /// Reads a move back from stored data.
+  ///
+  /// The note masks are optional, so a history written before a game had
+  /// pencil marks still reads back as a history of plain entries.
   factory BoardMove.fromJson(Map<String, Object?> json) {
     return BoardMove(
       index: json['index']! as int,
       before: json['before']! as int,
       after: json['after']! as int,
+      notesBefore: json['notesBefore'] as int? ?? 0,
+      notesAfter: json['notesAfter'] as int? ?? 0,
     );
   }
 
@@ -33,9 +44,21 @@ class BoardMove {
   /// What it holds after it.
   final int after;
 
+  /// The cell's pencil marks before the move.
+  final int notesBefore;
+
+  /// Its pencil marks after it.
+  final int notesAfter;
+
   /// This move as plain data.
   Map<String, Object?> toJson() {
-    return <String, Object?>{'index': index, 'before': before, 'after': after};
+    return <String, Object?>{
+      'index': index,
+      'before': before,
+      'after': after,
+      'notesBefore': notesBefore,
+      'notesAfter': notesAfter,
+    };
   }
 
   @override
@@ -43,15 +66,19 @@ class BoardMove {
     return other is BoardMove &&
         other.index == index &&
         other.before == before &&
-        other.after == after;
+        other.after == after &&
+        other.notesBefore == notesBefore &&
+        other.notesAfter == notesAfter;
   }
 
   @override
-  int get hashCode => Object.hash(index, before, after);
+  int get hashCode =>
+      Object.hash(index, before, after, notesBefore, notesAfter);
 
   @override
   String toString() =>
-      'BoardMove(index: $index, before: $before, after: $after)';
+      'BoardMove(index: $index, before: $before, after: $after, '
+      'notesBefore: $notesBefore, notesAfter: $notesAfter)';
 }
 
 /// The moves a player can still take back, oldest first.

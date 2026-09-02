@@ -4,14 +4,45 @@ import 'package:nook/chrome/move_history.dart';
 void main() {
   group('a move', () {
     test('survives a trip through plain data', () {
-      const BoardMove move = BoardMove(index: 7, before: 0, after: 4);
+      const BoardMove move = BoardMove(
+        index: 7,
+        before: 0,
+        after: 4,
+        notesBefore: 6,
+      );
 
       expect(move.toJson(), <String, Object?>{
         'index': 7,
         'before': 0,
         'after': 4,
+        'notesBefore': 6,
+        'notesAfter': 0,
       });
       expect(BoardMove.fromJson(move.toJson()), move);
+    });
+
+    test('reads back a move stored before notes existed', () {
+      final BoardMove move = BoardMove.fromJson(<String, Object?>{
+        'index': 7,
+        'before': 0,
+        'after': 4,
+      });
+
+      expect(move, const BoardMove(index: 7, before: 0, after: 4));
+      expect(move.notesBefore, 0);
+      expect(move.notesAfter, 0);
+    });
+
+    test('a move that only changes the notes is still a move', () {
+      const BoardMove pencilled = BoardMove(
+        index: 3,
+        before: 0,
+        after: 0,
+        notesAfter: 1,
+      );
+
+      expect(pencilled, isNot(const BoardMove(index: 3, before: 0, after: 0)));
+      expect(BoardMove.fromJson(pencilled.toJson()), pencilled);
     });
 
     test('two moves of the same shape are the same move', () {

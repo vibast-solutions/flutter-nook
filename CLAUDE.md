@@ -16,7 +16,7 @@ packages/puzzle_engine/   pure Dart, no Flutter — solvers, generators, difficu
 lib/                      the app
   design/                 tokens, themes, typography
   board/                  shared board widgets, selection, gestures
-  chrome/                 controls around a board: undo and erase, later timer/notes/hints
+  chrome/                 controls around a board: undo, erase and notes, later timer/hints
   games/                  per-game state and screens (thin)
   home/                   the game list
   store/                  persistence (Drift/SQLite) (not built yet)
@@ -36,8 +36,11 @@ when the ticket that needs them comes up, not before.
 - **Boards are built from widgets, not CustomPainter** — accessibility semantics, hit testing and per-cell animation come free.
 - **Every move a player makes goes through one write** that records it in the
   shared `MoveHistory` (`chrome/move_history.dart`). A game never grows an undo
-  stack of its own, and a move is three plain integers — it has to survive
-  being written to disk when a game is saved and resumed.
+  stack of its own, and a move is a handful of plain integers — which cell, what
+  it held, and the pencil marks around it as a `NoteMarks` bitmask — because it
+  has to survive being written to disk when a game is saved and resumed.
+- **A cell shows an answer or its pencil marks, never both.** Both are kept, so
+  an undo can bring the marks back, but an answer is what the cell draws.
 - Generation runs on a background isolate; the UI never blocks.
 - Region colours are always paired with a texture, so colour-blind players can read the board.
 - Hit targets are never below 44 logical pixels (`kMinTapTarget`).

@@ -30,6 +30,7 @@ class NookColors extends ThemeExtension<NookColors> {
     required this.cellSelected,
     required this.cellPeer,
     required this.cellMatching,
+    required this.noteInk,
     required this.disabledSurface,
     required this.disabledLine,
     required this.disabledInk,
@@ -96,6 +97,12 @@ class NookColors extends ThemeExtension<NookColors> {
   /// The background of cells holding the same digit as the selection.
   final Color cellMatching;
 
+  /// The pencil marks a player has written into a cell.
+  ///
+  /// Quieter than [clay] so a note never reads as an answer, and darker than
+  /// [inkFaint] so nine of them at a third of the size stay legible.
+  final Color noteInk;
+
   /// A control that has nothing left to do.
   final Color disabledSurface;
 
@@ -130,6 +137,7 @@ class NookColors extends ThemeExtension<NookColors> {
     cellSelected: Color(0xFFF0D9C2),
     cellPeer: Color(0xFFF6EFE4),
     cellMatching: Color(0xFFDFE7D9),
+    noteInk: Color(0xFFA08D77),
     disabledSurface: Color(0xFFF3EBE1),
     disabledLine: Color(0xFFE8DCCA),
     disabledInk: Color(0xFFC9BAA7),
@@ -158,6 +166,7 @@ class NookColors extends ThemeExtension<NookColors> {
     Color? cellSelected,
     Color? cellPeer,
     Color? cellMatching,
+    Color? noteInk,
     Color? disabledSurface,
     Color? disabledLine,
     Color? disabledInk,
@@ -184,6 +193,7 @@ class NookColors extends ThemeExtension<NookColors> {
       cellSelected: cellSelected ?? this.cellSelected,
       cellPeer: cellPeer ?? this.cellPeer,
       cellMatching: cellMatching ?? this.cellMatching,
+      noteInk: noteInk ?? this.noteInk,
       disabledSurface: disabledSurface ?? this.disabledSurface,
       disabledLine: disabledLine ?? this.disabledLine,
       disabledInk: disabledInk ?? this.disabledInk,
@@ -218,6 +228,7 @@ class NookColors extends ThemeExtension<NookColors> {
       cellSelected: mix(cellSelected, other.cellSelected),
       cellPeer: mix(cellPeer, other.cellPeer),
       cellMatching: mix(cellMatching, other.cellMatching),
+      noteInk: mix(noteInk, other.noteInk),
       disabledSurface: mix(disabledSurface, other.disabledSurface),
       disabledLine: mix(disabledLine, other.disabledLine),
       disabledInk: mix(disabledInk, other.disabledInk),

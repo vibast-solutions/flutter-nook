@@ -240,7 +240,14 @@ class _Playing extends ConsumerWidget {
                     onTap: game.isSolved ? null : controller.erase,
                     unavailableReason: 'the puzzle is done',
                   ),
-                  // Notes (VIB-72) and hint (VIB-76) join this row.
+                  BoardAction(
+                    label: 'Notes',
+                    icon: Icons.edit_rounded,
+                    isOn: game.notesMode,
+                    onTap: game.isSolved ? null : controller.toggleNotes,
+                    unavailableReason: 'the puzzle is done',
+                  ),
+                  // The hint (VIB-76) joins this row.
                 ],
               ),
               const SizedBox(height: 14),
