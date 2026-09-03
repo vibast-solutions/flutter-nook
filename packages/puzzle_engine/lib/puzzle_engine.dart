@@ -7,6 +7,12 @@
 library;
 
 export 'src/difficulty.dart';
+export 'src/duo/generator.dart';
+export 'src/duo/logic_solver.dart';
+export 'src/duo/puzzle.dart';
+export 'src/duo/solver.dart';
+export 'src/duo/spec.dart';
+export 'src/duo/technique.dart';
 export 'src/pack/pack.dart';
 export 'src/pack/stars_pack.dart';
 export 'src/pack/sudoku_pack.dart';
