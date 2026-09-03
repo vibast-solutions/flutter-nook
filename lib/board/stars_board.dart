@@ -25,8 +25,13 @@ RegionTexture regionTextureFor(int region) =>
 /// textures are painted, and those have nothing to hit and nothing to read out —
 /// a cell's sentence is on the cell itself.
 ///
-/// Every cell carries its region's colour **and** its region's texture, so the
-/// eight regions stay distinguishable with the colour taken away entirely.
+/// The **region boundary** is the primary colour-free cue: the heavy rule around
+/// a region walls it off whatever its fill, so the shape a player solves against
+/// reads with colour taken away entirely. The region's texture is a quiet second
+/// voice under the fill — drawn at [boardTextureAlpha] so the soft colour leads
+/// and the board stays calm rather than a quilt of eight competing patterns —
+/// and the legend swatch, which shows the same texture at full strength, is where
+/// it is read as a key.
 ///
 /// Stateful for the one thing the board says by moving: a star being crossed out
 /// as a hint takes it away. There is no completed-unit pulse here on purpose — a
@@ -58,6 +63,15 @@ class StarsBoard extends StatefulWidget {
 
   /// The thickness of the line between two cells in the same region.
   static const double hairlineWidth = 1;
+
+  /// How strongly a region's texture prints on the board, as an opacity.
+  ///
+  /// A whisper: the soft fill leads and the heavy region boundary does the
+  /// colour-free work, so the texture is a quiet redundancy rather than the loud
+  /// hatch it was — eight bold patterns at once buried the fills and hid the
+  /// region shapes. The legend swatch still draws the texture at full strength,
+  /// because that is where it has to read as a key.
+  static const double boardTextureAlpha = 0.12;
 
   /// How long the cross a hint draws over a star it takes away stays up for.
   static const Duration removalDuration = Duration(milliseconds: 300);
@@ -281,12 +295,17 @@ class _StarsCell extends StatelessWidget {
                   ),
                 ),
               // Colour never carries meaning alone on a Nook board, so every
-              // region wears a texture a player can read without it.
+              // region wears a texture a player can read without it — printed
+              // quietly here (the heavy region boundary is the loud colour-free
+              // cue) so the board reads calm, and shown at full strength in the
+              // legend swatch, which is where the texture serves as a key.
               Positioned.fill(
                 child: CustomPaint(
                   painter: _RegionTexture(
                     texture: regionTextureFor(region),
-                    ink: colors.regionTextureInk,
+                    ink: colors.regionTextureInk.withValues(
+                      alpha: StarsBoard.boardTextureAlpha,
+                    ),
                   ),
                 ),
               ),
@@ -458,9 +477,11 @@ class _StarsRemoval extends StatelessWidget {
 /// A repeating texture across a cell, so a region is legible without its
 /// colour.
 ///
-/// The patterns are geometry, not colour, which is the whole point: they carry
-/// the region identity that the fill also carries, so the board stays solvable
-/// with the fills flattened to one grey.
+/// The patterns are geometry, not colour, which is the whole point: paired with
+/// the fill and the heavy region boundary, they carry region identity that
+/// survives the fills being flattened to one grey. The board prints this
+/// quietly (see [StarsBoard.boardTextureAlpha]); the legend swatch prints it at
+/// full strength, where it reads as a key.
 class _RegionTexture extends CustomPainter {
   const _RegionTexture({required this.texture, required this.ink});
 
