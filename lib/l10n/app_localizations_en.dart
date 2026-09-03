@@ -369,6 +369,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionErase => 'Erase';
 
   @override
+  String get actionClearMarks => 'Clear marks';
+
+  @override
   String get actionNotes => 'Notes';
 
   @override
@@ -394,6 +397,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reasonNothingToUndo => 'nothing to take back';
+
+  @override
+  String get reasonNothingToErase => 'nothing to erase';
+
+  @override
+  String get reasonNoMarks => 'no marks to clear';
 
   @override
   String get reasonHintJustGiven => 'just given, back in a moment';

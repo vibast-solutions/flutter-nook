@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../board/stars_board.dart';
+import '../../chrome/action_row.dart';
 import '../../chrome/completion_view.dart';
 import '../../chrome/difficulty_naming.dart';
 import '../../chrome/game_header.dart';
@@ -149,6 +150,38 @@ class _Playing extends ConsumerWidget {
               _StarCounter(placed: game.starCount, target: game.starTarget),
               const SizedBox(height: 12),
               StarsBoard(game: game, edge: edge, onTap: controller.cycle),
+              const SizedBox(height: 18),
+              BoardActionRow(
+                actions: <BoardAction>[
+                  BoardAction(
+                    id: 'undo',
+                    label: l10n.actionUndo,
+                    icon: Icons.undo_rounded,
+                    onTap: game.canUndo ? controller.undo : null,
+                    unavailableReason: game.isSolved
+                        ? l10n.reasonPuzzleDone
+                        : l10n.reasonNothingToUndo,
+                  ),
+                  BoardAction(
+                    id: 'erase',
+                    label: l10n.actionErase,
+                    icon: Icons.backspace_rounded,
+                    onTap: game.canErase ? controller.erase : null,
+                    unavailableReason: game.isSolved
+                        ? l10n.reasonPuzzleDone
+                        : l10n.reasonNothingToErase,
+                  ),
+                  BoardAction(
+                    id: 'clear-marks',
+                    label: l10n.actionClearMarks,
+                    icon: Icons.clear_all_rounded,
+                    onTap: game.canClearMarks ? controller.clearMarks : null,
+                    unavailableReason: game.isSolved
+                        ? l10n.reasonPuzzleDone
+                        : l10n.reasonNoMarks,
+                  ),
+                ],
+              ),
               const SizedBox(height: 18),
               StarsLegend(regionCount: game.spec.regionCount),
               const SizedBox(height: 14),

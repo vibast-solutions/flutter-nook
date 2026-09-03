@@ -57,6 +57,7 @@ const Set<String> allowedLiterals = <String>{
   'erase',
   'notes',
   'hint',
+  'clear-marks',
   // Field names a move is written out under when a game is saved.
   'index',
   'before',
@@ -64,6 +65,7 @@ const Set<String> allowedLiterals = <String>{
   'notesBefore',
   'notesAfter',
   'clearedNotes',
+  'clearedMarks',
   // The database file, and the name the generated row class is given so that
   // it does not collide with the type the app passes around.
   'nook.sqlite',
@@ -108,7 +110,7 @@ const Set<String> allowedLiterals = <String>{
   // `toString` output.
   'BoardMove(index: , before: , after: , ',
   'notesBefore: , notesAfter: , ',
-  'clearedNotes: )',
+  'clearedNotes: , clearedMarks: )',
   'HintRemoval( at )',
   'NoteMarks()',
   'SudokuVariant()',

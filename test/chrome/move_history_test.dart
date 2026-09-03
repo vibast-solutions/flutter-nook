@@ -194,6 +194,82 @@ void main() {
       );
     });
 
+    test('a clear-marks move carries every dot it wiped, there and back', () {
+      // Stars "clear marks" empties every dotted cell at once and must come
+      // back in one undo: the first dot rides in the move's own cell, the rest
+      // in clearedMarks, and all of it survives the trip to disk.
+      const BoardMove cleared = BoardMove(
+        index: 2,
+        before: 1,
+        after: 0,
+        clearedMarks: <int, int>{10: 1, 25: 1, 47: 1},
+      );
+
+      final MoveHistory read = MoveHistory.fromJson(
+        const MoveHistory.empty().push(cleared).toJson(),
+      );
+
+      expect(read.last, cleared);
+      expect(read.last!.clearedMarks, <int, int>{10: 1, 25: 1, 47: 1});
+      expect(read.last!.hashCode, cleared.hashCode);
+    });
+
+    test(
+      'two clear-marks moves that wiped different cells are not the same',
+      () {
+        const BoardMove one = BoardMove(
+          index: 2,
+          before: 1,
+          after: 0,
+          clearedMarks: <int, int>{10: 1},
+        );
+        const BoardMove other = BoardMove(
+          index: 2,
+          before: 1,
+          after: 0,
+          clearedMarks: <int, int>{25: 1},
+        );
+
+        expect(one, isNot(other));
+        // The two swept-cell maps are kept apart from the tidied-notes ones: a
+        // move that cleared a mark is not a move that tidied a note.
+        expect(
+          one,
+          isNot(
+            const BoardMove(
+              index: 2,
+              before: 1,
+              after: 0,
+              clearedNotes: <int, int>{10: 1},
+            ),
+          ),
+        );
+      },
+    );
+
+    test('a move stored without the swept-cells field reads back with none', () {
+      // The compatibility guarantee: a save written before "clear marks"
+      // existed has no clearedMarks key, and must come back as the move it was
+      // rather than failing and taking the saved game down with it.
+      final BoardMove old = BoardMove.fromJson(<String, Object?>{
+        'index': 2,
+        'before': 1,
+        'after': 0,
+        'notesBefore': 0,
+        'notesAfter': 0,
+      });
+
+      expect(old.clearedMarks, isEmpty);
+      expect(old, const BoardMove(index: 2, before: 1, after: 0));
+    });
+
+    test('and a move that swept nothing leaves the field off disk', () {
+      expect(
+        const BoardMove(index: 2, before: 1, after: 0).toJson(),
+        isNot(contains('clearedMarks')),
+      );
+    });
+
     test('holds a full 9x9 grid and then some', () {
       expect(MoveHistory.defaultDepth, greaterThan(81));
     });
