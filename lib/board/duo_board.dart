@@ -22,7 +22,14 @@ import 'conflict_hatch.dart';
 /// The genuinely new rendering job, which neither Sudoku nor Stars has, is the
 /// **constraint badges**: a small `=` or `x` centred on the edge between the two
 /// cells it constrains, on both horizontal and vertical edges.
-class DuoBoard extends StatelessWidget {
+///
+/// Stateful for the one thing the board says by moving: a symbol being crossed
+/// out as a hint takes it away. A completed-line pulse is explicitly not wanted
+/// here — a line completes the moment its last symbol lands — so the removal is
+/// the whole of the board's motion. It is a transition rather than a state, so
+/// it is found by comparing the game that arrives with the one before it; the
+/// state itself only ever describes the board as it stands.
+class DuoBoard extends StatefulWidget {
   const DuoBoard({
     required this.game,
     required this.onTap,
@@ -53,6 +60,9 @@ class DuoBoard extends StatelessWidget {
   /// different colour.
   static const IconData squareIcon = Icons.square_rounded;
 
+  /// How long the cross a hint draws over a symbol it takes away stays up for.
+  static const Duration removalDuration = Duration(milliseconds: 300);
+
   /// The key of the cell at [index], so a test can reach a known cell without
   /// depending on how it happens to look.
   static Key cellKey(int index) => ValueKey<String>('duo-cell-$index');
@@ -64,6 +74,10 @@ class DuoBoard extends StatelessWidget {
   /// holds breaks a rule.
   static Key breachKey(int index) => ValueKey<String>('duo-breach-$index');
 
+  /// The key of the cross drawn over the cell at [index] as a hint takes a
+  /// wrong symbol out of it.
+  static Key removalKey(int index) => ValueKey<String>('duo-removal-$index');
+
   /// The key of the badge on the edge between cells [a] and [b].
   ///
   /// The two cells are folded into one number so the key is a single
@@ -74,8 +88,53 @@ class DuoBoard extends StatelessWidget {
       ValueKey<String>('duo-badge-${a * 10000 + b}');
 
   @override
+  State<DuoBoard> createState() => _DuoBoardState();
+}
+
+class _DuoBoardState extends State<DuoBoard>
+    with SingleTickerProviderStateMixin {
+  /// Runs whether or not the board is allowed to move: it is what times the
+  /// sentence a screen reader is given about the cell, and holding a label for
+  /// a moment is not motion.
+  late final AnimationController _removal = AnimationController(
+    vsync: this,
+    duration: DuoBoard.removalDuration,
+  )..addStatusListener(_removalEnded);
+
+  /// The symbol a hint is in the middle of taking off the board.
+  DuoRemoval? _removing;
+
+  @override
+  void didUpdateWidget(DuoBoard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _startRemoval(oldWidget.game);
+  }
+
+  @override
+  void dispose() {
+    _removal.dispose();
+    super.dispose();
+  }
+
+  /// Crosses out a symbol a hint has just taken away.
+  void _startRemoval(DuoGameState before) {
+    final DuoRemoval? removal = widget.game.removal;
+    if (removal == null || removal == before.removal) {
+      return;
+    }
+    setState(() => _removing = removal);
+    _removal.forward(from: 0);
+  }
+
+  void _removalEnded(AnimationStatus status) {
+    if (status == AnimationStatus.completed && mounted) {
+      setState(() => _removing = null);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final double? fixed = edge;
+    final double? fixed = widget.edge;
     if (fixed != null) {
       return _build(context, fixed);
     }
@@ -92,8 +151,9 @@ class DuoBoard extends StatelessWidget {
   Widget _build(BuildContext context, double edge) {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
+    final DuoGameState game = widget.game;
     final int size = game.spec.size;
-    final double cell = (edge - ruleWidth * 2) / size;
+    final double cell = (edge - DuoBoard.ruleWidth * 2) / size;
     final double inner = cell * size;
     final double badgeExtent = (cell * 0.42).clamp(15.0, 22.0);
 
@@ -103,7 +163,10 @@ class DuoBoard extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.surface,
-          border: Border.all(color: colors.boardRule, width: ruleWidth),
+          border: Border.all(
+            color: colors.boardRule,
+            width: DuoBoard.ruleWidth,
+          ),
           borderRadius: const BorderRadius.all(NookRadius.board),
           boxShadow: <BoxShadow>[
             BoxShadow(
@@ -118,29 +181,27 @@ class DuoBoard extends StatelessWidget {
           child: SizedBox(
             width: inner,
             height: inner,
-            child: Stack(
-              children: <Widget>[
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    for (int row = 0; row < size; row++)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          for (int column = 0; column < size; column++)
-                            _DuoCellTile(
-                              game: game,
-                              index: row * size + column,
-                              extent: cell,
-                              onTap: onTap,
-                            ),
-                        ],
-                      ),
-                  ],
-                ),
-                for (final DuoBadge badge in game.puzzle.badges)
-                  _positionBadge(badge, cell, badgeExtent),
-              ],
+            child: AnimatedBuilder(
+              animation: _removal,
+              builder: (BuildContext context, Widget? child) => Stack(
+                children: <Widget>[
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      for (int row = 0; row < size; row++)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            for (int column = 0; column < size; column++)
+                              _cellAt(row * size + column, cell),
+                          ],
+                        ),
+                    ],
+                  ),
+                  for (final DuoBadge badge in game.puzzle.badges)
+                    _positionBadge(badge, cell, badgeExtent),
+                ],
+              ),
             ),
           ),
         ),
@@ -148,10 +209,22 @@ class DuoBoard extends StatelessWidget {
     );
   }
 
+  Widget _cellAt(int index, double extent) {
+    final DuoRemoval? removing = _removing;
+    return _DuoCellTile(
+      game: widget.game,
+      index: index,
+      extent: extent,
+      onTap: widget.onTap,
+      removing: removing != null && removing.index == index ? removing : null,
+      removalProgress: _removal.value,
+    );
+  }
+
   /// Places a badge over the edge it sits on, centred on the line between its
   /// two cells.
   Widget _positionBadge(DuoBadge badge, double cell, double extent) {
-    final int size = game.spec.size;
+    final int size = widget.game.spec.size;
     final int row = badge.a ~/ size;
     final int column = badge.a % size;
     final double centreX = badge.isHorizontal
@@ -166,7 +239,7 @@ class DuoBoard extends StatelessWidget {
       width: extent,
       height: extent,
       child: _BadgeMark(
-        key: badgeKey(badge.a, badge.b),
+        key: DuoBoard.badgeKey(badge.a, badge.b),
         relation: badge.relation,
       ),
     );
@@ -181,12 +254,21 @@ class _DuoCellTile extends StatelessWidget {
     required this.index,
     required this.extent,
     required this.onTap,
+    required this.removing,
+    required this.removalProgress,
   });
 
   final DuoGameState game;
   final int index;
   final double extent;
   final ValueChanged<int> onTap;
+
+  /// The symbol a hint is taking out of this cell, or `null` if it is not this
+  /// cell's turn to be crossed out.
+  final DuoRemoval? removing;
+
+  /// How far through the crossing-out the board is, 0 to 1.
+  final double removalProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -272,9 +354,22 @@ class _DuoCellTile extends StatelessWidget {
   /// The circle or square the cell holds, or nothing.
   ///
   /// A given is drawn in [NookColors.ink], the player's own in the accent, and a
-  /// hinted one (VIB-97) in the hint ink — three voices, the way the other games
-  /// tell a given from an answer from a hint.
+  /// hinted one in the hint ink — three voices, the way the other games tell a
+  /// given from an answer from a hint.
   Widget? _symbol(NookColors colors, DuoCell cell, bool given) {
+    final DuoRemoval? leaving = removing;
+    if (leaving != null) {
+      return _DuoRemoval(
+        extent: extent,
+        cell: leaving.cell,
+        progress: removalProgress,
+        cross: colors.conflictLine,
+        // The symbol that is leaving was the player's own, so it fades in the
+        // accent the player's symbols are drawn in.
+        ink: colors.clay,
+        cellKey: DuoBoard.removalKey(index),
+      );
+    }
     if (cell == DuoCell.empty) {
       return null;
     }
@@ -306,6 +401,15 @@ class _DuoCellTile extends StatelessWidget {
     bool given,
     DuoBreach? breach,
   ) {
+    // A symbol on its way off the board says so, so a player who cannot see it
+    // fade is told why the cell they were on has emptied — the same fact either
+    // way, whether or not the cross is drawn.
+    final DuoRemoval? leaving = removing;
+    if (leaving != null) {
+      return leaving.cell == DuoCell.circle
+          ? l10n.cellDuoClearedCircle(row, column)
+          : l10n.cellDuoClearedSquare(row, column);
+    }
     if (breach != null && cell != DuoCell.empty) {
       final bool circle = cell == DuoCell.circle;
       return switch (breach) {
@@ -334,6 +438,57 @@ class _DuoCellTile extends StatelessWidget {
             ? l10n.cellDuoGivenSquare(row, column)
             : l10n.cellDuoSquare(row, column),
     };
+  }
+}
+
+/// A symbol being taken off the board by a hint, crossed out and fading.
+///
+/// The cross is what makes the disappearance mean something: a cell that simply
+/// blanked would read as the app losing a symbol rather than as the player
+/// being told, in the one way they asked for, that it was wrong. The same shape
+/// Sudoku's `_Removal` and Stars' `_StarsRemoval` draw, with a circle or a
+/// square where the digit would be.
+class _DuoRemoval extends StatelessWidget {
+  const _DuoRemoval({
+    required this.extent,
+    required this.cell,
+    required this.progress,
+    required this.cross,
+    required this.ink,
+    required this.cellKey,
+  });
+
+  final double extent;
+  final DuoCell cell;
+  final double progress;
+  final Color cross;
+  final Color ink;
+  final Key cellKey;
+
+  @override
+  Widget build(BuildContext context) {
+    // Under a request for less motion there is nothing to watch: the symbol is
+    // already gone from the grid, and this draws nothing over the gap. The cell
+    // still says what happened to a screen reader.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      return const SizedBox.shrink();
+    }
+    final double fade = (1 - progress).clamp(0.0, 1.0);
+    return Opacity(
+      key: cellKey,
+      opacity: fade,
+      child: Stack(
+        alignment: Alignment.center,
+        children: <Widget>[
+          Icon(
+            cell == DuoCell.circle ? DuoBoard.circleIcon : DuoBoard.squareIcon,
+            size: extent * 0.5,
+            color: ink,
+          ),
+          Icon(Icons.close_rounded, size: extent * 0.62, color: cross),
+        ],
+      ),
+    );
   }
 }
 

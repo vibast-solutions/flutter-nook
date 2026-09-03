@@ -32,6 +32,37 @@ enum DuoCell {
       symbol == DuoSymbol.circle ? DuoCell.circle : DuoCell.square;
 }
 
+/// A symbol a hint has just taken off the board.
+///
+/// Kept so the board can show the cell being emptied — the symbol is already
+/// gone from the grid by the time anything draws, and a cell that simply
+/// blanked would look like a bug rather than like a mistake being taken away.
+/// Never written to disk: it describes a moment, not a game.
+///
+/// The Duo third of Sudoku's `HintRemoval` and Stars' `StarRemoval`, carrying
+/// which of the two symbols is leaving so the board can draw the right glyph
+/// fading out.
+@immutable
+class DuoRemoval {
+  const DuoRemoval({required this.index, required this.cell});
+
+  /// The cell that was emptied.
+  final int index;
+
+  /// What it held: the circle or square being taken away.
+  final DuoCell cell;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DuoRemoval && other.index == index && other.cell == cell;
+
+  @override
+  int get hashCode => Object.hash(index, cell);
+
+  @override
+  String toString() => 'DuoRemoval(${cell.name} at $index)';
+}
+
 /// The rule a cell in breach breaks. Each is a separate rule of the game.
 ///
 /// A cell can break more than one at once — a symbol contradicting an `x` badge
@@ -73,6 +104,7 @@ class DuoGameState {
     this.selectedIndex,
     this.history = const MoveHistory.empty(),
     this.wasHinted = false,
+    this.removal,
   }) : cells = List<DuoCell>.unmodifiable(cells),
        hints = Set<int>.unmodifiable(hints ?? const <int>{});
 
@@ -103,15 +135,24 @@ class DuoGameState {
   /// What each cell holds, row-major.
   final List<DuoCell> cells;
 
-  /// The cells a hint filled in, so the board can keep saying which were given
-  /// away rather than worked out (VIB-97). Empty until then.
+  /// The cells a hint filled in, so the board can keep saying which symbols
+  /// were given away rather than worked out.
   final Set<int> hints;
 
   /// Whether this puzzle was ever helped along by a hint.
   ///
-  /// Nothing sets it until VIB-97; it is here now so statistics count a hinted
-  /// puzzle the way they do in the other games.
+  /// Sticky, unlike [hints]: help stays counted even after a revealed symbol
+  /// is taken back, which is what tells statistics the time counts but the
+  /// personal best does not.
   final bool wasHinted;
+
+  /// The symbol a hint has just taken off the board, or `null` if the last
+  /// thing that happened was anything else.
+  ///
+  /// Transient, and the one piece of this state a save does not carry: it
+  /// exists for the length of an animation, and a puzzle resumed tomorrow
+  /// should not replay a symbol being crossed out.
+  final DuoRemoval? removal;
 
   /// The cell the player last touched, or `null` if none.
   final int? selectedIndex;
@@ -377,12 +418,17 @@ class DuoGameState {
   /// A copy with the given fields replaced.
   ///
   /// [selectedIndex] cannot be cleared through this; nothing needs to.
+  /// [removal] can, through [forgetRemoval], because it has to be: it marks a
+  /// moment, and every move after that moment has to be able to say the moment
+  /// is over.
   DuoGameState copyWith({
     List<DuoCell>? cells,
     Set<int>? hints,
     int? selectedIndex,
     MoveHistory? history,
     bool? wasHinted,
+    DuoRemoval? removal,
+    bool forgetRemoval = false,
   }) {
     return DuoGameState(
       variant: variant,
@@ -392,6 +438,7 @@ class DuoGameState {
       selectedIndex: selectedIndex ?? this.selectedIndex,
       history: history ?? this.history,
       wasHinted: wasHinted ?? this.wasHinted,
+      removal: forgetRemoval ? null : (removal ?? this.removal),
     );
   }
 }

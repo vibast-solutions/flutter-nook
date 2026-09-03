@@ -117,6 +117,9 @@ class DuoController extends AsyncNotifier<DuoGameState> {
         // Writing over a hinted cell hands it back to the player, as it does in
         // the other games.
         hints: game.hints.difference(<int>{index}),
+        // Any move but a hint removal ends the crossing-out, so a later removal
+        // at the same cell reads as a change and animates again.
+        forgetRemoval: true,
         history: game.history.push(
           BoardMove(index: index, before: current.index, after: next.index),
         ),
@@ -144,6 +147,7 @@ class DuoController extends AsyncNotifier<DuoGameState> {
         cells: cells,
         selectedIndex: index,
         hints: game.hints.difference(<int>{index}),
+        forgetRemoval: true,
         history: game.history.push(
           BoardMove(
             index: index,
@@ -174,8 +178,124 @@ class DuoController extends AsyncNotifier<DuoGameState> {
         hints: game.hints.difference(<int>{move.index}),
         selectedIndex: move.index,
         history: game.history.pop(),
+        forgetRemoval: true,
       ),
     );
+  }
+
+  /// Shows the player their next move.
+  ///
+  /// Unlimited and free: there is no hint budget in Nook to spend, wait for or
+  /// buy back. What a hint *is* is the whole of the design, and it is not simply
+  /// a reveal — the next move on a board carrying a mistake is to be rid of the
+  /// mistake, so:
+  ///
+  /// * with a symbol the solution does not have on the board, the most recently
+  ///   placed one is taken away and nothing is revealed;
+  /// * with none, [DuoHinter] picks a symbol the technique solver can justify
+  ///   from the givens and badges, so the hint shows the player one they were
+  ///   not seeing rather than taking a piece of the puzzle away.
+  ///
+  /// Removing first is what keeps the app from contradicting itself: a correct
+  /// symbol dropped into a line already poisoned by a mistake would be marked
+  /// as a breach the moment it landed, by the same board that had just given it.
+  ///
+  /// This is the only place Nook ever judges the player's work against the
+  /// solution, and it happens because the player asked. Either kind counts as
+  /// help, so the puzzle sets no personal best afterwards.
+  void hint() {
+    final DuoGameState? game = state.value;
+    if (game == null || game.isSolved) {
+      return;
+    }
+    final int? wrong = _wrongSymbolToClear(game);
+    if (wrong != null) {
+      final DuoCell current = game.cells[wrong];
+      final List<DuoCell> cells = List<DuoCell>.of(game.cells)
+        ..[wrong] = DuoCell.empty;
+      state = AsyncData<DuoGameState>(
+        game.copyWith(
+          cells: cells,
+          // The cell is empty now, so it is nobody's hint; the puzzle stays
+          // marked as hinted, which is a fact about the game rather than the
+          // cell.
+          hints: game.hints.difference(<int>{wrong}),
+          wasHinted: true,
+          selectedIndex: wrong,
+          removal: DuoRemoval(index: wrong, cell: current),
+          history: game.history.push(
+            BoardMove(
+              index: wrong,
+              before: current.index,
+              after: DuoCell.empty.index,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    final DuoHint? found = DuoHinter(
+      game.puzzle,
+    ).hintFor(<DuoSymbol?>[for (final DuoCell cell in game.cells) cell.symbol]);
+    if (found == null) {
+      return;
+    }
+    final DuoCell before = game.cells[found.index];
+    final List<DuoCell> cells = List<DuoCell>.of(game.cells)
+      ..[found.index] = DuoCell.of(found.symbol);
+    state = AsyncData<DuoGameState>(
+      game.copyWith(
+        cells: cells,
+        // A hint marks the symbol it gave, so a resumed board still says which
+        // symbols were worked out and which were given away.
+        hints: <int>{...game.hints, found.index},
+        wasHinted: true,
+        // A hint lands where the player was not looking, so the selection goes
+        // to it — otherwise the one thing that changed is the one thing they
+        // have to hunt for.
+        selectedIndex: found.index,
+        forgetRemoval: true,
+        history: game.history.push(
+          BoardMove(
+            index: found.index,
+            before: before.index,
+            after: DuoCell.of(found.symbol).index,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The wrong symbol a hint should take away, or `null` if there is none.
+  ///
+  /// A "wrong" symbol is one that disagrees with the solution in its cell — the
+  /// one place Nook ever reads the solution to judge the player, and only
+  /// because they asked. A given can never be wrong; only the player's own
+  /// cells are looked at. The most recently placed one is chosen by walking the
+  /// history back: it is the one the player is still thinking about, and taking
+  /// the oldest mistake away would undo work they have long since built on. A
+  /// wrong symbol whose move has fallen off the end of the history — a long
+  /// game, or one resumed from a trimmed save — is taken in reading order
+  /// instead, which is arbitrary but never nothing.
+  int? _wrongSymbolToClear(DuoGameState game) {
+    final Set<int> wrong = <int>{
+      for (int index = 0; index < game.cells.length; index++)
+        if (!game.isGiven(index) &&
+            game.cells[index] != DuoCell.empty &&
+            game.cells[index].symbol != game.puzzle.solution[index])
+          index,
+    };
+    if (wrong.isEmpty) {
+      return null;
+    }
+    for (final BoardMove move in game.history.moves.reversed) {
+      if (wrong.contains(move.index)) {
+        return move.index;
+      }
+    }
+    // Built by walking the grid, so the first of them is the first in reading
+    // order.
+    return wrong.first;
   }
 
   /// Throws away the current puzzle and generates another.

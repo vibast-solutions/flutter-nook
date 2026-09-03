@@ -175,6 +175,22 @@
       "column": { "type": "int", "example": "3" }
     }
   },
+  "cellDuoClearedCircle": "Row {row}, column {column}, circle taken away, it was wrong",
+  "@cellDuoClearedCircle": {
+    "description": "Screen-reader label for a Duo cell a hint has just emptied because the circle in it was wrong — one the solution does not have there. Said for a moment after the hint, then the cell goes back to reading as empty. The symbol is a mistake the hint takes away, not a reveal.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoClearedSquare": "Row {row}, column {column}, square taken away, it was wrong",
+  "@cellDuoClearedSquare": {
+    "description": "Screen-reader label for a Duo cell a hint has just emptied because the square in it was wrong — one the solution does not have there. Said for a moment after the hint, then the cell goes back to reading as empty. The symbol is a mistake the hint takes away, not a reveal.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
   "cellDuoCircleBreachTriple": "Row {row}, column {column}, circle, three in a row",
   "@cellDuoCircleBreachTriple": {
     "description": "Screen-reader label for a Duo cell holding a circle that is part of a run of three or more identical symbols in a row or column — a broken rule.",
