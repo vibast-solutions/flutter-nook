@@ -22,6 +22,27 @@ enum StarsMark {
   star,
 }
 
+/// The rule a star in breach breaks. Each is a separate rule of the game.
+///
+/// A star can break more than one at once — two stars side by side share a row
+/// *and* touch — so the board names the most specific one it can, in the order
+/// the values are declared: touching is the most local thing to point at, then
+/// the region, then the two lines. Whichever is named, it is a rule genuinely
+/// broken; the pair, not the rule, is the thing to look at.
+enum StarBreach {
+  /// Another star touches this one — one of the eight neighbouring cells.
+  adjacent,
+
+  /// Another star sits in this one's region.
+  region,
+
+  /// Another star sits in this one's row.
+  row,
+
+  /// Another star sits in this one's column.
+  column,
+}
+
 /// A Stars puzzle in progress: the region map, what the player has marked so
 /// far, and which cell they last touched.
 ///
@@ -115,6 +136,29 @@ class StarsGameState {
   /// How many stars a finished board holds.
   int get starTarget => spec.starCount;
 
+  /// Each star in breach, mapped to the rule it most saliently breaks.
+  ///
+  /// Computed from the marks and the rules alone — [puzzle] is never consulted
+  /// for the answer. A star is in breach when another star shares its row, its
+  /// column or its region, or touches it; a star that breaks none of those is
+  /// left in peace however wrong it is, because a board that marked it would be
+  /// an oracle to brute-force rather than a puzzle to solve. A ruled-out dot is
+  /// an annotation and can never breach.
+  ///
+  /// Both stars in a breach are marked, never one singled out as the intruder:
+  /// deciding which of the two is wrong would mean knowing the answer.
+  late final Map<int, StarBreach> _breaches = _breachedStars();
+
+  /// The cells holding a star that breaks a rule.
+  late final Set<int> breaches = Set<int>.unmodifiable(_breaches.keys);
+
+  /// Whether the star in the cell at [index] breaks a rule.
+  bool isBreaching(int index) => _breaches.containsKey(index);
+
+  /// The rule the star at [index] most saliently breaks, or `null` if it is in
+  /// no breach (or holds no star).
+  StarBreach? breachAt(int index) => _breaches[index];
+
   /// Whether the board obeys every rule of the game and is therefore finished.
   ///
   /// Read straight off the marks and the rules — the solution is **never**
@@ -177,6 +221,67 @@ class StarsGameState {
   /// control that reaches across the board rather than the selected cell.
   bool get canClearMarks =>
       !isSolved && cells.any((StarsMark mark) => mark == StarsMark.ruledOut);
+
+  /// Works out every star in breach and the rule each one most saliently
+  /// breaks.
+  ///
+  /// One pass groups the stars by row, by column and by region — a group of
+  /// more than one is a broken line or region, and every star in it is marked —
+  /// and a second pass checks each star against its neighbours for the touching
+  /// rule. Where a star ends up breaking several rules, the salient one is the
+  /// first [StarBreach] value it broke.
+  Map<int, StarBreach> _breachedStars() {
+    final List<int> stars = <int>[
+      for (int index = 0; index < cells.length; index++)
+        if (cells[index] == StarsMark.star) index,
+    ];
+    final Map<int, Set<StarBreach>> kinds = <int, Set<StarBreach>>{};
+    void mark(int index, StarBreach kind) =>
+        (kinds[index] ??= <StarBreach>{}).add(kind);
+
+    // A shared row, column or region: group the stars by the unit and mark
+    // every star in a group of more than one.
+    final Map<StarBreach, int Function(int)> units =
+        <StarBreach, int Function(int)>{
+          StarBreach.row: spec.rowOf,
+          StarBreach.column: spec.columnOf,
+          StarBreach.region: regionOf,
+        };
+    units.forEach((StarBreach kind, int Function(int) unitOf) {
+      final Map<int, List<int>> byUnit = <int, List<int>>{};
+      for (final int star in stars) {
+        (byUnit[unitOf(star)] ??= <int>[]).add(star);
+      }
+      for (final List<int> group in byUnit.values) {
+        if (group.length > 1) {
+          for (final int star in group) {
+            mark(star, kind);
+          }
+        }
+      }
+    });
+
+    // Touching: any of the eight neighbours holding a star, diagonals included.
+    final Set<int> starSet = stars.toSet();
+    for (final int star in stars) {
+      for (final int neighbour in spec.neighbours(star)) {
+        if (starSet.contains(neighbour)) {
+          mark(star, StarBreach.adjacent);
+          break;
+        }
+      }
+    }
+
+    return <int, StarBreach>{
+      for (final MapEntry<int, Set<StarBreach>> entry in kinds.entries)
+        entry.key: _salient(entry.value),
+    };
+  }
+
+  /// The rule to name for a star that broke [kinds]: the first [StarBreach]
+  /// value it broke, since the values are declared most-specific first.
+  StarBreach _salient(Set<StarBreach> kinds) =>
+      StarBreach.values.firstWhere(kinds.contains);
 
   /// A copy with the given fields replaced.
   ///

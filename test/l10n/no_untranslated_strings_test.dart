@@ -29,6 +29,7 @@ const Set<String> allowedLiterals = <String>{
   'sudoku-removal-',
   'stars-cell-',
   'stars-mark-',
+  'stars-breach-',
   'board-action-',
   'board-pace-',
   'difficulty-',

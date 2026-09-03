@@ -445,6 +445,42 @@
       "region": { "type": "int", "example": "5" }
     }
   },
+  "cellStarsStarBreachRow": "Row {row}, column {column}, region {region}, star, another star in its row",
+  "@cellStarsStarBreachRow": {
+    "description": "Screen-reader label for a star that breaks the rule that a row holds one star: another star sits in the same row. Both stars of the pair are marked this way, because which of the two is the intruder is a question only the answer could settle.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsStarBreachColumn": "Row {row}, column {column}, region {region}, star, another star in its column",
+  "@cellStarsStarBreachColumn": {
+    "description": "Screen-reader label for a star that breaks the rule that a column holds one star: another star sits in the same column.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsStarBreachRegion": "Row {row}, column {column}, region {region}, star, another star in its region",
+  "@cellStarsStarBreachRegion": {
+    "description": "Screen-reader label for a star that breaks the rule that a region holds one star: another star sits in the same coloured, textured region.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsStarBreachAdjacent": "Row {row}, column {column}, region {region}, star, touching another star",
+  "@cellStarsStarBreachAdjacent": {
+    "description": "Screen-reader label for a star that breaks the rule that no two stars touch: another star is in one of the eight neighbouring cells, diagonals included.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
 
   "actionUndo": "Undo",
   "@actionUndo": { "description": "Control that takes back the last move." },

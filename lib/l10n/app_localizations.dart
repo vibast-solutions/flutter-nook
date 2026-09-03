@@ -609,6 +609,30 @@ abstract class AppLocalizations {
   /// **'Row {row}, column {column}, region {region}, star'**
   String cellStarsStar(int row, int column, int region);
 
+  /// Screen-reader label for a star that breaks the rule that a row holds one star: another star sits in the same row. Both stars of the pair are marked this way, because which of the two is the intruder is a question only the answer could settle.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, another star in its row'**
+  String cellStarsStarBreachRow(int row, int column, int region);
+
+  /// Screen-reader label for a star that breaks the rule that a column holds one star: another star sits in the same column.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, another star in its column'**
+  String cellStarsStarBreachColumn(int row, int column, int region);
+
+  /// Screen-reader label for a star that breaks the rule that a region holds one star: another star sits in the same coloured, textured region.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, another star in its region'**
+  String cellStarsStarBreachRegion(int row, int column, int region);
+
+  /// Screen-reader label for a star that breaks the rule that no two stars touch: another star is in one of the eight neighbouring cells, diagonals included.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, touching another star'**
+  String cellStarsStarBreachAdjacent(int row, int column, int region);
+
   /// Control that takes back the last move.
   ///
   /// In en, this message translates to:

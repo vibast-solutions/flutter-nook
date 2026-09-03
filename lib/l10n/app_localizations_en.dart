@@ -363,6 +363,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cellStarsStarBreachRow(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, another star in its row';
+  }
+
+  @override
+  String cellStarsStarBreachColumn(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, another star in its column';
+  }
+
+  @override
+  String cellStarsStarBreachRegion(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, another star in its region';
+  }
+
+  @override
+  String cellStarsStarBreachAdjacent(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, touching another star';
+  }
+
+  @override
   String get actionUndo => 'Undo';
 
   @override
