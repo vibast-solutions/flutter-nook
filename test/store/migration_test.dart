@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nook/chrome/move_history.dart';
 import 'package:nook/store/game_stats.dart';
 import 'package:nook/store/nook_database.dart';
 import 'package:nook/store/saved_game.dart';
@@ -126,6 +127,76 @@ NookDatabase databaseFromVersion2() {
   );
 }
 
+/// The saved-games and statistics tables exactly as schema version 3 created
+/// them: version 2 plus the statistics table, and still no `regions` column —
+/// that is what version 4 added for Stars (VIB-89).
+///
+/// A third record beside the two above, for the same reason. A player upgrading
+/// to version 4 with a Sudoku in progress is coming from here, and this is the
+/// schema their puzzle is sitting in.
+const String version3Tables = '''
+CREATE TABLE saved_games (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  givens TEXT NOT NULL,
+  solution TEXT NOT NULL,
+  cells TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  history TEXT NOT NULL,
+  hints TEXT NOT NULL DEFAULT '[]',
+  was_hinted INTEGER NOT NULL DEFAULT 0 CHECK (was_hinted IN (0, 1)),
+  notes_mode INTEGER NOT NULL DEFAULT 0 CHECK (notes_mode IN (0, 1)),
+  elapsed INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (game_id)
+);
+CREATE TABLE statistics (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  solved INTEGER NOT NULL DEFAULT 0,
+  best_time INTEGER,
+  PRIMARY KEY (game_id, difficulty)
+);
+''';
+
+/// The same unfinished 4x4, saved by a build that had a statistics table but no
+/// notion of a region map.
+const String version3Row = '''
+INSERT INTO saved_games VALUES (
+  'sudoku-mini',
+  'gentle',
+  4242,
+  '[1,0,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1]',
+  '[1,2,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]',
+  '[]',
+  '[7]',
+  1,
+  0,
+  187000,
+  '2026-09-02T10:30:00.000Z'
+);
+''';
+
+/// A database holding [version3Row] under the version 3 schema, opened through
+/// the current app code — so the version 4 migration runs on the way in.
+NookDatabase databaseFromVersion3() {
+  return NookDatabase(
+    DatabaseConnection(
+      NativeDatabase.memory(
+        setup: (dynamic raw) {
+          raw.execute(version3Tables);
+          raw.execute(version3Row);
+          raw.execute('PRAGMA user_version = 3;');
+        },
+      ),
+      closeStreamsSynchronously: true,
+    ),
+  );
+}
+
 void main() {
   test('a save from before hints survives the upgrade', () async {
     final NookDatabase database = databaseFromVersion1();
@@ -229,5 +300,82 @@ void main() {
     );
 
     expect((await store.watchAll().first).single.solved, 1);
+  });
+
+  test('a sudoku save from before regions survives the upgrade', () async {
+    // The version that added regions is the one that made the store stop being
+    // sudoku's (VIB-89). A Sudoku already on a player's phone must come through
+    // it untouched: it has no region map and keeps none.
+    final NookDatabase database = databaseFromVersion3();
+    addTearDown(database.close);
+
+    final List<SavedGame> saves = await SavedGameStore(database)
+        .watchAll()
+        .first;
+
+    expect(saves, hasLength(1), reason: 'the upgrade lost a saved puzzle');
+    final SavedGame save = saves.single;
+    expect(save.gameId, 'sudoku-mini');
+    expect(save.givens, <int>[
+      1,
+      0,
+      0,
+      4,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      4,
+      0,
+      0,
+      1,
+    ], reason: 'the board a player left is the whole point of keeping the row');
+    expect(save.cells[1], 2);
+    expect(save.hints, <int>[7]);
+    expect(save.wasHinted, isTrue);
+    expect(save.elapsed, const Duration(minutes: 3, seconds: 7));
+    expect(save.updatedAt, DateTime.utc(2026, 9, 2, 10, 30));
+    // The new column is null for a Sudoku, which is what says "drawn from
+    // givens, not from a region map".
+    expect(save.regions, null);
+  });
+
+  test('and can be written back beside a Stars save', () async {
+    // The point of the column: a Sudoku from an old build and a Stars puzzle
+    // written after the upgrade sit in the same table, each with its own shape.
+    final NookDatabase database = databaseFromVersion3();
+    addTearDown(database.close);
+    final SavedGameStore store = SavedGameStore(database);
+
+    await store.save(
+      SavedGame(
+        gameId: 'stars',
+        difficulty: 'gentle',
+        seed: 99,
+        givens: const <int>[],
+        solution: const <int>[0, 5],
+        cells: const <int>[2, 0, 1, 0, 0, 2],
+        notes: const <int>[],
+        regions: const <int>[0, 0, 1, 1, 2, 2],
+        history: const MoveHistory.empty(),
+        elapsed: const Duration(seconds: 30),
+        updatedAt: DateTime.utc(2026, 9, 3, 8),
+      ),
+    );
+
+    final List<SavedGame> saves = await store.watchAll().first;
+    expect(saves, hasLength(2));
+    final SavedGame stars = saves.firstWhere(
+      (SavedGame save) => save.gameId == 'stars',
+    );
+    expect(stars.regions, <int>[0, 0, 1, 1, 2, 2]);
+    final SavedGame sudoku = saves.firstWhere(
+      (SavedGame save) => save.gameId == 'sudoku-mini',
+    );
+    expect(sudoku.regions, null, reason: 'the Sudoku row stayed a Sudoku');
   });
 }
