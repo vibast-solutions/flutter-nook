@@ -5,6 +5,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/duo/duo_state.dart';
 import '../l10n/app_localizations.dart';
+import 'conflict_hatch.dart';
 
 /// The Duo grid.
 ///
@@ -58,6 +59,10 @@ class DuoBoard extends StatelessWidget {
 
   /// The key of the symbol drawn in the cell at [index], if it holds one.
   static Key markKey(int index) => ValueKey<String>('duo-mark-$index');
+
+  /// The key of the hatch across the cell at [index], drawn when the symbol it
+  /// holds breaks a rule.
+  static Key breachKey(int index) => ValueKey<String>('duo-breach-$index');
 
   /// The key of the badge on the edge between cells [a] and [b].
   ///
@@ -192,17 +197,25 @@ class _DuoCellTile extends StatelessWidget {
     final DuoCell cell = game.cellAt(index);
     final bool given = game.isGiven(index);
     final bool selected = game.selectedIndex == index && !given;
+    // Null unless this cell holds a symbol that breaks a rule. An empty cell has
+    // nothing to break.
+    final DuoBreach? breach = game.breachAt(index);
 
     final BorderSide hairline = BorderSide(
       color: colors.boardHairline,
       width: DuoBoard.hairlineWidth,
     );
     // A given sits in a recess so it reads as part of the puzzle rather than the
-    // player's own; the selected cell lifts; the rest is plain surface.
-    final Color background = given
-        ? colors.sunk
-        : selected
+    // player's own; a breach washes the cell; the selected cell lifts; the rest
+    // is plain surface. Selection wins over the breach wash — a player who has
+    // lost the cursor has a worse problem than a breach they can still see
+    // hatched — but the hatch still draws, so the marking never vanishes.
+    final Color background = selected
         ? colors.cellSelected
+        : breach != null
+        ? colors.cellConflict
+        : given
+        ? colors.sunk
         : colors.surface;
 
     return Semantics(
@@ -212,6 +225,7 @@ class _DuoCellTile extends StatelessWidget {
         column + 1,
         cell,
         given,
+        breach,
       ),
       button: !given,
       excludeSemantics: true,
@@ -230,7 +244,26 @@ class _DuoCellTile extends StatelessWidget {
               bottom: row == size - 1 ? BorderSide.none : hairline,
             ),
           ),
-          child: _symbol(colors, cell, given),
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              // Colour never carries a meaning by itself on a Nook board, so the
+              // wash comes with a hatch a player can read without it — the same
+              // hatch Sudoku and Stars draw, so the marking is one language
+              // across the app. It sits under the symbol, which stays legible on
+              // top.
+              if (breach != null)
+                Positioned.fill(
+                  child: CustomPaint(
+                    key: DuoBoard.breachKey(index),
+                    painter: ConflictHatch(
+                      colour: colors.conflictLine.withValues(alpha: 0.30),
+                    ),
+                  ),
+                ),
+              ?_symbol(colors, cell, given),
+            ],
+          ),
         ),
       ),
     );
@@ -260,13 +293,36 @@ class _DuoCellTile extends StatelessWidget {
 
   /// What a screen reader reads out for this cell. Rows and columns are counted
   /// from one, the way a person describes a grid.
+  ///
+  /// A cell in breach says *which* rule it breaks, not merely that something is
+  /// wrong — the same fact a sighted player reads from the hatch, spelled out.
+  /// The breach naming is by symbol, not by given-ness: the group is what is
+  /// broken, and whether this particular member came with the puzzle is not.
   String _describe(
     AppLocalizations l10n,
     int row,
     int column,
     DuoCell cell,
     bool given,
+    DuoBreach? breach,
   ) {
+    if (breach != null && cell != DuoCell.empty) {
+      final bool circle = cell == DuoCell.circle;
+      return switch (breach) {
+        DuoBreach.triple =>
+          circle
+              ? l10n.cellDuoCircleBreachTriple(row, column)
+              : l10n.cellDuoSquareBreachTriple(row, column),
+        DuoBreach.balance =>
+          circle
+              ? l10n.cellDuoCircleBreachBalance(row, column)
+              : l10n.cellDuoSquareBreachBalance(row, column),
+        DuoBreach.badge =>
+          circle
+              ? l10n.cellDuoCircleBreachBadge(row, column)
+              : l10n.cellDuoSquareBreachBadge(row, column),
+      };
+    }
     return switch (cell) {
       DuoCell.empty => l10n.cellDuoEmpty(row, column),
       DuoCell.circle =>

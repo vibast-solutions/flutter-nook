@@ -175,6 +175,54 @@
       "column": { "type": "int", "example": "3" }
     }
   },
+  "cellDuoCircleBreachTriple": "Row {row}, column {column}, circle, three in a row",
+  "@cellDuoCircleBreachTriple": {
+    "description": "Screen-reader label for a Duo cell holding a circle that is part of a run of three or more identical symbols in a row or column — a broken rule.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoSquareBreachTriple": "Row {row}, column {column}, square, three in a row",
+  "@cellDuoSquareBreachTriple": {
+    "description": "Screen-reader label for a Duo cell holding a square that is part of a run of three or more identical symbols in a row or column — a broken rule.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoCircleBreachBalance": "Row {row}, column {column}, circle, too many circles in this line",
+  "@cellDuoCircleBreachBalance": {
+    "description": "Screen-reader label for a Duo cell holding a circle in a row or column that already has more circles than a balanced line allows — a broken rule.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoSquareBreachBalance": "Row {row}, column {column}, square, too many squares in this line",
+  "@cellDuoSquareBreachBalance": {
+    "description": "Screen-reader label for a Duo cell holding a square in a row or column that already has more squares than a balanced line allows — a broken rule.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoCircleBreachBadge": "Row {row}, column {column}, circle, breaks a badge",
+  "@cellDuoCircleBreachBadge": {
+    "description": "Screen-reader label for a Duo cell holding a circle that contradicts a badge on one of its edges — an equals badge whose two cells differ, or a not-equals badge whose two cells match. A broken rule.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoSquareBreachBadge": "Row {row}, column {column}, square, breaks a badge",
+  "@cellDuoSquareBreachBadge": {
+    "description": "Screen-reader label for a Duo cell holding a square that contradicts a badge on one of its edges — an equals badge whose two cells differ, or a not-equals badge whose two cells match. A broken rule.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
 
   "gridSize": "{size}x{size}",
   "@gridSize": {

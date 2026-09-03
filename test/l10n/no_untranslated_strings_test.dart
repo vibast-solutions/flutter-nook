@@ -34,6 +34,7 @@ const Set<String> allowedLiterals = <String>{
   'duo-cell-',
   'duo-mark-',
   'duo-badge-',
+  'duo-breach-',
   'board-action-',
   'board-pace-',
   'difficulty-',

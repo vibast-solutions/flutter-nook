@@ -327,6 +327,42 @@ abstract class AppLocalizations {
   /// **'Row {row}, column {column}, square, given'**
   String cellDuoGivenSquare(int row, int column);
 
+  /// Screen-reader label for a Duo cell holding a circle that is part of a run of three or more identical symbols in a row or column — a broken rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, circle, three in a row'**
+  String cellDuoCircleBreachTriple(int row, int column);
+
+  /// Screen-reader label for a Duo cell holding a square that is part of a run of three or more identical symbols in a row or column — a broken rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, square, three in a row'**
+  String cellDuoSquareBreachTriple(int row, int column);
+
+  /// Screen-reader label for a Duo cell holding a circle in a row or column that already has more circles than a balanced line allows — a broken rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, circle, too many circles in this line'**
+  String cellDuoCircleBreachBalance(int row, int column);
+
+  /// Screen-reader label for a Duo cell holding a square in a row or column that already has more squares than a balanced line allows — a broken rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, square, too many squares in this line'**
+  String cellDuoSquareBreachBalance(int row, int column);
+
+  /// Screen-reader label for a Duo cell holding a circle that contradicts a badge on one of its edges — an equals badge whose two cells differ, or a not-equals badge whose two cells match. A broken rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, circle, breaks a badge'**
+  String cellDuoCircleBreachBadge(int row, int column);
+
+  /// Screen-reader label for a Duo cell holding a square that contradicts a badge on one of its edges — an equals badge whose two cells differ, or a not-equals badge whose two cells match. A broken rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, square, breaks a badge'**
+  String cellDuoSquareBreachBadge(int row, int column);
+
   /// A square grid's size, as a player reads it aloud: 4x4, 6x6, 9x9.
   ///
   /// In en, this message translates to:
