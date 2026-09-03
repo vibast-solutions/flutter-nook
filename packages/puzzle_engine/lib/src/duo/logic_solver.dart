@@ -107,20 +107,20 @@ class DuoPlacement {
 /// verdict can be trusted as a measure of how hard a puzzle is for a human, and
 /// why a puzzle it cannot finish is thrown away rather than sold to a player.
 ///
-/// The ladder in this story is the **simple** tier only, the three deductions a
-/// person reads straight off the board:
+/// The whole ladder, easiest first (see [DuoTechnique]):
 ///
-/// * **badge** — a cell beside a filled one across an `=` or `x` badge is
-///   forced to match or differ.
-/// * **noTriple** — a cell where one symbol would make three of that symbol in
-///   a row must be the other.
-/// * **lineFull** — a row or column already holding all three of one symbol
-///   fills its remaining cells with the other.
+/// * **simple** — [DuoTechnique.badge], [DuoTechnique.noTriple] (two alike sit
+///   next to a cell) and [DuoTechnique.lineFull] (a line already has all of one
+///   symbol). Each read straight off a badge, a pair or a full count.
+/// * **intermediate** — [DuoTechnique.sandwich]: two alike one cell apart force
+///   the gap to the other symbol.
+/// * **advanced** — [DuoTechnique.lineReading]: a cell that comes out the same
+///   symbol in every way a whole line could still be completed.
 ///
-/// The intermediate and advanced rungs, and the rater that turns a solve into a
-/// tier, are VIB-94. A puzzle this solver cannot finish rates as unsolvable,
-/// which is a rejection: the generator restores givens rather than offering a
-/// puzzle that would need a guess.
+/// A puzzle this solver cannot finish rates as unsolvable, which is a rejection:
+/// the rater ([DuoRater]) turns it into `null`, and the generator restores
+/// givens rather than offering a puzzle that would need a guess. There is no
+/// rung above the advanced one, so a puzzle past it is discarded, never promoted.
 class DuoLogicSolver {
   DuoLogicSolver(this.spec) {
     spec.validate();
@@ -198,6 +198,10 @@ class DuoLogicSolver {
         return _noTriple(board);
       case DuoTechnique.lineFull:
         return _lineFull(board);
+      case DuoTechnique.sandwich:
+        return _sandwich(board);
+      case DuoTechnique.lineReading:
+        return _lineReading(board);
     }
   }
 
@@ -218,15 +222,15 @@ class DuoLogicSolver {
     return false;
   }
 
-  /// A cell where one symbol would make a run one too long is forced to the
-  /// other symbol.
+  /// A cell with a run of alike cells ending right beside it is forced the other
+  /// way — the two-in-a-row read straight off the adjacent cells.
   bool _noTriple(_Board board) {
     for (int index = 0; index < spec.cellCount; index++) {
       if (!board.isEmpty(index)) {
         continue;
       }
-      final bool circleBanned = board.wouldOverrun(index, DuoSymbol.circle);
-      final bool squareBanned = board.wouldOverrun(index, DuoSymbol.square);
+      final bool circleBanned = board.adjacentRunBans(index, DuoSymbol.circle);
+      final bool squareBanned = board.adjacentRunBans(index, DuoSymbol.square);
       if (circleBanned && squareBanned) {
         board.isBroken = true;
         return false;
@@ -264,6 +268,69 @@ class DuoLogicSolver {
     }
     return false;
   }
+
+  /// A cell with a matching symbol one step away on each side: filling it alike
+  /// would make three across the gap, so it is the other symbol.
+  bool _sandwich(_Board board) {
+    for (int index = 0; index < spec.cellCount; index++) {
+      if (!board.isEmpty(index)) {
+        continue;
+      }
+      final bool circleBanned = board.spanningRunBans(index, DuoSymbol.circle);
+      final bool squareBanned = board.spanningRunBans(index, DuoSymbol.square);
+      if (circleBanned && squareBanned) {
+        board.isBroken = true;
+        return false;
+      }
+      if (circleBanned) {
+        board.place(index, DuoSymbol.square);
+        return true;
+      }
+      if (squareBanned) {
+        board.place(index, DuoSymbol.circle);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// A cell that is the same symbol in every legal completion of a line.
+  ///
+  /// Each row and column is completed in every way the balance rule, the run
+  /// rule, its own badges and the filled crossing cells allow; a cell that comes
+  /// out the same in all of them is forced. Sound because the true answer is one
+  /// of those completions, so a cell they all agree on cannot be anything else.
+  bool _lineReading(_Board board) {
+    for (int line = 0; line < spec.size; line++) {
+      for (final bool byRow in const <bool>[true, false]) {
+        final _Forced? forced = board.readLine(line, byRow);
+        if (forced == null) {
+          continue;
+        }
+        if (forced.broken) {
+          board.isBroken = true;
+          return false;
+        }
+        if (forced.cells.isEmpty) {
+          continue;
+        }
+        forced.cells.forEach((int cell, DuoSymbol symbol) {
+          board.place(cell, symbol);
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+/// What [_Board.readLine] agreed on: the cells forced, or that the line has no
+/// legal completion at all.
+class _Forced {
+  _Forced(this.cells, {this.broken = false});
+
+  final Map<int, DuoSymbol> cells;
+  final bool broken;
 }
 
 /// The mutable board one solve runs against.
@@ -349,6 +416,189 @@ class _Board {
     final int vertical =
         1 + _run(index, symbol, -1, 0) + _run(index, symbol, 1, 0);
     return vertical > spec.runLimit;
+  }
+
+  /// Whether [symbol] at [index] would overrun because a run of
+  /// [DuoSpec.runLimit] alike ends right beside it — the adjacent, simple case.
+  bool adjacentRunBans(int index, DuoSymbol symbol) =>
+      _run(index, symbol, 0, -1) >= spec.runLimit ||
+      _run(index, symbol, 0, 1) >= spec.runLimit ||
+      _run(index, symbol, -1, 0) >= spec.runLimit ||
+      _run(index, symbol, 1, 0) >= spec.runLimit;
+
+  /// Whether [symbol] at [index] would overrun only by bridging alike cells on
+  /// both sides — the gap, intermediate case, and never the adjacent one.
+  bool spanningRunBans(int index, DuoSymbol symbol) =>
+      wouldOverrun(index, symbol) && !adjacentRunBans(index, symbol);
+
+  /// The cells the line running [byRow] through [line] is forced into, taken
+  /// over every legal completion of it, or `null` when the line is already full.
+  ///
+  /// A completion is legal when it balances the line, keeps every run within the
+  /// limit, honours the badges inside the line, and — against the filled cells of
+  /// the crossing lines only — neither overfills a crossing line nor breaks a
+  /// crossing badge. Only cells the completions all agree on are returned.
+  _Forced? readLine(int line, bool byRow) {
+    final List<int> cells = lineCells(line, byRow);
+    final List<int> empties = <int>[
+      for (final int cell in cells)
+        if (isEmpty(cell)) cell,
+    ];
+    if (empties.isEmpty) {
+      return null;
+    }
+
+    // Symbols still owed to the line, and the badges that live wholly inside it.
+    final List<int> need = <int>[
+      for (int symbol = 0; symbol < 2; symbol++)
+        spec.perSymbol - countInLine(line, byRow, symbol),
+    ];
+    final Set<int> lineCellSet = cells.toSet();
+    final List<DuoBadge> inside = <DuoBadge>[
+      for (final DuoBadge badge in badges)
+        if (lineCellSet.contains(badge.a) && lineCellSet.contains(badge.b))
+          badge,
+    ];
+
+    // For each empty slot: -1 not yet seen, -2 seen disagreeing (so not forced),
+    // otherwise the one symbol every legal completion so far has put there. The
+    // bit set in a mask means square; unset means circle.
+    final int slots = empties.length;
+    final List<int> seen = List<int>.filled(slots, -1);
+    bool any = false;
+
+    for (int mask = 0; mask < (1 << slots); mask++) {
+      // Balance first: the completion must place exactly what the line owes.
+      int placedCircle = 0;
+      for (int i = 0; i < slots; i++) {
+        if (((mask >> i) & 1) == 0) {
+          placedCircle++;
+        }
+      }
+      if (placedCircle != need[DuoSymbol.circle.index]) {
+        continue;
+      }
+
+      if (!_completionLegal(mask, empties, cells, inside, byRow)) {
+        continue;
+      }
+
+      any = true;
+      for (int i = 0; i < slots; i++) {
+        final int symbol = ((mask >> i) & 1) == 0
+            ? DuoSymbol.circle.index
+            : DuoSymbol.square.index;
+        if (seen[i] == -1) {
+          seen[i] = symbol;
+        } else if (seen[i] != symbol) {
+          seen[i] = -2; // Disagreement: this cell is not forced.
+        }
+      }
+    }
+
+    if (!any) {
+      return _Forced(<int, DuoSymbol>{}, broken: true);
+    }
+    final Map<int, DuoSymbol> forced = <int, DuoSymbol>{};
+    for (int i = 0; i < slots; i++) {
+      if (seen[i] >= 0) {
+        forced[empties[i]] = DuoSymbol.values[seen[i]];
+      }
+    }
+    return _Forced(forced);
+  }
+
+  /// Whether the assignment [mask] to [empties] completes [cells] legally:
+  /// runs within the line stay under the limit, the line's own [inside] badges
+  /// hold, and each filled cell agrees with the crossing lines' filled cells.
+  bool _completionLegal(
+    int mask,
+    List<int> empties,
+    List<int> cells,
+    List<DuoBadge> inside,
+    bool byRow,
+  ) {
+    // The line's symbols with the assignment applied, in line order.
+    final Map<int, int> assigned = <int, int>{};
+    for (int i = 0; i < empties.length; i++) {
+      assigned[empties[i]] = ((mask >> i) & 1) == 0
+          ? DuoSymbol.circle.index
+          : DuoSymbol.square.index;
+    }
+    int symbolOf(int cell) => assigned[cell] ?? _grid[cell];
+
+    // No run past the limit along the line.
+    int run = 1;
+    for (int i = 1; i < cells.length; i++) {
+      if (symbolOf(cells[i]) == symbolOf(cells[i - 1])) {
+        run++;
+        if (run > spec.runLimit) {
+          return false;
+        }
+      } else {
+        run = 1;
+      }
+    }
+
+    // Every badge inside the line is satisfied.
+    for (final DuoBadge badge in inside) {
+      if (!badge.relation.holds(
+        DuoSymbol.values[symbolOf(badge.a)],
+        DuoSymbol.values[symbolOf(badge.b)],
+      )) {
+        return false;
+      }
+    }
+
+    // Each newly filled cell against the crossing line's filled cells only.
+    for (final int cell in empties) {
+      final int symbol = assigned[cell]!;
+      final int crossLine = byRow ? spec.columnOf(cell) : spec.rowOf(cell);
+      if (countInLine(crossLine, !byRow, symbol) >= spec.perSymbol) {
+        return false;
+      }
+      if (_crossRunBanned(cell, symbol, byRow)) {
+        return false;
+      }
+      for (final DuoBadge badge in _crossBadgesAt(cell, byRow)) {
+        final int other = badge.a == cell ? badge.b : badge.a;
+        if (isEmpty(other)) {
+          continue;
+        }
+        if (!badge.relation.holds(
+          DuoSymbol.values[symbol],
+          DuoSymbol.values[_grid[other]],
+        )) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Whether [symbol] at [cell] would overrun the crossing line — the vertical
+  /// run for a row, the horizontal run for a column — against filled cells.
+  bool _crossRunBanned(int cell, int symbol, bool byRow) {
+    final DuoSymbol value = DuoSymbol.values[symbol];
+    if (byRow) {
+      final int run = 1 + _run(cell, value, -1, 0) + _run(cell, value, 1, 0);
+      return run > spec.runLimit;
+    }
+    final int run = 1 + _run(cell, value, 0, -1) + _run(cell, value, 0, 1);
+    return run > spec.runLimit;
+  }
+
+  /// The badges joining [cell] to a cell on its crossing line.
+  Iterable<DuoBadge> _crossBadgesAt(int cell, bool byRow) sync* {
+    for (final DuoBadge badge in badges) {
+      if (badge.a != cell && badge.b != cell) {
+        continue;
+      }
+      // A crossing badge for a row is a vertical one, and the reverse.
+      if (badge.isHorizontal != byRow) {
+        yield badge;
+      }
+    }
   }
 
   /// How many filled cells equal to [symbol] run from [index] in the direction

@@ -10,8 +10,8 @@ import 'duo_variant.dart';
 ///
 /// A function rather than a direct call so tests can hand the controller a fixed
 /// puzzle instead of waiting on a real generation, and so the isolate hop stays
-/// in one place. The difficulty is accepted for symmetry with the other games
-/// and for VIB-94; this story generates one tier and ignores it.
+/// in one place. The puzzle it returns is generated at the requested difficulty
+/// (VIB-94).
 typedef DuoPuzzleSource = Future<DuoPuzzle> Function(
   DuoSpec spec,
   PuzzleDifficulty difficulty,
@@ -199,4 +199,4 @@ class _GenerateRequest {
 }
 
 DuoPuzzle _generate(_GenerateRequest request) =>
-    DuoGenerator(request.spec).generate(request.seed);
+    DuoGenerator(request.spec).generateAt(request.difficulty, request.seed);

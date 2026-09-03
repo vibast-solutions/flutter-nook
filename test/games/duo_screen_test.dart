@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/duo_board.dart';
 import 'package:nook/chrome/completion_view.dart';
+import 'package:nook/chrome/difficulty_page.dart';
 import 'package:nook/games/duo/duo_state.dart';
 import 'package:nook/games/duo/duo_variant.dart';
 import 'package:nook/store/game_stats.dart';
@@ -15,7 +16,7 @@ void main() {
   final int givenIndex = puzzle.givens.indexWhere((DuoSymbol? s) => s != null);
 
   group('the home screen', () {
-    testWidgets('lists Duo as playable and opens it', (
+    testWidgets('lists Duo as playable and opens its difficulties', (
       WidgetTester tester,
     ) async {
       await pumpDuoHome(tester);
@@ -28,6 +29,15 @@ void main() {
       );
 
       await tester.tap(find.text(en.duoTitle));
+      await tester.pumpAndSettle();
+
+      // A game leads to its difficulties, not straight onto a board.
+      expect(find.byType(DuoBoard), findsNothing);
+      expect(find.text(en.difficultyStartNew), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.gentle)),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(DuoBoard), findsOneWidget);
       expect(find.text(en.duoLegendCircle), findsOneWidget);

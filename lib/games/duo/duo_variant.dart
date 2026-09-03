@@ -51,6 +51,12 @@ class DuoVariant {
     return null;
   }
 
+  /// The difficulties this game offers, easiest first.
+  ///
+  /// A measurement, not a wish: [DuoRater.tiersFor] says which tiers the grid
+  /// can actually produce. The 6x6 spans the whole ladder.
+  List<PuzzleDifficulty> get tiers => DuoRater.tiersFor(spec);
+
   @override
   bool operator ==(Object other) => other is DuoVariant && other.id == id;
 
