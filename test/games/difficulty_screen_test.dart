@@ -6,6 +6,7 @@ import 'package:nook/chrome/continue_card.dart';
 import 'package:nook/chrome/discard_dialog.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
+import 'package:nook/chrome/difficulty_page.dart';
 import 'package:nook/games/sudoku/difficulty_screen.dart';
 import 'package:nook/games/sudoku/sudoku_naming.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
@@ -36,7 +37,7 @@ Future<void> pumpDifficulty(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
-        home: PuzzleDifficultyPage(variant: variant),
+        home: SudokuDifficultyPage(variant: variant),
       ),
     ),
   );
@@ -47,7 +48,7 @@ Future<void> pumpDifficulty(
 int filledRungs(WidgetTester tester, PuzzleDifficulty difficulty) {
   final Iterable<Container> bars = tester.widgetList<Container>(
     find.descendant(
-      of: find.byKey(PuzzleDifficultyPage.tierKey(difficulty)),
+      of: find.byKey(DifficultyPage.tierKey(difficulty)),
       matching: find.byType(Container),
     ),
   );
@@ -72,7 +73,7 @@ void main() {
         for (final PuzzleDifficulty tier in PuzzleDifficulty.values) {
           final bool offered = variant.tiers.contains(tier);
           expect(
-            find.byKey(PuzzleDifficultyPage.tierKey(tier)),
+            find.byKey(DifficultyPage.tierKey(tier)),
             offered ? findsOneWidget : findsNothing,
             reason: offered
                 ? '${tier.label(en)} should be offered on ${variant.title(en)}'
@@ -92,7 +93,7 @@ void main() {
         for (final PuzzleDifficulty tier in variant.tiers) {
           final InkWell way = tester.widget<InkWell>(
             find.descendant(
-              of: find.byKey(PuzzleDifficultyPage.tierKey(tier)),
+              of: find.byKey(DifficultyPage.tierKey(tier)),
               matching: find.byType(InkWell),
             ),
           );
@@ -115,7 +116,7 @@ void main() {
 
         for (final PuzzleDifficulty tier in variant.tiers) {
           final Size row = tester.getSize(
-            find.byKey(PuzzleDifficultyPage.tierKey(tier)),
+            find.byKey(DifficultyPage.tierKey(tier)),
           );
           expect(
             row.height,
@@ -170,9 +171,7 @@ void main() {
 
       expect(
         find.descendant(
-          of: find.byKey(
-            PuzzleDifficultyPage.tierKey(PuzzleDifficulty.fiendish),
-          ),
+          of: find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.fiendish)),
           matching: find.text('needs notes'),
         ),
         findsOneWidget,
@@ -221,7 +220,7 @@ void main() {
       await pumpDifficulty(tester);
 
       await tester.tap(
-        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.hard)),
+        find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.hard)),
       );
       await tester.pumpAndSettle();
 
@@ -248,14 +247,14 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             theme: buildNookTheme(NookColors.softClay),
-            home: const PuzzleDifficultyPage(variant: SudokuVariant.classic),
+            home: const SudokuDifficultyPage(variant: SudokuVariant.classic),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.fiendish)),
+        find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.fiendish)),
       );
       await tester.pumpAndSettle();
 
@@ -308,7 +307,7 @@ void main() {
       final NookDatabase database = await pumpWithSave(tester);
 
       await tester.tap(
-        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
+        find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
 
@@ -327,7 +326,7 @@ void main() {
       final NookDatabase database = await pumpWithSave(tester);
 
       await tester.tap(
-        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
+        find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(DiscardDialog.keepKey));
@@ -352,7 +351,7 @@ void main() {
       final NookDatabase database = await pumpWithSave(tester);
 
       await tester.tap(
-        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
+        find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(DiscardDialog.confirmKey));
@@ -376,7 +375,7 @@ void main() {
       await pumpDifficulty(tester, variant: SudokuVariant.mini);
 
       await tester.tap(
-        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
+        find.byKey(DifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
 
@@ -412,7 +411,7 @@ void main() {
     String lineUnder(WidgetTester tester, PuzzleDifficulty tier) {
       final Iterable<Text> lines = tester.widgetList<Text>(
         find.descendant(
-          of: find.byKey(PuzzleDifficultyPage.tierKey(tier)),
+          of: find.byKey(DifficultyPage.tierKey(tier)),
           matching: find.byType(Text),
         ),
       );

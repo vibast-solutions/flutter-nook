@@ -52,12 +52,9 @@ class StarsVariant {
 
   /// The difficulties this game offers, easiest first.
   ///
-  /// One tier for now — the generator produces whatever the simple technique
-  /// can finish, labelled gentle. The rest of the ladder, and measuring which
-  /// tiers this grid can actually produce, is VIB-86.
-  List<PuzzleDifficulty> get tiers => const <PuzzleDifficulty>[
-    PuzzleDifficulty.gentle,
-  ];
+  /// A measurement, not a wish: [StarsRater.tiersFor] says which tiers the grid
+  /// can actually produce. The 8x8 spans the whole ladder.
+  List<PuzzleDifficulty> get tiers => StarsRater.tiersFor(spec);
 
   @override
   bool operator ==(Object other) => other is StarsVariant && other.id == id;

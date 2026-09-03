@@ -165,7 +165,5 @@ class _GenerateRequest {
   final int seed;
 }
 
-/// This story generates one tier, so the requested [_GenerateRequest.difficulty]
-/// is carried for VIB-86 but not yet used to pick a target.
 StarsPuzzle _generate(_GenerateRequest request) =>
-    StarsGenerator(request.spec).generate(request.seed);
+    StarsGenerator(request.spec).generateAt(request.difficulty, request.seed);

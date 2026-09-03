@@ -22,7 +22,7 @@ String figureOn(WidgetTester tester, Key key) {
 
 void main() {
   group('opening Stars', () {
-    testWidgets('reaches a board from the home screen', (
+    testWidgets('reaches its difficulties from the home screen', (
       WidgetTester tester,
     ) async {
       await pumpStarsHome(tester);
@@ -33,11 +33,10 @@ void main() {
       await tester.tap(find.text(en.starsTitle));
       await tester.pumpAndSettle();
 
-      expect(find.byType(StarsBoard), findsOneWidget);
-      expect(
-        find.text(en.gameSubtitle(en.gridSize(8), en.difficultyGentle)),
-        findsOneWidget,
-      );
+      // A game leads to its difficulties, not straight onto a board — the same
+      // as the Sudokus.
+      expect(find.byType(StarsBoard), findsNothing);
+      expect(find.text(en.difficultyStartNew), findsOneWidget);
     });
   });
 
