@@ -30,6 +30,7 @@ class SavedGame {
     required this.elapsed,
     required DateTime updatedAt,
     List<int>? hints,
+    List<int>? regions,
     this.notesMode = false,
     this.wasHinted = false,
   }) : updatedAt = updatedAt.toUtc(),
@@ -37,7 +38,8 @@ class SavedGame {
        solution = List<int>.unmodifiable(solution),
        cells = List<int>.unmodifiable(cells),
        notes = List<int>.unmodifiable(notes),
-       hints = List<int>.unmodifiable(hints ?? const <int>[]);
+       hints = List<int>.unmodifiable(hints ?? const <int>[]),
+       regions = regions == null ? null : List<int>.unmodifiable(regions);
 
   /// Which game this is a save of — the stable identifier, never a name the
   /// player reads. One save per game id: starting another discards this one.
@@ -67,6 +69,17 @@ class SavedGame {
 
   /// The pencil marks in each cell, one bitmask per cell.
   final List<int> notes;
+
+  /// The region each cell belongs to, one index per cell, or `null` for a game
+  /// whose board has no regions.
+  ///
+  /// This is where a game that carries its puzzle in a region map — Stars — puts
+  /// it, and it is the one field that made the store stop being sudoku's: a
+  /// Sudoku is drawn from [givens] and leaves this null, while a Stars puzzle
+  /// *is* its regions and leaves [givens] empty. A nullable column rather than a
+  /// second table, so a Sudoku row is untouched and every field a save holds
+  /// stays a named column a query can reach.
+  final List<int>? regions;
 
   /// The cells whose contents were given away rather than worked out.
   ///
@@ -99,9 +112,15 @@ class SavedGame {
   final DateTime updatedAt;
 
   /// How many cells the player still has to fill.
+  ///
+  /// Counted over [givens], the cells a puzzle asked to be filled: a board with
+  /// no givens has nothing to count and reports none, which is what keeps this
+  /// sudoku-shaped measure from reaching past the end of an empty list on a
+  /// Stars save. Stars measures how far along a player is by its stars, not by
+  /// this.
   int get blanksLeft {
     int left = 0;
-    for (int i = 0; i < cells.length; i++) {
+    for (int i = 0; i < givens.length; i++) {
       if (givens[i] == 0 && cells[i] == 0) {
         left++;
       }

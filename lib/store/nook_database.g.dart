@@ -75,6 +75,15 @@ class $SavedGamesTable extends SavedGames
         requiredDuringInsert: true,
       ).withConverter<List<int>>($SavedGamesTable.$converternotes);
   @override
+  late final GeneratedColumnWithTypeConverter<List<int>?, String> regions =
+      GeneratedColumn<String>(
+        'regions',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<List<int>?>($SavedGamesTable.$converterregionsn);
+  @override
   late final GeneratedColumnWithTypeConverter<MoveHistory, String> history =
       GeneratedColumn<String>(
         'history',
@@ -152,6 +161,7 @@ class $SavedGamesTable extends SavedGames
     solution,
     cells,
     notes,
+    regions,
     history,
     hints,
     wasHinted,
@@ -260,6 +270,12 @@ class $SavedGamesTable extends SavedGames
           data['${effectivePrefix}notes'],
         )!,
       ),
+      regions: $SavedGamesTable.$converterregionsn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}regions'],
+        ),
+      ),
       history: $SavedGamesTable.$converterhistory.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -306,6 +322,10 @@ class $SavedGamesTable extends SavedGames
       const _DigitsConverter();
   static TypeConverter<List<int>, String> $converternotes =
       const _DigitsConverter();
+  static TypeConverter<List<int>, String> $converterregions =
+      const _DigitsConverter();
+  static TypeConverter<List<int>?, String?> $converterregionsn =
+      NullAwareTypeConverter.wrap($converterregions);
   static TypeConverter<MoveHistory, String> $converterhistory =
       const _HistoryConverter();
   static TypeConverter<List<int>, String> $converterhints =
@@ -336,6 +356,14 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
   /// The pencil marks, one bitmask per cell.
   final List<int> notes;
 
+  /// The region each cell belongs to, or null for a board without regions.
+  ///
+  /// Nullable and added in version 4 (VIB-89): a Sudoku leaves it null and is
+  /// drawn from [givens]; a Stars puzzle *is* its regions and stores them here.
+  /// One nullable column keeps every Sudoku row untouched and the migration a
+  /// single statement.
+  final List<int>? regions;
+
   /// The moves still to take back.
   final MoveHistory history;
 
@@ -361,6 +389,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     required this.solution,
     required this.cells,
     required this.notes,
+    this.regions,
     required this.history,
     required this.hints,
     required this.wasHinted,
@@ -394,6 +423,11 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
         $SavedGamesTable.$converternotes.toSql(notes),
       );
     }
+    if (!nullToAbsent || regions != null) {
+      map['regions'] = Variable<String>(
+        $SavedGamesTable.$converterregionsn.toSql(regions),
+      );
+    }
     {
       map['history'] = Variable<String>(
         $SavedGamesTable.$converterhistory.toSql(history),
@@ -424,6 +458,9 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       solution: Value(solution),
       cells: Value(cells),
       notes: Value(notes),
+      regions: regions == null && nullToAbsent
+          ? const Value.absent()
+          : Value(regions),
       history: Value(history),
       hints: Value(hints),
       wasHinted: Value(wasHinted),
@@ -446,6 +483,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       solution: serializer.fromJson<List<int>>(json['solution']),
       cells: serializer.fromJson<List<int>>(json['cells']),
       notes: serializer.fromJson<List<int>>(json['notes']),
+      regions: serializer.fromJson<List<int>?>(json['regions']),
       history: serializer.fromJson<MoveHistory>(json['history']),
       hints: serializer.fromJson<List<int>>(json['hints']),
       wasHinted: serializer.fromJson<bool>(json['wasHinted']),
@@ -465,6 +503,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       'solution': serializer.toJson<List<int>>(solution),
       'cells': serializer.toJson<List<int>>(cells),
       'notes': serializer.toJson<List<int>>(notes),
+      'regions': serializer.toJson<List<int>?>(regions),
       'history': serializer.toJson<MoveHistory>(history),
       'hints': serializer.toJson<List<int>>(hints),
       'wasHinted': serializer.toJson<bool>(wasHinted),
@@ -482,6 +521,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     List<int>? solution,
     List<int>? cells,
     List<int>? notes,
+    Value<List<int>?> regions = const Value.absent(),
     MoveHistory? history,
     List<int>? hints,
     bool? wasHinted,
@@ -496,6 +536,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     solution: solution ?? this.solution,
     cells: cells ?? this.cells,
     notes: notes ?? this.notes,
+    regions: regions.present ? regions.value : this.regions,
     history: history ?? this.history,
     hints: hints ?? this.hints,
     wasHinted: wasHinted ?? this.wasHinted,
@@ -514,6 +555,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       solution: data.solution.present ? data.solution.value : this.solution,
       cells: data.cells.present ? data.cells.value : this.cells,
       notes: data.notes.present ? data.notes.value : this.notes,
+      regions: data.regions.present ? data.regions.value : this.regions,
       history: data.history.present ? data.history.value : this.history,
       hints: data.hints.present ? data.hints.value : this.hints,
       wasHinted: data.wasHinted.present ? data.wasHinted.value : this.wasHinted,
@@ -533,6 +575,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
           ..write('solution: $solution, ')
           ..write('cells: $cells, ')
           ..write('notes: $notes, ')
+          ..write('regions: $regions, ')
           ..write('history: $history, ')
           ..write('hints: $hints, ')
           ..write('wasHinted: $wasHinted, ')
@@ -552,6 +595,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     solution,
     cells,
     notes,
+    regions,
     history,
     hints,
     wasHinted,
@@ -570,6 +614,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
           other.solution == this.solution &&
           other.cells == this.cells &&
           other.notes == this.notes &&
+          other.regions == this.regions &&
           other.history == this.history &&
           other.hints == this.hints &&
           other.wasHinted == this.wasHinted &&
@@ -586,6 +631,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
   final Value<List<int>> solution;
   final Value<List<int>> cells;
   final Value<List<int>> notes;
+  final Value<List<int>?> regions;
   final Value<MoveHistory> history;
   final Value<List<int>> hints;
   final Value<bool> wasHinted;
@@ -601,6 +647,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     this.solution = const Value.absent(),
     this.cells = const Value.absent(),
     this.notes = const Value.absent(),
+    this.regions = const Value.absent(),
     this.history = const Value.absent(),
     this.hints = const Value.absent(),
     this.wasHinted = const Value.absent(),
@@ -617,6 +664,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     required List<int> solution,
     required List<int> cells,
     required List<int> notes,
+    this.regions = const Value.absent(),
     required MoveHistory history,
     this.hints = const Value.absent(),
     this.wasHinted = const Value.absent(),
@@ -642,6 +690,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     Expression<String>? solution,
     Expression<String>? cells,
     Expression<String>? notes,
+    Expression<String>? regions,
     Expression<String>? history,
     Expression<String>? hints,
     Expression<bool>? wasHinted,
@@ -658,6 +707,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
       if (solution != null) 'solution': solution,
       if (cells != null) 'cells': cells,
       if (notes != null) 'notes': notes,
+      if (regions != null) 'regions': regions,
       if (history != null) 'history': history,
       if (hints != null) 'hints': hints,
       if (wasHinted != null) 'was_hinted': wasHinted,
@@ -676,6 +726,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     Value<List<int>>? solution,
     Value<List<int>>? cells,
     Value<List<int>>? notes,
+    Value<List<int>?>? regions,
     Value<MoveHistory>? history,
     Value<List<int>>? hints,
     Value<bool>? wasHinted,
@@ -692,6 +743,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
       solution: solution ?? this.solution,
       cells: cells ?? this.cells,
       notes: notes ?? this.notes,
+      regions: regions ?? this.regions,
       history: history ?? this.history,
       hints: hints ?? this.hints,
       wasHinted: wasHinted ?? this.wasHinted,
@@ -734,6 +786,11 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
         $SavedGamesTable.$converternotes.toSql(notes.value),
       );
     }
+    if (regions.present) {
+      map['regions'] = Variable<String>(
+        $SavedGamesTable.$converterregionsn.toSql(regions.value),
+      );
+    }
     if (history.present) {
       map['history'] = Variable<String>(
         $SavedGamesTable.$converterhistory.toSql(history.value),
@@ -774,6 +831,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
           ..write('solution: $solution, ')
           ..write('cells: $cells, ')
           ..write('notes: $notes, ')
+          ..write('regions: $regions, ')
           ..write('history: $history, ')
           ..write('hints: $hints, ')
           ..write('wasHinted: $wasHinted, ')
@@ -1128,6 +1186,7 @@ typedef $$SavedGamesTableCreateCompanionBuilder = SavedGamesCompanion Function({
   required List<int> solution,
   required List<int> cells,
   required List<int> notes,
+  Value<List<int>?> regions,
   required MoveHistory history,
   Value<List<int>> hints,
   Value<bool> wasHinted,
@@ -1144,6 +1203,7 @@ typedef $$SavedGamesTableUpdateCompanionBuilder = SavedGamesCompanion Function({
   Value<List<int>> solution,
   Value<List<int>> cells,
   Value<List<int>> notes,
+  Value<List<int>?> regions,
   Value<MoveHistory> history,
   Value<List<int>> hints,
   Value<bool> wasHinted,
@@ -1198,6 +1258,12 @@ class $$SavedGamesTableFilterComposer
   ColumnWithTypeConverterFilters<List<int>, List<int>, String> get notes =>
       $composableBuilder(
         column: $table.notes,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<List<int>?, List<int>, String> get regions =>
+      $composableBuilder(
+        column: $table.regions,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
@@ -1279,6 +1345,11 @@ class $$SavedGamesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get regions => $composableBuilder(
+    column: $table.regions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get history => $composableBuilder(
     column: $table.history,
     builder: (column) => ColumnOrderings(column),
@@ -1342,6 +1413,9 @@ class $$SavedGamesTableAnnotationComposer
   GeneratedColumnWithTypeConverter<List<int>, String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<List<int>?, String> get regions =>
+      $composableBuilder(column: $table.regions, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<MoveHistory, String> get history =>
       $composableBuilder(column: $table.history, builder: (column) => column);
 
@@ -1399,6 +1473,7 @@ class $$SavedGamesTableTableManager
                 Value<List<int>> solution = const Value.absent(),
                 Value<List<int>> cells = const Value.absent(),
                 Value<List<int>> notes = const Value.absent(),
+                Value<List<int>?> regions = const Value.absent(),
                 Value<MoveHistory> history = const Value.absent(),
                 Value<List<int>> hints = const Value.absent(),
                 Value<bool> wasHinted = const Value.absent(),
@@ -1414,6 +1489,7 @@ class $$SavedGamesTableTableManager
                 solution: solution,
                 cells: cells,
                 notes: notes,
+                regions: regions,
                 history: history,
                 hints: hints,
                 wasHinted: wasHinted,
@@ -1431,6 +1507,7 @@ class $$SavedGamesTableTableManager
                 required List<int> solution,
                 required List<int> cells,
                 required List<int> notes,
+                Value<List<int>?> regions = const Value.absent(),
                 required MoveHistory history,
                 Value<List<int>> hints = const Value.absent(),
                 Value<bool> wasHinted = const Value.absent(),
@@ -1446,6 +1523,7 @@ class $$SavedGamesTableTableManager
                 solution: solution,
                 cells: cells,
                 notes: notes,
+                regions: regions,
                 history: history,
                 hints: hints,
                 wasHinted: wasHinted,
