@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/stars_board.dart';
+import 'package:nook/chrome/move_history.dart';
 import 'package:nook/chrome/play_clock.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/stars/stars_controller.dart';
+import 'package:nook/games/stars/stars_save.dart';
 import 'package:nook/games/stars/stars_screen.dart';
 import 'package:nook/games/stars/stars_state.dart';
 import 'package:nook/games/stars/stars_variant.dart';
@@ -14,6 +16,7 @@ import 'package:nook/home/home_screen.dart';
 import 'package:nook/l10n/app_localizations.dart';
 import 'package:nook/store/game_stats.dart';
 import 'package:nook/store/nook_database.dart';
+import 'package:nook/store/saved_game.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 /// The English strings, so a test can say what a screen should show without
@@ -106,9 +109,13 @@ Future<void> pumpStarsHome(
 }
 
 /// Pumps the Stars screen with a puzzle already generated.
+///
+/// Pass [resume] to open a saved game instead of a new one, exactly as the
+/// Continue card does.
 Future<void> pumpStarsGame(
   WidgetTester tester, {
   StarsPuzzle? puzzle,
+  StarsSave? resume,
   NookDatabase? database,
   TestClock? clock,
   double width = 400,
@@ -124,14 +131,77 @@ Future<void> pumpStarsGame(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
-        home: const StarsGamePage(
+        home: StarsGamePage(
           variant: StarsVariant.standard,
           difficulty: PuzzleDifficulty.gentle,
+          resume: resume,
         ),
       ),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// A part-played Stars puzzle, written exactly as the app would write it.
+///
+/// A star placed and two ruled-out dots down, with every move still in the
+/// history — so a test reading it back can tell the marks, the clock and the
+/// undo stack all came home. The moves are the ones the controller records for
+/// those taps, so undo across a resume walks the same path a live board would.
+SavedGame partPlayedStarsSave({
+  Duration elapsed = const Duration(minutes: 1, seconds: 15),
+  DateTime? at,
+}) {
+  final StarsPuzzle puzzle = fixedStarsPuzzle();
+  final List<StarsMark> cells =
+      List<StarsMark>.filled(puzzle.spec.cellCount, StarsMark.empty)
+        ..[0] = StarsMark.star
+        ..[1] = StarsMark.ruledOut
+        ..[2] = StarsMark.ruledOut;
+  final StarsGameState game = StarsGameState(
+    variant: StarsVariant.standard,
+    puzzle: puzzle,
+    cells: cells,
+    history: MoveHistory(
+      moves: <BoardMove>[
+        // Cell 0 cycled empty → dot → star: two moves, each undoable.
+        const BoardMove(index: 0, before: 0, after: 1),
+        const BoardMove(index: 0, before: 1, after: 2),
+        // Two dots laid down.
+        const BoardMove(index: 1, before: 0, after: 1),
+        const BoardMove(index: 2, before: 0, after: 1),
+      ],
+    ),
+  );
+  return savedStarsGame(
+    game,
+    difficulty: PuzzleDifficulty.gentle,
+    elapsed: elapsed,
+    at: at ?? DateTime.utc(2026, 9, 3, 9),
+  );
+}
+
+/// The save [database] holds for [gameId], or `null` if it holds none.
+///
+/// Read outside the test's fake clock: a query is real work on a real database
+/// and has to be allowed to take the time it takes rather than waiting for a
+/// frame that is never pumped.
+Future<SavedGame?> storedSave(
+  WidgetTester tester,
+  NookDatabase database,
+  String gameId,
+) async {
+  return tester.runAsync<SavedGame?>(() async {
+    final List<SavedGame> saves = await SavedGameStore(database)
+        .watchAll()
+        .first;
+    for (final SavedGame save in saves) {
+      if (save.gameId == gameId) {
+        return save;
+      }
+    }
+    return null;
+  });
 }
 
 /// Taps the board cell at [index].

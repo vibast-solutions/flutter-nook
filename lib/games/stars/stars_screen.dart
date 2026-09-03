@@ -13,8 +13,10 @@ import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
+import '../../store/nook_database.dart';
 import 'stars_controller.dart';
 import 'stars_naming.dart';
+import 'stars_save.dart';
 import 'stars_state.dart';
 import 'stars_variant.dart';
 
@@ -22,12 +24,13 @@ import 'stars_variant.dart';
 ///
 /// It owns the scope the game lives in: the variant and the tier are injected
 /// here, so the controller below never has to ask which board it is playing.
-/// It does not save (VIB-89): the session it opens keeps the clock and records
-/// a solve, and passes nothing to write a board to disk.
+/// The session it opens keeps the clock, records a solve, and — since VIB-89 —
+/// keeps the board written to disk as it is played, exactly as Sudoku's does.
 class StarsGamePage extends StatelessWidget {
   const StarsGamePage({
     required this.variant,
     required this.difficulty,
+    this.resume,
     super.key,
   });
 
@@ -37,6 +40,9 @@ class StarsGamePage extends StatelessWidget {
   /// How hard the player asked for it to be.
   final PuzzleDifficulty difficulty;
 
+  /// The puzzle to carry on with, or `null` to generate a new one.
+  final StarsSave? resume;
+
   /// Builds a route to a new puzzle.
   static Route<void> route(StarsVariant variant, PuzzleDifficulty difficulty) {
     return MaterialPageRoute<void>(
@@ -45,23 +51,54 @@ class StarsGamePage extends StatelessWidget {
     );
   }
 
+  /// Builds a route back into the puzzle in [save], exactly as it was left.
+  static Route<void> resumeRoute(StarsSave save) {
+    return MaterialPageRoute<void>(
+      builder: (BuildContext context) => StarsGamePage(
+        variant: save.variant,
+        difficulty: save.difficulty,
+        resume: save,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final StarsSave? saved = resume;
     return ProviderScope(
       overrides: [
         starsVariantProvider.overrideWithValue(variant),
         starsDifficultyProvider.overrideWithValue(difficulty),
+        starsResumeProvider.overrideWithValue(saved?.game),
         gameIdProvider.overrideWithValue(variant.id),
         gameDifficultyProvider.overrideWithValue(difficulty),
-        resumedElapsedProvider.overrideWithValue(Duration.zero),
+        resumedElapsedProvider.overrideWithValue(
+          saved?.elapsed ?? Duration.zero,
+        ),
       ],
-      child: GameSession<StarsGameState>(
-        gameProvider: starsControllerProvider,
-        isSolved: (StarsGameState game) => game.isSolved,
-        wasHinted: (StarsGameState game) => game.wasHinted,
-        // No save until VIB-89: this session keeps a clock and records the
-        // solve, and writes nothing to disk.
-        child: const _StarsScreen(),
+      // A Consumer so the save callbacks can reach the store from inside the
+      // scope this page opened.
+      child: Consumer(
+        builder: (BuildContext context, WidgetRef ref, Widget? child) {
+          final SavedGameStore store = ref.watch(savedGameStoreProvider);
+          return GameSession<StarsGameState>(
+            gameProvider: starsControllerProvider,
+            isSolved: (StarsGameState game) => game.isSolved,
+            wasHinted: (StarsGameState game) => game.wasHinted,
+            writeSave: (StarsGameState game, Duration elapsed, DateTime at) =>
+                store.save(
+                  savedStarsGame(
+                    game,
+                    difficulty: difficulty,
+                    elapsed: elapsed,
+                    at: at,
+                  ),
+                ),
+            discardSave: (StarsGameState game) =>
+                store.discard(game.variant.id),
+            child: const _StarsScreen(),
+          );
+        },
       ),
     );
   }

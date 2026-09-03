@@ -46,6 +46,14 @@ class SavedGames extends Table {
   /// The pencil marks, one bitmask per cell.
   TextColumn get notes => text().map(const _DigitsConverter())();
 
+  /// The region each cell belongs to, or null for a board without regions.
+  ///
+  /// Nullable and added in version 4 (VIB-89): a Sudoku leaves it null and is
+  /// drawn from [givens]; a Stars puzzle *is* its regions and stores them here.
+  /// One nullable column keeps every Sudoku row untouched and the migration a
+  /// single statement.
+  TextColumn get regions => text().map(const _DigitsConverter()).nullable()();
+
   /// The moves still to take back.
   TextColumn get history => text().map(const _HistoryConverter())();
 
@@ -124,17 +132,20 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   /// Version 2 added the two hint columns (VIB-76); version 3 the statistics
-  /// table (VIB-77).
+  /// table (VIB-77); version 4 the nullable `regions` column, which is what
+  /// lets a game whose puzzle is a region map — Stars — be saved (VIB-89).
   ///
   /// A save from version 1 is a puzzle nobody was helped with, which is
   /// exactly what the column defaults say. A player who arrives at version 3
   /// has solved puzzles Nook was not counting, and those are gone: there is
   /// nothing on disk to count them from, and inventing a number would be
-  /// worse than starting from none. A player mid-puzzle keeps their board
-  /// through both.
+  /// worse than starting from none. A Sudoku save from any earlier version has
+  /// no regions and keeps none — the column stays null and the board is still
+  /// drawn from its givens. A player mid-puzzle keeps their board through all
+  /// of it.
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
@@ -146,6 +157,9 @@ class NookDatabase extends _$NookDatabase {
         }
         if (from < 3) {
           await m.createTable(statistics);
+        }
+        if (from < 4) {
+          await m.addColumn(savedGames, savedGames.regions);
         }
       },
     );
@@ -224,6 +238,7 @@ class SavedGameStore {
       solution: game.solution,
       cells: game.cells,
       notes: game.notes,
+      regions: Value<List<int>?>(game.regions),
       history: game.history,
       hints: Value<List<int>>(game.hints),
       wasHinted: Value<bool>(game.wasHinted),
@@ -242,6 +257,7 @@ class SavedGameStore {
       solution: row.solution,
       cells: row.cells,
       notes: row.notes,
+      regions: row.regions,
       history: row.history,
       hints: row.hints,
       wasHinted: row.wasHinted,
