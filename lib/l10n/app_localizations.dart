@@ -159,22 +159,35 @@ abstract class AppLocalizations {
   /// **'{date} · {time} · {percent}% filled in'**
   String dailyDetailsProgress(DateTime date, String time, int percent);
 
-  /// Screen-reader label for the daily-puzzle card before it has been started. One sentence.
+  /// Screen-reader label for the daily-puzzle card before it has been started. One sentence, ending with the daily streak the card also shows.
   ///
   /// In en, this message translates to:
-  /// **'Today\'s puzzle: {game}, {date}, {difficulty}. Not started yet'**
-  String dailyLabel(String game, DateTime date, String difficulty);
+  /// **'Today\'s puzzle: {game}, {date}, {difficulty}. Not started yet. {streak, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {streak} days}}'**
+  String dailyLabel(String game, DateTime date, String difficulty, int streak);
 
-  /// Screen-reader label for the daily-puzzle card while today's puzzle is under way. One sentence.
+  /// Screen-reader label for the daily-puzzle card while today's puzzle is under way. One sentence, ending with the daily streak the card also shows.
   ///
   /// In en, this message translates to:
-  /// **'Continue today\'s puzzle: {game}, {date}, {time} played, {percent}% filled in'**
+  /// **'Continue today\'s puzzle: {game}, {date}, {time} played, {percent}% filled in. {streak, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {streak} days}}'**
   String dailyLabelProgress(
     String game,
     DateTime date,
     String time,
     int percent,
+    int streak,
   );
+
+  /// The second line of the daily-puzzle card once today's puzzle has been solved: the day, and that it is done. The card is no longer tappable in this state.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · Solved'**
+  String dailySolvedDetails(DateTime date);
+
+  /// Screen-reader label for the daily-puzzle card once today's puzzle is solved. One sentence, ending with the daily streak the card also shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s puzzle solved: {game}, {date}. {streak, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {streak} days}}'**
+  String dailyLabelSolved(String game, DateTime date, int streak);
 
   /// Screen-reader label for a playable game in the home list.
   ///
@@ -608,11 +621,11 @@ abstract class AppLocalizations {
   /// **'PREVIOUS'**
   String get completionPrevious;
 
-  /// Heading on the card showing how many puzzles the player has finished at this game and difficulty.
+  /// Heading on the card showing the player's current daily-puzzle streak — how many days in a row they have solved the daily. Upper case in English by design; use whatever the language's convention for a small caption is.
   ///
   /// In en, this message translates to:
-  /// **'SOLVED'**
-  String get completionSolvedCount;
+  /// **'STREAK'**
+  String get completionStreak;
 
   /// Stands in for a best time that does not exist yet, on the finished-puzzle screen. An em dash in English; use whatever a language writes for 'no figure'. Never a zero, which would read as a time.
   ///
@@ -638,11 +651,11 @@ abstract class AppLocalizations {
   /// **'No previous best time'**
   String get completionNoPreviousLabel;
 
-  /// Screen-reader label for the card counting finished puzzles.
+  /// Screen-reader label for the daily-streak figure, shown both on the home screen's daily card and on the finished-puzzle screen's third card. Reads as one phrase. Zero is a real value here — a player who has not started, or who let a day pass, has no streak.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 puzzle solved at this difficulty} other{{count} puzzles solved at this difficulty}}'**
-  String completionSolvedLabel(int count);
+  /// **'{count, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {count} days}}'**
+  String dailyStreakLabel(int count);
 
   /// The main button on the finished-puzzle screen, which generates a new puzzle at the same difficulty. Names the tier so the player knows what they are getting.
   ///

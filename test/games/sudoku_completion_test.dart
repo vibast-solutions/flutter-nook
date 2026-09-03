@@ -63,19 +63,21 @@ void main() {
       expect(find.byType(NumberPad), findsNothing);
     });
 
-    testWidgets('counts it, and says so', (WidgetTester tester) async {
+    testWidgets('counts it in the statistics', (WidgetTester tester) async {
       final NookDatabase database = memoryDatabase();
       final TestClock clock = TestClock();
       await pumpSudokuGame(tester, database: database, clock: clock);
 
       await playAndSolve(tester, clock);
 
-      expect(figureOn(tester, GameCompletionView.solvedKey), '1');
       final GameStats stats = (await storedStats(tester, database)).single;
       expect(stats.gameId, SudokuVariant.miniId);
       expect(stats.difficulty, PuzzleDifficulty.gentle.name);
       expect(stats.solved, 1);
       expect(stats.bestTime, const Duration(minutes: 1));
+      // The third card is the daily streak, not a solved count — and no daily
+      // was solved here, so it stands at zero.
+      expect(figureOn(tester, GameCompletionView.streakKey), '0');
     });
 
     testWidgets('and counts the next one too', (WidgetTester tester) async {
@@ -93,8 +95,9 @@ void main() {
 
       await playAndSolve(tester, clock);
 
-      expect(figureOn(tester, GameCompletionView.solvedKey), '2');
       expect((await storedStats(tester, database)).single.solved, 2);
+      // Still the streak, still zero: an ordinary solve never touches it.
+      expect(figureOn(tester, GameCompletionView.streakKey), '0');
     });
   });
 
@@ -175,7 +178,7 @@ void main() {
       );
 
       expect(figureOn(tester, GameCompletionView.timeKey), '00:30');
-      expect(figureOn(tester, GameCompletionView.solvedKey), '1');
+      expect(figureOn(tester, GameCompletionView.streakKey), '0');
       expect(
         find.byKey(GameCompletionView.personalBestKey),
         findsNothing,
@@ -205,7 +208,7 @@ void main() {
       );
 
       expect(figureOn(tester, GameCompletionView.timeKey), '00:30');
-      expect(figureOn(tester, GameCompletionView.solvedKey), '1');
+      expect(figureOn(tester, GameCompletionView.streakKey), '0');
       expect(
         find.byKey(GameCompletionView.personalBestKey),
         findsNothing,
@@ -304,10 +307,7 @@ void main() {
           find.bySemanticsLabel(en.completionNoPreviousLabel),
           findsOneWidget,
         );
-        expect(
-          find.bySemanticsLabel(en.completionSolvedLabel(1)),
-          findsOneWidget,
-        );
+        expect(find.bySemanticsLabel(en.dailyStreakLabel(0)), findsOneWidget);
         expect(find.bySemanticsLabel(en.completionClose), findsOneWidget);
       } finally {
         handle.dispose();

@@ -109,12 +109,14 @@ void main() {
       clock.advance(const Duration(minutes: 2));
       await solveStars(tester, puzzle);
 
-      expect(figureOn(tester, GameCompletionView.solvedKey), '1');
       final GameStats stats = (await storedStats(tester, database)).single;
       expect(stats.gameId, StarsVariant.starsId);
       expect(stats.difficulty, PuzzleDifficulty.gentle.name);
       expect(stats.solved, 1);
       expect(stats.bestTime, const Duration(minutes: 2));
+      // The third card is the daily streak; an ordinary Stars solve leaves it at
+      // zero.
+      expect(figureOn(tester, GameCompletionView.streakKey), '0');
     });
   });
 }
