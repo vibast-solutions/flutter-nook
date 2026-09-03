@@ -45,6 +45,46 @@
   "@homePromise": {
     "description": "The footer of the home screen. Nook's central promise, so keep it short and flat rather than enthusiastic."
   },
+  "homeDaily": "TODAY'S PUZZLE",
+  "@homeDaily": {
+    "description": "Heading above the daily-puzzle card on the home screen — the one puzzle that is the same for every player on a given day. Upper case in English by design; use whatever the language's convention for a small section heading is."
+  },
+  "dailyDetails": "{date} · {difficulty}",
+  "@dailyDetails": {
+    "description": "The second line of the daily-puzzle card before it has been started: which day this is the puzzle of, and how hard the day makes it.",
+    "placeholders": {
+      "date": { "type": "DateTime", "format": "MMMEd" },
+      "difficulty": { "type": "String", "example": "Medium" }
+    }
+  },
+  "dailyDetailsProgress": "{date} · {time} · {percent}% filled in",
+  "@dailyDetailsProgress": {
+    "description": "The second line of the daily-puzzle card while today's puzzle is under way: the day, how long it has been played for, and how far along it is.",
+    "placeholders": {
+      "date": { "type": "DateTime", "format": "MMMEd" },
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
+  "dailyLabel": "Today's puzzle: {game}, {date}, {difficulty}. Not started yet",
+  "@dailyLabel": {
+    "description": "Screen-reader label for the daily-puzzle card before it has been started. One sentence.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" },
+      "date": { "type": "DateTime", "format": "MMMEd" },
+      "difficulty": { "type": "String", "example": "Medium" }
+    }
+  },
+  "dailyLabelProgress": "Continue today's puzzle: {game}, {date}, {time} played, {percent}% filled in",
+  "@dailyLabelProgress": {
+    "description": "Screen-reader label for the daily-puzzle card while today's puzzle is under way. One sentence.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" },
+      "date": { "type": "DateTime", "format": "MMMEd" },
+      "time": { "type": "String", "example": "07:42" },
+      "percent": { "type": "int", "example": "45" }
+    }
+  },
   "gameRowLabel": "{title}. {subtitle}",
   "@gameRowLabel": {
     "description": "Screen-reader label for a playable game in the home list.",

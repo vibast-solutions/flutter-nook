@@ -51,6 +51,7 @@ const Set<String> allowedLiterals = <String>{
   'completion-close',
   'discard-confirm',
   'discard-keep',
+  'daily-card',
 
   // ---- Identifiers that outlive a language ---------------------------------
   // Variant ids reach saved games and statistics: a save written on an English
@@ -60,6 +61,8 @@ const Set<String> allowedLiterals = <String>{
   'sudoku-classic',
   'stars',
   'duo',
+  // The saved-game slot the daily puzzle lives in, beside the variant ids.
+  'daily',
   // Board-control ids, which key their tiles.
   'undo',
   'erase',
@@ -113,6 +116,11 @@ const Set<String> allowedLiterals = <String>{
   'duoController',
   'gameId',
   'gameDifficulty',
+  'saveSlot',
+  'completionAnother',
+  'dailySudokuSource',
+  'dailyStarsSource',
+  'dailyDuoSource',
   'now',
   'resumedElapsed',
   'playClock',

@@ -42,6 +42,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homePromise => 'No ads. No tracking. No account. Ever.';
 
   @override
+  String get homeDaily => 'TODAY\'S PUZZLE';
+
+  @override
+  String dailyDetails(DateTime date, String difficulty) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString · $difficulty';
+  }
+
+  @override
+  String dailyDetailsProgress(DateTime date, String time, int percent) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString · $time · $percent% filled in';
+  }
+
+  @override
+  String dailyLabel(String game, DateTime date, String difficulty) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Today\'s puzzle: $game, $dateString, $difficulty. Not started yet';
+  }
+
+  @override
+  String dailyLabelProgress(
+    String game,
+    DateTime date,
+    String time,
+    int percent,
+  ) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Continue today\'s puzzle: $game, $dateString, $time played, $percent% filled in';
+  }
+
+  @override
   String gameRowLabel(String title, String subtitle) {
     return '$title. $subtitle';
   }

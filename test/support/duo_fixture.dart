@@ -36,8 +36,11 @@ DuoPuzzle fixedDuoPuzzle() => DuoGenerator(DuoSpec.standard).generate(2026);
 const List<DuoVariant> allDuoVariants = DuoVariant.values;
 
 /// A clock the test winds on by hand.
+///
+/// The default day is one whose daily puzzle is *not* Duo, so a test tapping
+/// "Duo" on the home screen hits the game row and never the daily card.
 class TestClock {
-  TestClock([DateTime? start]) : _now = start ?? DateTime.utc(2026, 9, 3, 9);
+  TestClock([DateTime? start]) : _now = start ?? DateTime.utc(2026, 9, 2, 9);
 
   DateTime _now;
 
@@ -172,8 +175,10 @@ Color actionBackground(WidgetTester tester, String id) {
 SavedGame partPlayedDuoSave({
   Duration elapsed = const Duration(minutes: 1, seconds: 15),
   DateTime? at,
+  DuoPuzzle? puzzle,
+  String? slot,
 }) {
-  final DuoPuzzle puzzle = fixedDuoPuzzle();
+  puzzle ??= fixedDuoPuzzle();
   final List<int> free = <int>[
     for (int index = 0; index < puzzle.spec.cellCount; index++)
       if (!puzzle.isGiven(index)) index,
@@ -205,6 +210,7 @@ SavedGame partPlayedDuoSave({
     difficulty: PuzzleDifficulty.gentle,
     elapsed: elapsed,
     at: at ?? DateTime.utc(2026, 9, 3, 9),
+    slot: slot,
   );
 }
 
