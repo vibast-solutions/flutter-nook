@@ -21,14 +21,6 @@ import 'sudoku_save.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
-/// How long the hint control waits before offering itself again.
-///
-/// One number in one place, because it will be retuned by feel rather than
-/// calculated. It is not a budget and nothing is counted against it: hints
-/// stay unlimited and free, and this is only the room a hint needs to land
-/// before the next one is worth asking for.
-const Duration kHintPacing = Duration(seconds: 4);
-
 /// The screen a player lands on after picking a Sudoku and a difficulty.
 ///
 /// It owns the scope the game lives in: the variant and the tier are injected

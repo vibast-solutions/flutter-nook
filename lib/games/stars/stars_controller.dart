@@ -116,9 +116,12 @@ class StarsController extends AsyncNotifier<StarsGameState> {
       game.copyWith(
         cells: cells,
         selectedIndex: index,
-        // A ruled-out star is no longer a hint's doing; only a hint sets one,
-        // which does not happen until VIB-90.
+        // Writing over a hinted cell hands it back to the player, exactly as it
+        // does in Sudoku.
         hints: game.hints.difference(<int>{index}),
+        // Any move but a hint removal ends the crossing-out, so a later removal
+        // at the same cell reads as a change and animates again.
+        forgetRemoval: true,
         history: game.history.push(
           BoardMove(index: index, before: current.index, after: next.index),
         ),
@@ -146,6 +149,7 @@ class StarsController extends AsyncNotifier<StarsGameState> {
         cells: cells,
         selectedIndex: index,
         hints: game.hints.difference(<int>{index}),
+        forgetRemoval: true,
         history: game.history.push(
           BoardMove(
             index: index,
@@ -181,6 +185,7 @@ class StarsController extends AsyncNotifier<StarsGameState> {
     state = AsyncData<StarsGameState>(
       game.copyWith(
         cells: cells,
+        forgetRemoval: true,
         history: game.history.push(
           BoardMove(
             index: primary,
@@ -223,8 +228,119 @@ class StarsController extends AsyncNotifier<StarsGameState> {
         }),
         selectedIndex: move.index,
         history: game.history.pop(),
+        forgetRemoval: true,
       ),
     );
+  }
+
+  /// Shows the player their next move.
+  ///
+  /// Unlimited and free: there is no hint budget in Nook to spend, wait for or
+  /// buy back. What a hint *is* is the whole of the design, and it is not simply
+  /// a reveal — the next move on a board carrying a mistake is to be rid of the
+  /// mistake, so:
+  ///
+  /// * with a star the solution does not have on the board, the most recently
+  ///   placed one is taken away and nothing is revealed;
+  /// * with none, [StarsHinter] picks a star the technique solver can justify
+  ///   from the region map, so the hint shows the player one they were not
+  ///   seeing rather than taking a piece of the puzzle away.
+  ///
+  /// Removing first is what keeps the app from contradicting itself: a correct
+  /// star dropped into a row already poisoned by a mistake would be marked as a
+  /// breach the moment it landed, by the same board that had just given it.
+  ///
+  /// This is the only place Nook ever judges the player's work against the
+  /// solution, and it happens because the player asked. Either kind counts as
+  /// help, so the puzzle sets no personal best afterwards.
+  void hint() {
+    final StarsGameState? game = state.value;
+    if (game == null || game.isSolved) {
+      return;
+    }
+    final int? wrong = _wrongStarToClear(game);
+    if (wrong != null) {
+      final List<StarsMark> cells = List<StarsMark>.of(game.cells)
+        ..[wrong] = StarsMark.empty;
+      state = AsyncData<StarsGameState>(
+        game.copyWith(
+          cells: cells,
+          // The cell is empty now, so it is nobody's hint; the puzzle stays
+          // marked as hinted, which is a fact about the game rather than the
+          // cell.
+          hints: game.hints.difference(<int>{wrong}),
+          wasHinted: true,
+          selectedIndex: wrong,
+          starRemoval: StarRemoval(index: wrong),
+          history: game.history.push(
+            BoardMove(
+              index: wrong,
+              before: StarsMark.star.index,
+              after: StarsMark.empty.index,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    final StarsHint? found = StarsHinter(game.puzzle).hintFor(game.starCells);
+    if (found == null) {
+      return;
+    }
+    final StarsMark before = game.cells[found.index];
+    final List<StarsMark> cells = List<StarsMark>.of(game.cells)
+      ..[found.index] = StarsMark.star;
+    state = AsyncData<StarsGameState>(
+      game.copyWith(
+        cells: cells,
+        // A hint marks the star it gave, so a resumed board still says which
+        // stars were worked out and which were given away.
+        hints: <int>{...game.hints, found.index},
+        wasHinted: true,
+        // A hint lands where the player was not looking, so the selection goes
+        // to it — otherwise the one thing that changed is the one thing they
+        // have to hunt for.
+        selectedIndex: found.index,
+        forgetRemoval: true,
+        history: game.history.push(
+          BoardMove(
+            index: found.index,
+            before: before.index,
+            after: StarsMark.star.index,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The wrong star a hint should take away, or `null` if there is none.
+  ///
+  /// A "wrong" star is one in a cell the solution leaves empty — the one place
+  /// Nook ever reads the solution to judge the player, and only because they
+  /// asked. The most recently placed one is chosen by walking the history back:
+  /// it is the one the player is still thinking about, and taking the oldest
+  /// mistake away would undo work they have long since built on. A wrong star
+  /// whose move has fallen off the end of the history — a long game, or one
+  /// resumed from a trimmed save — is taken in reading order instead, which is
+  /// arbitrary but never nothing.
+  int? _wrongStarToClear(StarsGameState game) {
+    final Set<int> solution = game.puzzle.solution.toSet();
+    final Set<int> wrong = <int>{
+      for (int index = 0; index < game.cells.length; index++)
+        if (game.cells[index] == StarsMark.star && !solution.contains(index))
+          index,
+    };
+    if (wrong.isEmpty) {
+      return null;
+    }
+    for (final BoardMove move in game.history.moves.reversed) {
+      if (wrong.contains(move.index)) {
+        return move.index;
+      }
+    }
+    // Built by walking the grid, so the first of them is the first in reading
+    // order.
+    return wrong.first;
   }
 
   /// Throws away the current puzzle and generates another.

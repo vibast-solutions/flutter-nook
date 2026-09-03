@@ -6,6 +6,15 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../l10n/app_localizations.dart';
 
+/// How long a hint control waits before offering itself again.
+///
+/// One number in one place, read by every game rather than written per screen,
+/// because it is the same wait for everybody, every time. It will be retuned by
+/// feel rather than calculated. It is not a budget and nothing is counted
+/// against it: hints stay unlimited and free, and this is only the room a hint
+/// needs to land before the next one is worth asking for.
+const Duration kHintPacing = Duration(seconds: 4);
+
 /// One control in the row under a board.
 ///
 /// An action with no [onTap] reads as unavailable: greyed, and inert to a tap

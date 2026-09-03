@@ -633,6 +633,12 @@ abstract class AppLocalizations {
   /// **'Row {row}, column {column}, region {region}, star, touching another star'**
   String cellStarsStarBreachAdjacent(int row, int column, int region);
 
+  /// Screen-reader label for a Stars cell a hint has just emptied because the star in it was wrong — one the solution does not have. Said for a moment after the hint, then the cell goes back to reading as empty. The star is a mistake the hint takes away, not a reveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star taken away, it was wrong'**
+  String cellStarsCleared(int row, int column, int region);
+
   /// Control that takes back the last move.
   ///
   /// In en, this message translates to:
