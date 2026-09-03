@@ -481,6 +481,15 @@
       "region": { "type": "int", "example": "5" }
     }
   },
+  "cellStarsCleared": "Row {row}, column {column}, region {region}, star taken away, it was wrong",
+  "@cellStarsCleared": {
+    "description": "Screen-reader label for a Stars cell a hint has just emptied because the star in it was wrong — one the solution does not have. Said for a moment after the hint, then the cell goes back to reading as empty. The star is a mistake the hint takes away, not a reveal.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
 
   "actionUndo": "Undo",
   "@actionUndo": { "description": "Control that takes back the last move." },

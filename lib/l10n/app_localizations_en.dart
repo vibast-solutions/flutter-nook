@@ -383,6 +383,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cellStarsCleared(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star taken away, it was wrong';
+  }
+
+  @override
   String get actionUndo => 'Undo';
 
   @override

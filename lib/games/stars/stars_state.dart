@@ -22,6 +22,33 @@ enum StarsMark {
   star,
 }
 
+/// A star a hint has just taken off the board.
+///
+/// Kept so the board can show the cell being emptied — the star is already gone
+/// from the grid by the time anything draws, and a cell that simply blanked
+/// would look like a bug rather than like a star being taken away. Never written
+/// to disk: it describes a moment, not a game.
+///
+/// The Stars twin of Sudoku's `HintRemoval`, with no digit to carry: a cell held
+/// a star or it did not.
+@immutable
+class StarRemoval {
+  const StarRemoval({required this.index});
+
+  /// The cell that was emptied.
+  final int index;
+
+  @override
+  bool operator ==(Object other) =>
+      other is StarRemoval && other.index == index;
+
+  @override
+  int get hashCode => index.hashCode;
+
+  @override
+  String toString() => 'StarRemoval(star at $index)';
+}
+
 /// The rule a star in breach breaks. Each is a separate rule of the game.
 ///
 /// A star can break more than one at once — two stars side by side share a row
@@ -60,6 +87,7 @@ class StarsGameState {
     this.selectedIndex,
     this.history = const MoveHistory.empty(),
     this.wasHinted = false,
+    this.starRemoval,
   }) : cells = List<StarsMark>.unmodifiable(cells),
        hints = Set<int>.unmodifiable(hints ?? const <int>{});
 
@@ -95,6 +123,14 @@ class StarsGameState {
   /// personal best does not. Nothing sets it until VIB-90.
   final bool wasHinted;
 
+  /// The star a hint has just taken off the board, or `null` if the last thing
+  /// that happened was anything else.
+  ///
+  /// Transient, and the one piece of this state a save does not carry: it exists
+  /// for the length of an animation, and a puzzle resumed tomorrow should not
+  /// replay a star being crossed out.
+  final StarRemoval? starRemoval;
+
   /// The cell the player last touched, or `null` if none.
   final int? selectedIndex;
 
@@ -121,6 +157,15 @@ class StarsGameState {
 
   /// The region the cell at [index] belongs to.
   int regionOf(int index) => puzzle.regions[index];
+
+  /// The cells the player currently holds a star in.
+  ///
+  /// What a hint is handed so it can skip them: a cell already starred is the
+  /// player's, and a hint never writes over it.
+  Set<int> get starCells => <int>{
+    for (int index = 0; index < cells.length; index++)
+      if (cells[index] == StarsMark.star) index,
+  };
 
   /// How many stars are on the board.
   int get starCount {
@@ -286,12 +331,17 @@ class StarsGameState {
   /// A copy with the given fields replaced.
   ///
   /// [selectedIndex] cannot be cleared through this; nothing needs to.
+  /// [starRemoval] can, through [forgetRemoval], because it has to be: it marks
+  /// a moment, and every move after that moment has to be able to say the moment
+  /// is over.
   StarsGameState copyWith({
     List<StarsMark>? cells,
     Set<int>? hints,
     int? selectedIndex,
     MoveHistory? history,
     bool? wasHinted,
+    StarRemoval? starRemoval,
+    bool forgetRemoval = false,
   }) {
     return StarsGameState(
       variant: variant,
@@ -301,6 +351,7 @@ class StarsGameState {
       selectedIndex: selectedIndex ?? this.selectedIndex,
       history: history ?? this.history,
       wasHinted: wasHinted ?? this.wasHinted,
+      starRemoval: forgetRemoval ? null : (starRemoval ?? this.starRemoval),
     );
   }
 }
