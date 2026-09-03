@@ -32,6 +32,30 @@ enum DuoCell {
       symbol == DuoSymbol.circle ? DuoCell.circle : DuoCell.square;
 }
 
+/// The rule a cell in breach breaks. Each is a separate rule of the game.
+///
+/// A cell can break more than one at once — a symbol contradicting an `x` badge
+/// on one edge can also be the third of a run of three — so the board names the
+/// most specific one it can, in the order the values are declared: a badge
+/// points at the tightest thing, the two cells of one edge; a run of three is
+/// the next most local; the line's balance is the whole row or column. Whichever
+/// is named, it is a rule genuinely broken; the group, not the rule, is the
+/// thing to look at.
+enum DuoBreach {
+  /// A badge on one of the cell's edges is contradicted — an `=` whose cells
+  /// differ or an `x` whose cells match. Both cells of the edge are marked.
+  badge,
+
+  /// The cell is one of three or more identical symbols in a row, horizontally
+  /// or vertically. Every cell of the run is marked.
+  triple,
+
+  /// The cell's line already holds more of its symbol than a balanced line can,
+  /// so the line can never reach its share of each. Every cell of the offending
+  /// symbol in that line is marked.
+  balance,
+}
+
 /// A Duo puzzle in progress: the puzzle, what the player has entered so far, and
 /// which cell they last touched.
 ///
@@ -113,6 +137,32 @@ class DuoGameState {
   /// Whether the symbol in the cell at [index] came from a hint.
   bool isHinted(int index) => hints.contains(index);
 
+  /// Each cell in breach, mapped to the rule it most saliently breaks.
+  ///
+  /// Computed from the symbols on the board and the rules alone — [puzzle] is
+  /// never consulted for the answer. A cell is in breach when it is the third of
+  /// a run of three alike, when its line already holds more of its symbol than a
+  /// balanced line can, or when a badge on one of its edges is contradicted. A
+  /// symbol that breaks none of those is left in peace however wrong it is,
+  /// because a board that marked it would be an oracle to brute-force rather than
+  /// a puzzle to solve. An empty cell has nothing to break.
+  ///
+  /// Every cell of a broken rule is marked, never one singled out as the
+  /// intruder — a given circle completing a run with two of the player's is
+  /// marked exactly like the player's own — because deciding which member is
+  /// wrong would mean knowing the answer.
+  late final Map<int, DuoBreach> _breaches = _breachedCells();
+
+  /// The cells whose symbol breaks a rule.
+  late final Set<int> breaches = Set<int>.unmodifiable(_breaches.keys);
+
+  /// Whether the symbol in the cell at [index] breaks a rule.
+  bool isBreaching(int index) => _breaches.containsKey(index);
+
+  /// The rule the cell at [index] most saliently breaks, or `null` if it is in
+  /// no breach (or holds no symbol).
+  DuoBreach? breachAt(int index) => _breaches[index];
+
   /// Whether the board obeys every rule of the game and is therefore finished.
   ///
   /// Read straight off the cells and the rules — the solution is **never**
@@ -190,6 +240,123 @@ class DuoGameState {
     }
     return true;
   }
+
+  /// Works out every cell in breach and the rule each one most saliently
+  /// breaks.
+  ///
+  /// Three passes, one per rule, each adding to the set of rules a cell breaks;
+  /// where a cell ends up breaking several, the salient one is the first
+  /// [DuoBreach] value it broke, since the values are declared most-specific
+  /// first.
+  Map<int, DuoBreach> _breachedCells() {
+    final List<DuoSymbol?> grid = <DuoSymbol?>[
+      for (final DuoCell cell in cells) cell.symbol,
+    ];
+    final Map<int, Set<DuoBreach>> kinds = <int, Set<DuoBreach>>{};
+    void mark(int index, DuoBreach kind) =>
+        (kinds[index] ??= <DuoBreach>{}).add(kind);
+
+    // A contradicted badge: an `=` whose cells differ, an `x` whose cells match.
+    // Both cells of the edge are marked, and only once both hold a symbol —
+    // there is nothing to contradict while either is still empty.
+    for (final DuoBadge badge in puzzle.badges) {
+      final DuoSymbol? a = grid[badge.a];
+      final DuoSymbol? b = grid[badge.b];
+      if (a != null && b != null && !badge.relation.holds(a, b)) {
+        mark(badge.a, DuoBreach.badge);
+        mark(badge.b, DuoBreach.badge);
+      }
+    }
+
+    // A run of three or more alike, in a row or a column: every cell of the run
+    // is marked. Sliding a window of [DuoSpec.runLimit] + 1 over the grid marks
+    // every cell of a longer run too, because the windows overlap.
+    for (int row = 0; row < spec.size; row++) {
+      for (int column = 0; column < spec.size; column++) {
+        _markRun(grid, row, column, 0, 1, mark);
+        _markRun(grid, row, column, 1, 0, mark);
+      }
+    }
+
+    // A line holding more than its share of one symbol: it can never balance, so
+    // every cell of the offending symbol in that line is marked.
+    for (int line = 0; line < spec.size; line++) {
+      _markOverfull(grid, line, byRow: true, mark: mark);
+      _markOverfull(grid, line, byRow: false, mark: mark);
+    }
+
+    return <int, DuoBreach>{
+      for (final MapEntry<int, Set<DuoBreach>> entry in kinds.entries)
+        entry.key: _salient(entry.value),
+    };
+  }
+
+  /// Marks the run of `runLimit + 1` identical symbols starting at [row],
+  /// [column] stepping `(dRow, dColumn)`, if there is one.
+  void _markRun(
+    List<DuoSymbol?> grid,
+    int row,
+    int column,
+    int dRow,
+    int dColumn,
+    void Function(int, DuoBreach) mark,
+  ) {
+    final int endRow = row + dRow * spec.runLimit;
+    final int endColumn = column + dColumn * spec.runLimit;
+    if (endRow >= spec.size || endColumn >= spec.size) {
+      return;
+    }
+    final DuoSymbol? first = grid[spec.indexOf(row, column)];
+    if (first == null) {
+      return;
+    }
+    final List<int> run = <int>[spec.indexOf(row, column)];
+    for (int k = 1; k <= spec.runLimit; k++) {
+      final int index = spec.indexOf(row + dRow * k, column + dColumn * k);
+      if (grid[index] != first) {
+        return;
+      }
+      run.add(index);
+    }
+    for (final int index in run) {
+      mark(index, DuoBreach.triple);
+    }
+  }
+
+  /// Marks every cell of a symbol that overfills line [line], if either symbol
+  /// does — a row when [byRow], otherwise a column.
+  void _markOverfull(
+    List<DuoSymbol?> grid,
+    int line, {
+    required bool byRow,
+    required void Function(int, DuoBreach) mark,
+  }) {
+    final List<int> circles = <int>[];
+    final List<int> squares = <int>[];
+    for (int i = 0; i < spec.size; i++) {
+      final int index = byRow ? spec.indexOf(line, i) : spec.indexOf(i, line);
+      switch (grid[index]) {
+        case DuoSymbol.circle:
+          circles.add(index);
+        case DuoSymbol.square:
+          squares.add(index);
+        case null:
+          break;
+      }
+    }
+    for (final List<int> ofSymbol in <List<int>>[circles, squares]) {
+      if (ofSymbol.length > spec.perSymbol) {
+        for (final int index in ofSymbol) {
+          mark(index, DuoBreach.balance);
+        }
+      }
+    }
+  }
+
+  /// The rule to name for a cell that broke [kinds]: the first [DuoBreach] value
+  /// it broke, since the values are declared most-specific first.
+  DuoBreach _salient(Set<DuoBreach> kinds) =>
+      DuoBreach.values.firstWhere(kinds.contains);
 
   /// Whether there is a move to take back.
   ///
