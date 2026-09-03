@@ -106,6 +106,7 @@ const Set<String> allowedLiterals = <String>{
   'starsResume',
   'duoVariant',
   'duoDifficulty',
+  'duoResume',
   'duoPuzzleSource',
   'duoSeedSource',
   'duoController',

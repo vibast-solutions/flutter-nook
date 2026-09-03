@@ -9,25 +9,29 @@ import '../../chrome/difficulty_naming.dart';
 import '../../chrome/game_header.dart';
 import '../../chrome/game_providers.dart';
 import '../../chrome/game_session.dart';
+import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
+import '../../store/nook_database.dart';
 import 'duo_controller.dart';
 import 'duo_naming.dart';
+import 'duo_save.dart';
 import 'duo_state.dart';
 import 'duo_variant.dart';
 
 /// The screen a player lands on after choosing Duo.
 ///
 /// It owns the scope the game lives in: the variant and the tier are injected
-/// here, so the controller below never has to ask which board it is playing. The
-/// session it opens keeps the clock and records a solve. Duo does not save yet —
-/// that is VIB-96 — so it passes the session no save callbacks and is a
-/// clock-only session, exactly as Stars was before it saved.
+/// here, so the controller below never has to ask which board it is playing.
+/// The session it opens keeps the clock, records a solve, and — since VIB-96 —
+/// keeps the board written to disk as it is played, exactly as Sudoku's and
+/// Stars' do.
 class DuoGamePage extends StatelessWidget {
   const DuoGamePage({
     required this.variant,
     required this.difficulty,
+    this.resume,
     super.key,
   });
 
@@ -37,6 +41,9 @@ class DuoGamePage extends StatelessWidget {
   /// How hard the player asked for it to be.
   final PuzzleDifficulty difficulty;
 
+  /// The puzzle to carry on with, or `null` to generate a new one.
+  final DuoSave? resume;
+
   /// Builds a route to a new puzzle.
   static Route<void> route(DuoVariant variant, PuzzleDifficulty difficulty) {
     return MaterialPageRoute<void>(
@@ -45,20 +52,53 @@ class DuoGamePage extends StatelessWidget {
     );
   }
 
+  /// Builds a route back into the puzzle in [save], exactly as it was left.
+  static Route<void> resumeRoute(DuoSave save) {
+    return MaterialPageRoute<void>(
+      builder: (BuildContext context) => DuoGamePage(
+        variant: save.variant,
+        difficulty: save.difficulty,
+        resume: save,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final DuoSave? saved = resume;
     return ProviderScope(
       overrides: [
         duoVariantProvider.overrideWithValue(variant),
         duoDifficultyProvider.overrideWithValue(difficulty),
+        duoResumeProvider.overrideWithValue(saved?.game),
         gameIdProvider.overrideWithValue(variant.id),
         gameDifficultyProvider.overrideWithValue(difficulty),
+        resumedElapsedProvider.overrideWithValue(
+          saved?.elapsed ?? Duration.zero,
+        ),
       ],
-      child: GameSession<DuoGameState>(
-        gameProvider: duoControllerProvider,
-        isSolved: (DuoGameState game) => game.isSolved,
-        wasHinted: (DuoGameState game) => game.wasHinted,
-        child: const _DuoScreen(),
+      // A Consumer so the save callbacks can reach the store from inside the
+      // scope this page opened.
+      child: Consumer(
+        builder: (BuildContext context, WidgetRef ref, Widget? child) {
+          final SavedGameStore store = ref.watch(savedGameStoreProvider);
+          return GameSession<DuoGameState>(
+            gameProvider: duoControllerProvider,
+            isSolved: (DuoGameState game) => game.isSolved,
+            wasHinted: (DuoGameState game) => game.wasHinted,
+            writeSave: (DuoGameState game, Duration elapsed, DateTime at) =>
+                store.save(
+                  savedDuoGame(
+                    game,
+                    difficulty: difficulty,
+                    elapsed: elapsed,
+                    at: at,
+                  ),
+                ),
+            discardSave: (DuoGameState game) => store.discard(game.variant.id),
+            child: const _DuoScreen(),
+          );
+        },
       ),
     );
   }

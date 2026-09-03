@@ -8,6 +8,9 @@ import '../chrome/resume.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/duo/duo_difficulty.dart';
+import '../games/duo/duo_naming.dart';
+import '../games/duo/duo_save.dart';
+import '../games/duo/duo_screen.dart';
 import '../games/duo/duo_variant.dart';
 import '../games/stars/stars_difficulty.dart';
 import '../games/stars/stars_naming.dart';
@@ -113,6 +116,7 @@ class HomeScreen extends ConsumerWidget {
   static const List<ResumeReader> _resumeReaders = <ResumeReader>[
     _sudokuResume,
     _starsResume,
+    _duoResume,
   ];
 
   /// A saved Sudoku as a resume card, or `null` if the row is not a Sudoku this
@@ -152,6 +156,26 @@ class HomeScreen extends ConsumerWidget {
       details: l10n.continueDetails(tier, time, percent),
       semanticLabel: l10n.continueLabel(title, tier, time, percent),
       openRoute: () => StarsGamePage.resumeRoute(stars),
+    );
+  }
+
+  /// A saved Duo puzzle as a resume card, or `null` if the row is not one this
+  /// build can open.
+  static ResumableGame? _duoResume(SavedGame save, AppLocalizations l10n) {
+    final DuoSave? duo = DuoSave.read(save);
+    if (duo == null) {
+      return null;
+    }
+    final String title = duo.variant.title(l10n);
+    final String tier = duo.difficulty.label(l10n);
+    final String time = clockReading(duo.elapsed);
+    final int percent = (duo.progress * 100).round();
+    return ResumableGame(
+      icon: duoIcon,
+      title: title,
+      details: l10n.continueDetails(tier, time, percent),
+      semanticLabel: l10n.continueLabel(title, tier, time, percent),
+      openRoute: () => DuoGamePage.resumeRoute(duo),
     );
   }
 
@@ -228,10 +252,11 @@ IconData sudokuIcon(SudokuVariant variant) {
 /// at.
 const IconData starsIcon = Icons.star_outline_rounded;
 
-/// The glyph Duo is drawn with, on its game row.
+/// The glyph Duo is drawn with, on its game row and its Continue card alike.
 ///
 /// A constant, not a function of the variant: there is one Duo board, and the
-/// row must always show the same game the player is looking at.
+/// card and the row must never disagree about which game the player is looking
+/// at.
 const IconData duoIcon = Icons.contrast_rounded;
 
 /// The puzzle waiting to be carried on with, at the top of the home screen.

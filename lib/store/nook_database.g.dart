@@ -84,6 +84,15 @@ class $SavedGamesTable extends SavedGames
         requiredDuringInsert: false,
       ).withConverter<List<int>?>($SavedGamesTable.$converterregionsn);
   @override
+  late final GeneratedColumnWithTypeConverter<List<int>?, String> badges =
+      GeneratedColumn<String>(
+        'badges',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<List<int>?>($SavedGamesTable.$converterbadgesn);
+  @override
   late final GeneratedColumnWithTypeConverter<MoveHistory, String> history =
       GeneratedColumn<String>(
         'history',
@@ -162,6 +171,7 @@ class $SavedGamesTable extends SavedGames
     cells,
     notes,
     regions,
+    badges,
     history,
     hints,
     wasHinted,
@@ -276,6 +286,12 @@ class $SavedGamesTable extends SavedGames
           data['${effectivePrefix}regions'],
         ),
       ),
+      badges: $SavedGamesTable.$converterbadgesn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}badges'],
+        ),
+      ),
       history: $SavedGamesTable.$converterhistory.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -326,6 +342,10 @@ class $SavedGamesTable extends SavedGames
       const _DigitsConverter();
   static TypeConverter<List<int>?, String?> $converterregionsn =
       NullAwareTypeConverter.wrap($converterregions);
+  static TypeConverter<List<int>, String> $converterbadges =
+      const _DigitsConverter();
+  static TypeConverter<List<int>?, String?> $converterbadgesn =
+      NullAwareTypeConverter.wrap($converterbadges);
   static TypeConverter<MoveHistory, String> $converterhistory =
       const _HistoryConverter();
   static TypeConverter<List<int>, String> $converterhints =
@@ -364,6 +384,15 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
   /// single statement.
   final List<int>? regions;
 
+  /// The constraint badges between cells, or null for a board without badges.
+  ///
+  /// Nullable and added in version 6 (VIB-96), the way [regions] was for Stars:
+  /// Duo's `=`/`x` badges are half its puzzle and nothing else in the row could
+  /// hold them. Encoded as flat integer triples — two cell indices and a
+  /// relation — because the store carries lists of small integers, not any one
+  /// game's types. Sudoku and Stars leave it null and are untouched.
+  final List<int>? badges;
+
   /// The moves still to take back.
   final MoveHistory history;
 
@@ -390,6 +419,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     required this.cells,
     required this.notes,
     this.regions,
+    this.badges,
     required this.history,
     required this.hints,
     required this.wasHinted,
@@ -428,6 +458,11 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
         $SavedGamesTable.$converterregionsn.toSql(regions),
       );
     }
+    if (!nullToAbsent || badges != null) {
+      map['badges'] = Variable<String>(
+        $SavedGamesTable.$converterbadgesn.toSql(badges),
+      );
+    }
     {
       map['history'] = Variable<String>(
         $SavedGamesTable.$converterhistory.toSql(history),
@@ -461,6 +496,9 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       regions: regions == null && nullToAbsent
           ? const Value.absent()
           : Value(regions),
+      badges: badges == null && nullToAbsent
+          ? const Value.absent()
+          : Value(badges),
       history: Value(history),
       hints: Value(hints),
       wasHinted: Value(wasHinted),
@@ -484,6 +522,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       cells: serializer.fromJson<List<int>>(json['cells']),
       notes: serializer.fromJson<List<int>>(json['notes']),
       regions: serializer.fromJson<List<int>?>(json['regions']),
+      badges: serializer.fromJson<List<int>?>(json['badges']),
       history: serializer.fromJson<MoveHistory>(json['history']),
       hints: serializer.fromJson<List<int>>(json['hints']),
       wasHinted: serializer.fromJson<bool>(json['wasHinted']),
@@ -504,6 +543,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       'cells': serializer.toJson<List<int>>(cells),
       'notes': serializer.toJson<List<int>>(notes),
       'regions': serializer.toJson<List<int>?>(regions),
+      'badges': serializer.toJson<List<int>?>(badges),
       'history': serializer.toJson<MoveHistory>(history),
       'hints': serializer.toJson<List<int>>(hints),
       'wasHinted': serializer.toJson<bool>(wasHinted),
@@ -522,6 +562,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     List<int>? cells,
     List<int>? notes,
     Value<List<int>?> regions = const Value.absent(),
+    Value<List<int>?> badges = const Value.absent(),
     MoveHistory? history,
     List<int>? hints,
     bool? wasHinted,
@@ -537,6 +578,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     cells: cells ?? this.cells,
     notes: notes ?? this.notes,
     regions: regions.present ? regions.value : this.regions,
+    badges: badges.present ? badges.value : this.badges,
     history: history ?? this.history,
     hints: hints ?? this.hints,
     wasHinted: wasHinted ?? this.wasHinted,
@@ -556,6 +598,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
       cells: data.cells.present ? data.cells.value : this.cells,
       notes: data.notes.present ? data.notes.value : this.notes,
       regions: data.regions.present ? data.regions.value : this.regions,
+      badges: data.badges.present ? data.badges.value : this.badges,
       history: data.history.present ? data.history.value : this.history,
       hints: data.hints.present ? data.hints.value : this.hints,
       wasHinted: data.wasHinted.present ? data.wasHinted.value : this.wasHinted,
@@ -576,6 +619,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
           ..write('cells: $cells, ')
           ..write('notes: $notes, ')
           ..write('regions: $regions, ')
+          ..write('badges: $badges, ')
           ..write('history: $history, ')
           ..write('hints: $hints, ')
           ..write('wasHinted: $wasHinted, ')
@@ -596,6 +640,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
     cells,
     notes,
     regions,
+    badges,
     history,
     hints,
     wasHinted,
@@ -615,6 +660,7 @@ class SavedGameRow extends DataClass implements Insertable<SavedGameRow> {
           other.cells == this.cells &&
           other.notes == this.notes &&
           other.regions == this.regions &&
+          other.badges == this.badges &&
           other.history == this.history &&
           other.hints == this.hints &&
           other.wasHinted == this.wasHinted &&
@@ -632,6 +678,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
   final Value<List<int>> cells;
   final Value<List<int>> notes;
   final Value<List<int>?> regions;
+  final Value<List<int>?> badges;
   final Value<MoveHistory> history;
   final Value<List<int>> hints;
   final Value<bool> wasHinted;
@@ -648,6 +695,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     this.cells = const Value.absent(),
     this.notes = const Value.absent(),
     this.regions = const Value.absent(),
+    this.badges = const Value.absent(),
     this.history = const Value.absent(),
     this.hints = const Value.absent(),
     this.wasHinted = const Value.absent(),
@@ -665,6 +713,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     required List<int> cells,
     required List<int> notes,
     this.regions = const Value.absent(),
+    this.badges = const Value.absent(),
     required MoveHistory history,
     this.hints = const Value.absent(),
     this.wasHinted = const Value.absent(),
@@ -691,6 +740,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     Expression<String>? cells,
     Expression<String>? notes,
     Expression<String>? regions,
+    Expression<String>? badges,
     Expression<String>? history,
     Expression<String>? hints,
     Expression<bool>? wasHinted,
@@ -708,6 +758,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
       if (cells != null) 'cells': cells,
       if (notes != null) 'notes': notes,
       if (regions != null) 'regions': regions,
+      if (badges != null) 'badges': badges,
       if (history != null) 'history': history,
       if (hints != null) 'hints': hints,
       if (wasHinted != null) 'was_hinted': wasHinted,
@@ -727,6 +778,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
     Value<List<int>>? cells,
     Value<List<int>>? notes,
     Value<List<int>?>? regions,
+    Value<List<int>?>? badges,
     Value<MoveHistory>? history,
     Value<List<int>>? hints,
     Value<bool>? wasHinted,
@@ -744,6 +796,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
       cells: cells ?? this.cells,
       notes: notes ?? this.notes,
       regions: regions ?? this.regions,
+      badges: badges ?? this.badges,
       history: history ?? this.history,
       hints: hints ?? this.hints,
       wasHinted: wasHinted ?? this.wasHinted,
@@ -791,6 +844,11 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
         $SavedGamesTable.$converterregionsn.toSql(regions.value),
       );
     }
+    if (badges.present) {
+      map['badges'] = Variable<String>(
+        $SavedGamesTable.$converterbadgesn.toSql(badges.value),
+      );
+    }
     if (history.present) {
       map['history'] = Variable<String>(
         $SavedGamesTable.$converterhistory.toSql(history.value),
@@ -832,6 +890,7 @@ class SavedGamesCompanion extends UpdateCompanion<SavedGameRow> {
           ..write('cells: $cells, ')
           ..write('notes: $notes, ')
           ..write('regions: $regions, ')
+          ..write('badges: $badges, ')
           ..write('history: $history, ')
           ..write('hints: $hints, ')
           ..write('wasHinted: $wasHinted, ')
@@ -1405,6 +1464,7 @@ typedef $$SavedGamesTableCreateCompanionBuilder = SavedGamesCompanion Function({
   required List<int> cells,
   required List<int> notes,
   Value<List<int>?> regions,
+  Value<List<int>?> badges,
   required MoveHistory history,
   Value<List<int>> hints,
   Value<bool> wasHinted,
@@ -1422,6 +1482,7 @@ typedef $$SavedGamesTableUpdateCompanionBuilder = SavedGamesCompanion Function({
   Value<List<int>> cells,
   Value<List<int>> notes,
   Value<List<int>?> regions,
+  Value<List<int>?> badges,
   Value<MoveHistory> history,
   Value<List<int>> hints,
   Value<bool> wasHinted,
@@ -1482,6 +1543,12 @@ class $$SavedGamesTableFilterComposer
   ColumnWithTypeConverterFilters<List<int>?, List<int>, String> get regions =>
       $composableBuilder(
         column: $table.regions,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<List<int>?, List<int>, String> get badges =>
+      $composableBuilder(
+        column: $table.badges,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
@@ -1568,6 +1635,11 @@ class $$SavedGamesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get badges => $composableBuilder(
+    column: $table.badges,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get history => $composableBuilder(
     column: $table.history,
     builder: (column) => ColumnOrderings(column),
@@ -1634,6 +1706,9 @@ class $$SavedGamesTableAnnotationComposer
   GeneratedColumnWithTypeConverter<List<int>?, String> get regions =>
       $composableBuilder(column: $table.regions, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<List<int>?, String> get badges =>
+      $composableBuilder(column: $table.badges, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<MoveHistory, String> get history =>
       $composableBuilder(column: $table.history, builder: (column) => column);
 
@@ -1692,6 +1767,7 @@ class $$SavedGamesTableTableManager
                 Value<List<int>> cells = const Value.absent(),
                 Value<List<int>> notes = const Value.absent(),
                 Value<List<int>?> regions = const Value.absent(),
+                Value<List<int>?> badges = const Value.absent(),
                 Value<MoveHistory> history = const Value.absent(),
                 Value<List<int>> hints = const Value.absent(),
                 Value<bool> wasHinted = const Value.absent(),
@@ -1708,6 +1784,7 @@ class $$SavedGamesTableTableManager
                 cells: cells,
                 notes: notes,
                 regions: regions,
+                badges: badges,
                 history: history,
                 hints: hints,
                 wasHinted: wasHinted,
@@ -1726,6 +1803,7 @@ class $$SavedGamesTableTableManager
                 required List<int> cells,
                 required List<int> notes,
                 Value<List<int>?> regions = const Value.absent(),
+                Value<List<int>?> badges = const Value.absent(),
                 required MoveHistory history,
                 Value<List<int>> hints = const Value.absent(),
                 Value<bool> wasHinted = const Value.absent(),
@@ -1742,6 +1820,7 @@ class $$SavedGamesTableTableManager
                 cells: cells,
                 notes: notes,
                 regions: regions,
+                badges: badges,
                 history: history,
                 hints: hints,
                 wasHinted: wasHinted,

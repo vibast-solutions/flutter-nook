@@ -270,6 +270,110 @@ NookDatabase databaseFromVersion4() {
   );
 }
 
+/// The tables exactly as schema version 5 created them: version 4 plus the
+/// `pack_progress` table, and still no `badges` column — that is what version 6
+/// added for Duo (VIB-96).
+///
+/// A fifth record beside the four above. A player upgrading to version 6 with a
+/// puzzle in progress is coming from here.
+const String version5Tables = '''
+CREATE TABLE saved_games (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  givens TEXT NOT NULL,
+  solution TEXT NOT NULL,
+  cells TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  regions TEXT,
+  history TEXT NOT NULL,
+  hints TEXT NOT NULL DEFAULT '[]',
+  was_hinted INTEGER NOT NULL DEFAULT 0 CHECK (was_hinted IN (0, 1)),
+  notes_mode INTEGER NOT NULL DEFAULT 0 CHECK (notes_mode IN (0, 1)),
+  elapsed INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (game_id)
+);
+CREATE TABLE statistics (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  solved INTEGER NOT NULL DEFAULT 0,
+  best_time INTEGER,
+  PRIMARY KEY (game_id, difficulty)
+);
+CREATE TABLE pack_progress (
+  pack_id TEXT NOT NULL,
+  served INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (pack_id)
+);
+''';
+
+/// The same unfinished 4x4, saved by a build that had packs but had never heard
+/// of a constraint badge.
+const String version5SudokuRow = '''
+INSERT INTO saved_games (
+  game_id, difficulty, seed, givens, solution, cells, notes, history,
+  hints, was_hinted, notes_mode, elapsed, updated_at
+) VALUES (
+  'sudoku-mini',
+  'gentle',
+  4242,
+  '[1,0,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1]',
+  '[1,2,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]',
+  '[]',
+  '[7]',
+  1,
+  0,
+  187000,
+  '2026-09-02T10:30:00.000Z'
+);
+''';
+
+/// A tiny Stars puzzle in progress beside it, written the way version 5 wrote
+/// one: its region map in `regions`, no givens and no notes.
+const String version5StarsRow = '''
+INSERT INTO saved_games (
+  game_id, difficulty, seed, givens, solution, cells, notes, regions, history,
+  hints, was_hinted, notes_mode, elapsed, updated_at
+) VALUES (
+  'stars',
+  'gentle',
+  99,
+  '[]',
+  '[0,5]',
+  '[2,0,1,0,0,2]',
+  '[]',
+  '[0,0,1,1,2,2]',
+  '[]',
+  '[]',
+  0,
+  0,
+  30000,
+  '2026-09-03T08:00:00.000Z'
+);
+''';
+
+/// A database holding a Sudoku and a Stars save under the version 5 schema,
+/// opened through the current app code — so the version 6 migration runs on the
+/// way in.
+NookDatabase databaseFromVersion5() {
+  return NookDatabase(
+    DatabaseConnection(
+      NativeDatabase.memory(
+        setup: (dynamic raw) {
+          raw.execute(version5Tables);
+          raw.execute(version5SudokuRow);
+          raw.execute(version5StarsRow);
+          raw.execute('PRAGMA user_version = 5;');
+        },
+      ),
+      closeStreamsSynchronously: true,
+    ),
+  );
+}
+
 void main() {
   test('a save from before hints survives the upgrade', () async {
     final NookDatabase database = databaseFromVersion1();
@@ -487,5 +591,97 @@ void main() {
     // Spent: the next claim gives nothing, which is the cue to generate on the
     // device.
     expect(await store.claimNext('sudoku-classic-hard', 3), null);
+  });
+
+  test('a Stars and a sudoku save from before badges survive the upgrade', () async {
+    // The version that added badges is the one that let Duo be saved (VIB-96).
+    // A Sudoku and a Stars puzzle already on a player's phone must come through
+    // it untouched: neither has badges and neither gains any.
+    final NookDatabase database = databaseFromVersion5();
+    addTearDown(database.close);
+
+    final List<SavedGame> saves = await SavedGameStore(database)
+        .watchAll()
+        .first;
+
+    expect(saves, hasLength(2), reason: 'the upgrade lost a saved puzzle');
+    final SavedGame sudoku = saves.firstWhere(
+      (SavedGame save) => save.gameId == 'sudoku-mini',
+    );
+    expect(sudoku.givens, <int>[
+      1,
+      0,
+      0,
+      4,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      4,
+      0,
+      0,
+      1,
+    ], reason: 'the board a player left is the whole point of keeping the row');
+    expect(sudoku.cells[1], 2);
+    expect(sudoku.hints, <int>[7]);
+    expect(sudoku.wasHinted, isTrue);
+    expect(sudoku.elapsed, const Duration(minutes: 3, seconds: 7));
+    expect(sudoku.regions, null);
+    expect(sudoku.badges, null);
+
+    final SavedGame stars = saves.firstWhere(
+      (SavedGame save) => save.gameId == 'stars',
+    );
+    expect(stars.regions, <int>[0, 0, 1, 1, 2, 2]);
+    expect(stars.cells, <int>[2, 0, 1, 0, 0, 2]);
+    expect(stars.solution, <int>[0, 5]);
+    expect(stars.elapsed, const Duration(seconds: 30));
+    // The new column is null for both, which is what says "no badges here" —
+    // and what keeps each row the game it always was.
+    expect(stars.badges, null);
+  });
+
+  test('and a Duo save can be written in beside them', () async {
+    // The point of the column: the two old saves and a Duo puzzle written after
+    // the upgrade sit in the same table, each with its own shape.
+    final NookDatabase database = databaseFromVersion5();
+    addTearDown(database.close);
+    final SavedGameStore store = SavedGameStore(database);
+
+    await store.save(
+      SavedGame(
+        gameId: 'duo',
+        difficulty: 'gentle',
+        seed: 7,
+        givens: const <int>[1, 0, 0, 2],
+        solution: const <int>[1, 2, 2, 1],
+        cells: const <int>[1, 2, 0, 2],
+        notes: const <int>[],
+        badges: const <int>[0, 1, 1, 2, 3, 0],
+        history: const MoveHistory.empty(),
+        elapsed: const Duration(seconds: 45),
+        updatedAt: DateTime.utc(2026, 9, 3, 10),
+      ),
+    );
+
+    final List<SavedGame> saves = await store.watchAll().first;
+    expect(saves, hasLength(3));
+    final SavedGame duo = saves.firstWhere(
+      (SavedGame save) => save.gameId == 'duo',
+    );
+    expect(duo.badges, <int>[0, 1, 1, 2, 3, 0]);
+    expect(duo.regions, null);
+    final SavedGame sudoku = saves.firstWhere(
+      (SavedGame save) => save.gameId == 'sudoku-mini',
+    );
+    expect(sudoku.badges, null, reason: 'the Sudoku row stayed a Sudoku');
+    final SavedGame stars = saves.firstWhere(
+      (SavedGame save) => save.gameId == 'stars',
+    );
+    expect(stars.badges, null, reason: 'the Stars row stayed Stars');
   });
 }

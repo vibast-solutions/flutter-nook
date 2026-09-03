@@ -54,6 +54,15 @@ class SavedGames extends Table {
   /// single statement.
   TextColumn get regions => text().map(const _DigitsConverter()).nullable()();
 
+  /// The constraint badges between cells, or null for a board without badges.
+  ///
+  /// Nullable and added in version 6 (VIB-96), the way [regions] was for Stars:
+  /// Duo's `=`/`x` badges are half its puzzle and nothing else in the row could
+  /// hold them. Encoded as flat integer triples — two cell indices and a
+  /// relation — because the store carries lists of small integers, not any one
+  /// game's types. Sudoku and Stars leave it null and are untouched.
+  TextColumn get badges => text().map(const _DigitsConverter()).nullable()();
+
   /// The moves still to take back.
   TextColumn get history => text().map(const _HistoryConverter())();
 
@@ -157,14 +166,17 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   /// Version 2 added the two hint columns (VIB-76); version 3 the statistics
   /// table (VIB-77); version 4 the nullable `regions` column, which is what
   /// lets a game whose puzzle is a region map — Stars — be saved (VIB-89);
   /// version 5 the `pack_progress` table, the bookmark into each bundled pack
   /// (VIB-78). An upgrading player starts every pack from the beginning, which
-  /// is exactly right — they have seen none of these puzzles.
+  /// is exactly right — they have seen none of these puzzles. Version 6 added
+  /// the nullable `badges` column, which is what lets a game whose puzzle
+  /// carries constraint badges — Duo — be saved (VIB-96); every earlier row
+  /// has no badges and keeps none.
   ///
   /// A save from version 1 is a puzzle nobody was helped with, which is
   /// exactly what the column defaults say. A player who arrives at version 3
@@ -191,6 +203,9 @@ class NookDatabase extends _$NookDatabase {
         }
         if (from < 5) {
           await m.createTable(packProgress);
+        }
+        if (from < 6) {
+          await m.addColumn(savedGames, savedGames.badges);
         }
       },
     );
@@ -270,6 +285,7 @@ class SavedGameStore {
       cells: game.cells,
       notes: game.notes,
       regions: Value<List<int>?>(game.regions),
+      badges: Value<List<int>?>(game.badges),
       history: game.history,
       hints: Value<List<int>>(game.hints),
       wasHinted: Value<bool>(game.wasHinted),
@@ -289,6 +305,7 @@ class SavedGameStore {
       cells: row.cells,
       notes: row.notes,
       regions: row.regions,
+      badges: row.badges,
       history: row.history,
       hints: row.hints,
       wasHinted: row.wasHinted,

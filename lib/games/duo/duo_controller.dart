@@ -38,6 +38,15 @@ final Provider<PuzzleDifficulty> duoDifficultyProvider =
       name: 'duoDifficulty',
     );
 
+/// The game to open instead of generating one, or `null` for a new puzzle.
+///
+/// `null` at the root; the game screen overrides it with a saved board when the
+/// player resumes (VIB-96), and the controller reads it once on build.
+final Provider<DuoGameState?> duoResumeProvider = Provider<DuoGameState?>(
+  (Ref ref) => null,
+  name: 'duoResume',
+);
+
 /// Where new puzzles come from. Overridden in tests.
 final Provider<DuoPuzzleSource> duoPuzzleSourceProvider =
     Provider<DuoPuzzleSource>(
@@ -57,7 +66,11 @@ final AsyncNotifierProvider<DuoController, DuoGameState> duoControllerProvider =
     AsyncNotifierProvider<DuoController, DuoGameState>(
       DuoController.new,
       name: 'duoController',
-      dependencies: [duoVariantProvider, duoDifficultyProvider],
+      dependencies: [
+        duoVariantProvider,
+        duoDifficultyProvider,
+        duoResumeProvider,
+      ],
     );
 
 /// Holds one Duo puzzle and applies the player's moves to it.
@@ -67,7 +80,13 @@ final AsyncNotifierProvider<DuoController, DuoGameState> duoControllerProvider =
 /// frame.
 class DuoController extends AsyncNotifier<DuoGameState> {
   @override
-  Future<DuoGameState> build() => _freshGame();
+  Future<DuoGameState> build() async {
+    final DuoGameState? resumed = ref.watch(duoResumeProvider);
+    if (resumed != null) {
+      return resumed;
+    }
+    return _freshGame();
+  }
 
   /// Cycles the player's cell at [index] through empty → circle → square →
   /// empty, and points the board at it.
