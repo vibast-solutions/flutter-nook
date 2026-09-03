@@ -82,6 +82,10 @@ class DuoGamePage extends StatelessWidget {
       child: Consumer(
         builder: (BuildContext context, WidgetRef ref, Widget? child) {
           final SavedGameStore store = ref.watch(savedGameStoreProvider);
+          // The variant's own slot unless the route says otherwise — the daily
+          // keeps its save under its own id so the two can never discard each
+          // other.
+          final String slot = ref.watch(saveSlotProvider) ?? variant.id;
           return GameSession<DuoGameState>(
             gameProvider: duoControllerProvider,
             isSolved: (DuoGameState game) => game.isSolved,
@@ -93,9 +97,10 @@ class DuoGamePage extends StatelessWidget {
                     difficulty: difficulty,
                     elapsed: elapsed,
                     at: at,
+                    slot: slot,
                   ),
                 ),
-            discardSave: (DuoGameState game) => store.discard(game.variant.id),
+            discardSave: (DuoGameState game) => store.discard(slot),
             child: const _DuoScreen(),
           );
         },
@@ -121,8 +126,11 @@ class _DuoScreen extends ConsumerWidget {
         body: GameCompletionView(
           gameName: variant.title(l10n),
           tierLabel: difficulty.label(l10n),
-          onAnother: () =>
-              ref.read(duoControllerProvider.notifier).startNewPuzzle(),
+          // Regenerating in place is right for an ordinary game; the daily
+          // route pins its seed and supplies a jump to an ordinary one instead.
+          onAnother:
+              ref.watch(completionAnotherProvider) ??
+              () => ref.read(duoControllerProvider.notifier).startNewPuzzle(),
         ),
       );
     }

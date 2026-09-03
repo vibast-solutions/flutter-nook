@@ -70,6 +70,11 @@ final AsyncNotifierProvider<DuoController, DuoGameState> duoControllerProvider =
         duoVariantProvider,
         duoDifficultyProvider,
         duoResumeProvider,
+        // The daily route pins these two in its own scope — the plain
+        // generator at the date's seed. Undeclared they would resolve in the
+        // root container and silently hand out a random puzzle instead.
+        duoPuzzleSourceProvider,
+        duoSeedSourceProvider,
       ],
     );
 

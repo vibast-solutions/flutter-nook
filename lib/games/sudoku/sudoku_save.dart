@@ -43,6 +43,17 @@ class SudokuSave {
     if (variant == null) {
       return null;
     }
+    return readAs(save, variant);
+  }
+
+  /// Reads [save]'s payload as [variant]'s, whatever its [SavedGame.gameId]
+  /// says.
+  ///
+  /// [read] with the variant told rather than looked up: the daily slot stores
+  /// an ordinary payload under its own id, and reading it back has to be this
+  /// code — one change to what a Sudoku save holds would otherwise strand every
+  /// daily on somebody's phone.
+  static SudokuSave? readAs(SavedGame save, SudokuVariant variant) {
     final PuzzleDifficulty? difficulty = _difficultyNamed(save.difficulty);
     if (difficulty == null) {
       return null;
@@ -93,14 +104,19 @@ class SudokuSave {
 /// The tier is passed in rather than read off the puzzle: what the player
 /// chose is what the Continue card should say, and a puzzle handed to the
 /// screen by a test may have been measured at nothing at all.
+///
+/// [slot] is the row the save goes to when it is not the variant's own — the
+/// daily slot. The payload is identical either way; only the id over the door
+/// changes.
 SavedGame savedGameFor(
   SudokuGameState game, {
   required PuzzleDifficulty difficulty,
   required Duration elapsed,
   required DateTime at,
+  String? slot,
 }) {
   return SavedGame(
-    gameId: game.variant.id,
+    gameId: slot ?? game.variant.id,
     difficulty: difficulty.name,
     seed: game.puzzle.seed,
     givens: game.puzzle.givens,

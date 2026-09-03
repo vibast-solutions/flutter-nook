@@ -53,6 +53,16 @@ class StarsSave {
     if (variant == null) {
       return null;
     }
+    return readAs(save, variant);
+  }
+
+  /// Reads [save]'s payload as [variant]'s, whatever its [SavedGame.gameId]
+  /// says.
+  ///
+  /// [read] with the variant told rather than looked up: the daily slot stores
+  /// an ordinary payload under its own id, and reading it back has to be this
+  /// code rather than a copy of it.
+  static StarsSave? readAs(SavedGame save, StarsVariant variant) {
     final PuzzleDifficulty? difficulty = _difficultyNamed(save.difficulty);
     if (difficulty == null) {
       return null;
@@ -139,14 +149,19 @@ class StarsSave {
 /// A Stars row leaves [SavedGame.givens] and [SavedGame.notes] empty — the game
 /// has neither — and puts its region map in [SavedGame.regions], its star cells
 /// in [SavedGame.solution] and the player's marks in [SavedGame.cells].
+///
+/// [slot] is the row the save goes to when it is not the variant's own — the
+/// daily slot. The payload is identical either way; only the id over the door
+/// changes.
 SavedGame savedStarsGame(
   StarsGameState game, {
   required PuzzleDifficulty difficulty,
   required Duration elapsed,
   required DateTime at,
+  String? slot,
 }) {
   return SavedGame(
-    gameId: game.variant.id,
+    gameId: slot ?? game.variant.id,
     difficulty: difficulty.name,
     seed: game.puzzle.seed,
     givens: const <int>[],

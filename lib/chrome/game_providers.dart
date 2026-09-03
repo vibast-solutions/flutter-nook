@@ -30,3 +30,25 @@ final Provider<PuzzleDifficulty> gameDifficultyProvider =
       ),
       name: 'gameDifficulty',
     );
+
+/// Which saved-game slot the session below writes into, or `null` for the
+/// game's own — the variant id, which is the default everywhere but the daily.
+///
+/// The daily puzzle saves under its own id so it can never collide with — or
+/// silently discard — an ordinary puzzle of the same game the player has under
+/// way. The daily route overrides this; a game page reads it and falls back to
+/// its variant id.
+final Provider<String?> saveSlotProvider = Provider<String?>(
+  (Ref ref) => null,
+  name: 'saveSlot',
+);
+
+/// What the completion screen's "another puzzle" button does instead of
+/// regenerating in place, or `null` for the default.
+///
+/// The default — the controller's own `startNewPuzzle` — is right for an
+/// ordinary game, where the seed source hands out a fresh seed. The daily
+/// route pins its seed, so regenerating would hand the player today's puzzle
+/// again; it overrides this with a jump into an ordinary game instead.
+final Provider<void Function()?> completionAnotherProvider =
+    Provider<void Function()?>((Ref ref) => null, name: 'completionAnother');

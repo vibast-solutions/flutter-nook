@@ -81,6 +81,11 @@ sudokuControllerProvider =
         sudokuVariantProvider,
         sudokuDifficultyProvider,
         sudokuResumeProvider,
+        // The daily route pins these two in its own scope — the plain
+        // generator at the date's seed. Undeclared they would resolve in the
+        // root container and silently serve a pack puzzle instead.
+        sudokuPuzzleSourceProvider,
+        sudokuSeedSourceProvider,
       ],
     );
 

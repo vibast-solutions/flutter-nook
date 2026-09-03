@@ -51,6 +51,16 @@ class DuoSave {
     if (variant == null) {
       return null;
     }
+    return readAs(save, variant);
+  }
+
+  /// Reads [save]'s payload as [variant]'s, whatever its [SavedGame.gameId]
+  /// says.
+  ///
+  /// [read] with the variant told rather than looked up: the daily slot stores
+  /// an ordinary payload under its own id, and reading it back has to be this
+  /// code rather than a copy of it.
+  static DuoSave? readAs(SavedGame save, DuoVariant variant) {
     final PuzzleDifficulty? difficulty = _difficultyNamed(save.difficulty);
     if (difficulty == null) {
       return null;
@@ -199,14 +209,19 @@ class DuoSave {
 /// the puzzle's own canonical order, so two saves of the same board are the
 /// same row. A Duo row leaves [SavedGame.notes] empty and [SavedGame.regions]
 /// null — the game has neither.
+///
+/// [slot] is the row the save goes to when it is not the variant's own — the
+/// daily slot. The payload is identical either way; only the id over the door
+/// changes.
 SavedGame savedDuoGame(
   DuoGameState game, {
   required PuzzleDifficulty difficulty,
   required Duration elapsed,
   required DateTime at,
+  String? slot,
 }) {
   return SavedGame(
-    gameId: game.variant.id,
+    gameId: slot ?? game.variant.id,
     difficulty: difficulty.name,
     seed: game.puzzle.seed,
     givens: <int>[
