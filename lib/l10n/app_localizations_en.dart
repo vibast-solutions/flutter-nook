@@ -157,6 +157,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cellDuoCircleBreachTriple(int row, int column) {
+    return 'Row $row, column $column, circle, three in a row';
+  }
+
+  @override
+  String cellDuoSquareBreachTriple(int row, int column) {
+    return 'Row $row, column $column, square, three in a row';
+  }
+
+  @override
+  String cellDuoCircleBreachBalance(int row, int column) {
+    return 'Row $row, column $column, circle, too many circles in this line';
+  }
+
+  @override
+  String cellDuoSquareBreachBalance(int row, int column) {
+    return 'Row $row, column $column, square, too many squares in this line';
+  }
+
+  @override
+  String cellDuoCircleBreachBadge(int row, int column) {
+    return 'Row $row, column $column, circle, breaks a badge';
+  }
+
+  @override
+  String cellDuoSquareBreachBadge(int row, int column) {
+    return 'Row $row, column $column, square, breaks a badge';
+  }
+
+  @override
   String gridSize(int size) {
     return '${size}x$size';
   }
