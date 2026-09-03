@@ -157,6 +157,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cellDuoClearedCircle(int row, int column) {
+    return 'Row $row, column $column, circle taken away, it was wrong';
+  }
+
+  @override
+  String cellDuoClearedSquare(int row, int column) {
+    return 'Row $row, column $column, square taken away, it was wrong';
+  }
+
+  @override
   String cellDuoCircleBreachTriple(int row, int column) {
     return 'Row $row, column $column, circle, three in a row';
   }

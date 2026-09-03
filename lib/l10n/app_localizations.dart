@@ -327,6 +327,18 @@ abstract class AppLocalizations {
   /// **'Row {row}, column {column}, square, given'**
   String cellDuoGivenSquare(int row, int column);
 
+  /// Screen-reader label for a Duo cell a hint has just emptied because the circle in it was wrong — one the solution does not have there. Said for a moment after the hint, then the cell goes back to reading as empty. The symbol is a mistake the hint takes away, not a reveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, circle taken away, it was wrong'**
+  String cellDuoClearedCircle(int row, int column);
+
+  /// Screen-reader label for a Duo cell a hint has just emptied because the square in it was wrong — one the solution does not have there. Said for a moment after the hint, then the cell goes back to reading as empty. The symbol is a mistake the hint takes away, not a reveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, square taken away, it was wrong'**
+  String cellDuoClearedSquare(int row, int column);
+
   /// Screen-reader label for a Duo cell holding a circle that is part of a run of three or more identical symbols in a row or column — a broken rule.
   ///
   /// In en, this message translates to:

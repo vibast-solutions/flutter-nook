@@ -119,6 +119,7 @@ Future<void> pumpDuoGame(
   NookDatabase? database,
   TestClock? clock,
   double width = 400,
+  bool disableAnimations = false,
 }) async {
   final DuoPuzzle fixed = puzzle ?? fixedDuoPuzzle();
   await setPhoneSurface(tester, width: width);
@@ -131,6 +132,11 @@ Future<void> pumpDuoGame(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
+        builder: (BuildContext context, Widget? child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(disableAnimations: disableAnimations),
+          child: child!,
+        ),
         home: DuoGamePage(
           variant: DuoVariant.standard,
           difficulty: PuzzleDifficulty.gentle,
@@ -140,6 +146,20 @@ Future<void> pumpDuoGame(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// Lets the hint control's pacing run out, so it can be used again.
+///
+/// The wait is four seconds of a clock the test owns, not four seconds of
+/// anybody's life.
+Future<void> settleHintPacing(WidgetTester tester) async {
+  await tester.pump(kHintPacing);
+  await tester.pumpAndSettle();
+}
+
+/// The colour the action-row control with the id [id] is filled with.
+Color actionBackground(WidgetTester tester, String id) {
+  return tester.widget<Material>(find.byKey(BoardActionRow.keyFor(id))).color!;
 }
 
 /// A part-played Duo puzzle, written exactly as the app would write it.
