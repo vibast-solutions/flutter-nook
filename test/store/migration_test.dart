@@ -197,6 +197,79 @@ NookDatabase databaseFromVersion3() {
   );
 }
 
+/// The tables exactly as schema version 4 created them: version 3 plus the
+/// nullable `regions` column, and still no `pack_progress` table — that is what
+/// version 5 added for the bundled packs (VIB-78).
+///
+/// A fourth record beside the three above. A player upgrading to version 5 with
+/// a puzzle in progress is coming from here.
+const String version4Tables = '''
+CREATE TABLE saved_games (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  givens TEXT NOT NULL,
+  solution TEXT NOT NULL,
+  cells TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  regions TEXT,
+  history TEXT NOT NULL,
+  hints TEXT NOT NULL DEFAULT '[]',
+  was_hinted INTEGER NOT NULL DEFAULT 0 CHECK (was_hinted IN (0, 1)),
+  notes_mode INTEGER NOT NULL DEFAULT 0 CHECK (notes_mode IN (0, 1)),
+  elapsed INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (game_id)
+);
+CREATE TABLE statistics (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  solved INTEGER NOT NULL DEFAULT 0,
+  best_time INTEGER,
+  PRIMARY KEY (game_id, difficulty)
+);
+''';
+
+/// The same unfinished 4x4, saved by a build that had regions but had never
+/// heard of a bundled pack.
+const String version4Row = '''
+INSERT INTO saved_games (
+  game_id, difficulty, seed, givens, solution, cells, notes, history,
+  hints, was_hinted, notes_mode, elapsed, updated_at
+) VALUES (
+  'sudoku-mini',
+  'gentle',
+  4242,
+  '[1,0,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1]',
+  '[1,2,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]',
+  '[]',
+  '[7]',
+  1,
+  0,
+  187000,
+  '2026-09-02T10:30:00.000Z'
+);
+''';
+
+/// A database holding [version4Row] under the version 4 schema, opened through
+/// the current app code — so the version 5 migration runs on the way in.
+NookDatabase databaseFromVersion4() {
+  return NookDatabase(
+    DatabaseConnection(
+      NativeDatabase.memory(
+        setup: (dynamic raw) {
+          raw.execute(version4Tables);
+          raw.execute(version4Row);
+          raw.execute('PRAGMA user_version = 4;');
+        },
+      ),
+      closeStreamsSynchronously: true,
+    ),
+  );
+}
+
 void main() {
   test('a save from before hints survives the upgrade', () async {
     final NookDatabase database = databaseFromVersion1();
@@ -377,5 +450,42 @@ void main() {
       (SavedGame save) => save.gameId == 'sudoku-mini',
     );
     expect(sudoku.regions, null, reason: 'the Sudoku row stayed a Sudoku');
+  });
+
+  test('a save from before packs survives the upgrade', () async {
+    // The version that added pack progress (VIB-78) touches nothing a player
+    // already has: a puzzle in progress must come through the upgrade exactly
+    // as it was left.
+    final NookDatabase database = databaseFromVersion4();
+    addTearDown(database.close);
+
+    final List<SavedGame> saves = await SavedGameStore(database)
+        .watchAll()
+        .first;
+
+    expect(saves, hasLength(1), reason: 'the upgrade lost a saved puzzle');
+    final SavedGame save = saves.single;
+    expect(save.gameId, 'sudoku-mini');
+    expect(save.cells[1], 2);
+    expect(save.hints, <int>[7]);
+    expect(save.wasHinted, isTrue);
+    expect(save.elapsed, const Duration(minutes: 3, seconds: 7));
+    expect(save.regions, null);
+  });
+
+  test('and the new pack-progress table is there to be claimed against', () async {
+    // The point of the migration: after it runs, the bookmark into the bundled
+    // packs exists and hands puzzles out in order. A player upgrading has seen
+    // none of them, so the first claim is index 0.
+    final NookDatabase database = databaseFromVersion4();
+    addTearDown(database.close);
+    final PackProgressStore store = PackProgressStore(database);
+
+    expect(await store.claimNext('sudoku-classic-hard', 3), 0);
+    expect(await store.claimNext('sudoku-classic-hard', 3), 1);
+    expect(await store.claimNext('sudoku-classic-hard', 3), 2);
+    // Spent: the next claim gives nothing, which is the cue to generate on the
+    // device.
+    expect(await store.claimNext('sudoku-classic-hard', 3), null);
   });
 }
