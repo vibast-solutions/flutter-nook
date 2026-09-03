@@ -76,9 +76,17 @@ void main() {
       }
     });
 
-    test('is gentle, and says so', () {
-      final StarsPuzzle puzzle = generator.generate(7);
-      expect(puzzle.difficulty, PuzzleDifficulty.gentle);
+    test('labels every puzzle with the tier it measures at', () {
+      final StarsRater rater = StarsRater(spec);
+      for (int seed = 1; seed <= 40; seed++) {
+        final StarsPuzzle puzzle = generator.generate(seed);
+        expect(puzzle.difficulty, isNotNull, reason: 'seed $seed has no tier');
+        expect(
+          puzzle.difficulty,
+          rater.rate(logic.solve(puzzle.regions)),
+          reason: 'seed $seed is labelled something it does not measure',
+        );
+      }
     });
 
     test('the same seed produces an identical puzzle', () {

@@ -8,24 +8,27 @@ void main() {
   final StarsGenerator generator = StarsGenerator(spec);
 
   group('StarsLogicSolver', () {
-    test('finishes a generated gentle puzzle using the simple rung only', () {
-      final StarsPuzzle puzzle = generator.generate(3);
+    test('finishes a gentle puzzle using the simple rungs only', () {
+      final StarsPuzzle puzzle = generator.generateAt(
+        PuzzleDifficulty.gentle,
+        3,
+      );
       final StarsSolveReport report = logic.solve(puzzle.regions);
 
       expect(report.isSolved, isTrue);
       expect(report.stars, solver.solve(puzzle.regions));
-      // VIB-85 carries one technique; everything it did was that rung.
+      // A gentle puzzle needs only the simple band.
       expect(report.hardestTier, TechniqueTier.simple);
-      expect(report.hardest, StarsTechnique.soleCandidate);
+      expect(report.hardest, StarsTechnique.regionSingle);
       expect(report.countOf(TechniqueTier.simple), greaterThan(0));
       expect(report.countOf(TechniqueTier.intermediate), 0);
     });
 
-    test('places the star of a single-cell region straight away', () {
-      // Region 0 is one cell; the rest of the board is split into seven other
-      // regions. A unit already down to its star count is where the simple rung
-      // starts, so that single cell is a star.
-      final StarsPuzzle puzzle = generator.generate(3);
+    test('places the star of a shrunken region straight away', () {
+      final StarsPuzzle puzzle = generator.generateAt(
+        PuzzleDifficulty.gentle,
+        3,
+      );
       final StarsSolveReport report = logic.solve(puzzle.regions);
       for (final int star in report.stars) {
         expect(puzzle.regions[star], inInclusiveRange(0, 7));
