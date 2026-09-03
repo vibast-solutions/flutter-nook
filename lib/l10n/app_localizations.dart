@@ -237,17 +237,95 @@ abstract class AppLocalizations {
   /// **'The regions, each with its own colour and pattern'**
   String get starsLegendLabel;
 
-  /// Name of the Duo puzzle, listed on the home screen before it is playable.
+  /// Name of the Duo puzzle, in the game list and its header.
   ///
   /// In en, this message translates to:
   /// **'Duo'**
   String get duoTitle;
 
-  /// What Duo is, plus a note that it is not playable yet.
+  /// The one-line description of Duo in the home game list.
   ///
   /// In en, this message translates to:
-  /// **'Circles and squares, never three in a row · coming soon'**
+  /// **'Circles and squares, never three in a row'**
   String get duoSubtitle;
+
+  /// The single line of instruction under the Duo board: a tap cycles a cell from empty, to a circle, to a square, and back.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a cell for a circle, again for a square'**
+  String get duoInstruction;
+
+  /// Screen-reader label for the legend below the Duo board, which explains the two symbols and the two badges.
+  ///
+  /// In en, this message translates to:
+  /// **'The board\'s key: what each symbol and badge means'**
+  String get duoLegendLabel;
+
+  /// The word for the round symbol, beside a circle glyph in the Duo legend.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle'**
+  String get duoLegendCircle;
+
+  /// The word for the square symbol, beside a square glyph in the Duo legend.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get duoLegendSquare;
+
+  /// What an '=' badge means in Duo: the two cells it sits between hold the same symbol. Shown beside the '=' glyph in the legend.
+  ///
+  /// In en, this message translates to:
+  /// **'Same'**
+  String get duoLegendEqual;
+
+  /// What an 'x' badge means in Duo: the two cells it sits between hold different symbols. Shown beside the 'x' glyph in the legend.
+  ///
+  /// In en, this message translates to:
+  /// **'Different'**
+  String get duoLegendUnequal;
+
+  /// Screen-reader label for an '=' badge on the Duo board: the two cells it joins must hold the same symbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Same-symbol badge'**
+  String get duoBadgeEqual;
+
+  /// Screen-reader label for an 'x' badge on the Duo board: the two cells it joins must hold different symbols.
+  ///
+  /// In en, this message translates to:
+  /// **'Different-symbol badge'**
+  String get duoBadgeUnequal;
+
+  /// Screen-reader label for an empty Duo cell. Rows and columns are counted from one.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, empty'**
+  String cellDuoEmpty(int row, int column);
+
+  /// Screen-reader label for a Duo cell holding a circle the player placed.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, circle'**
+  String cellDuoCircle(int row, int column);
+
+  /// Screen-reader label for a Duo cell holding a square the player placed.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, square'**
+  String cellDuoSquare(int row, int column);
+
+  /// Screen-reader label for a Duo cell whose circle came with the puzzle and cannot be changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, circle, given'**
+  String cellDuoGivenCircle(int row, int column);
+
+  /// Screen-reader label for a Duo cell whose square came with the puzzle and cannot be changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, square, given'**
+  String cellDuoGivenSquare(int row, int column);
 
   /// A square grid's size, as a player reads it aloud: 4x4, 6x6, 9x9.
   ///
