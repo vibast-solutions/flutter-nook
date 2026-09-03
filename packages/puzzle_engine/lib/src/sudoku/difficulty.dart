@@ -1,35 +1,11 @@
 import 'package:meta/meta.dart';
 
+import '../difficulty.dart';
 import 'logic_solver.dart';
 import 'spec.dart';
 import 'technique.dart';
 
-/// How hard a puzzle is, as the player is told it.
-///
-/// A tier is *measured* by [SudokuRater], never assumed from how many cells
-/// were left blank: two puzzles with the same number of givens routinely sit
-/// two tiers apart. Tiers are never locked — a new player may start on
-/// [fiendish].
-///
-/// The tiers carry no names. A name a player reads has to be translated, and
-/// this package is pure Dart on purpose — so naming a tier is the app's job.
-/// What lives here is the order, which is the part the rating depends on.
-enum SudokuDifficulty {
-  /// Every cell can be read off on its own.
-  gentle,
-
-  /// Still only scanning, but the board has to be searched for it.
-  easy,
-
-  /// At least one deduction that rules candidates out before placing.
-  medium,
-
-  /// Those deductions again and again.
-  hard,
-
-  /// Reasoning across the whole grid at once.
-  fiendish,
-}
+export '../difficulty.dart' show PuzzleDifficulty;
 
 /// Where one tier stops and the next begins.
 ///
@@ -87,27 +63,27 @@ class SudokuRater {
   /// `null` is a rejection, never a promotion: a puzzle that stalls the
   /// technique solver is one that would need a guess, and Nook throws those
   /// away rather than offering them as a harder tier.
-  SudokuDifficulty? rate(SudokuSolveReport report) {
+  PuzzleDifficulty? rate(SudokuSolveReport report) {
     if (!report.isSolved) {
       return null;
     }
     final SudokuTechnique? hardest = report.hardest;
     if (hardest == null) {
       // Nothing to deduce: the grid arrived complete.
-      return SudokuDifficulty.gentle;
+      return PuzzleDifficulty.gentle;
     }
     switch (hardest.tier) {
       case TechniqueTier.simple:
         return hardest == SudokuTechnique.nakedSingle
-            ? SudokuDifficulty.gentle
-            : SudokuDifficulty.easy;
+            ? PuzzleDifficulty.gentle
+            : PuzzleDifficulty.easy;
       case TechniqueTier.intermediate:
         return report.countOf(TechniqueTier.intermediate) >=
                 boundaries.hardFromIntermediateSteps
-            ? SudokuDifficulty.hard
-            : SudokuDifficulty.medium;
+            ? PuzzleDifficulty.hard
+            : PuzzleDifficulty.medium;
       case TechniqueTier.advanced:
-        return SudokuDifficulty.fiendish;
+        return PuzzleDifficulty.fiendish;
     }
   }
 
@@ -132,18 +108,18 @@ class SudokuRater {
   /// Retake the measurement whenever the ladder or [DifficultyBoundaries]
   /// change; `test/sudoku/difficulty_test.dart` fails if a listed tier stops
   /// being reachable.
-  static List<SudokuDifficulty> tiersFor(SudokuSpec spec) {
+  static List<PuzzleDifficulty> tiersFor(SudokuSpec spec) {
     switch (spec.size) {
       case 4:
-        return const <SudokuDifficulty>[SudokuDifficulty.gentle];
+        return const <PuzzleDifficulty>[PuzzleDifficulty.gentle];
       case 6:
-        return const <SudokuDifficulty>[
-          SudokuDifficulty.gentle,
-          SudokuDifficulty.easy,
-          SudokuDifficulty.fiendish,
+        return const <PuzzleDifficulty>[
+          PuzzleDifficulty.gentle,
+          PuzzleDifficulty.easy,
+          PuzzleDifficulty.fiendish,
         ];
       default:
-        return SudokuDifficulty.values;
+        return PuzzleDifficulty.values;
     }
   }
 }

@@ -6,7 +6,14 @@
 /// and reproducible from a seed alone.
 library;
 
+export 'src/difficulty.dart';
 export 'src/random.dart';
+export 'src/stars/generator.dart';
+export 'src/stars/logic_solver.dart';
+export 'src/stars/puzzle.dart';
+export 'src/stars/solver.dart';
+export 'src/stars/spec.dart';
+export 'src/stars/technique.dart';
 export 'src/sudoku/difficulty.dart';
 export 'src/sudoku/generator.dart';
 export 'src/sudoku/hint.dart';
@@ -15,3 +22,4 @@ export 'src/sudoku/puzzle.dart';
 export 'src/sudoku/solver.dart';
 export 'src/sudoku/spec.dart';
 export 'src/sudoku/technique.dart';
+export 'src/technique.dart';

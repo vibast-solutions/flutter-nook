@@ -17,7 +17,7 @@ void main() {
       final SudokuLogicSolver logic = SudokuLogicSolver(spec);
       final SudokuRater rater = SudokuRater(spec);
 
-      for (final SudokuDifficulty tier in SudokuRater.tiersFor(spec)) {
+      for (final PuzzleDifficulty tier in SudokuRater.tiersFor(spec)) {
         test('$name ${tier.name}', () {
           for (int seed = 1; seed <= 8; seed++) {
             final SudokuPuzzle puzzle = generator.generateAt(tier, seed);
@@ -64,12 +64,12 @@ void main() {
       for (int seed = 1; seed <= 400; seed++) {
         expect(
           rater.rate(logic.solve(generator.generate(seed).givens)),
-          SudokuDifficulty.gentle,
+          PuzzleDifficulty.gentle,
           reason: 'seed $seed was not Gentle, so Mini may have grown a ladder',
         );
       }
-      expect(SudokuRater.tiersFor(SudokuSpec.mini), <SudokuDifficulty>[
-        SudokuDifficulty.gentle,
+      expect(SudokuRater.tiersFor(SudokuSpec.mini), <PuzzleDifficulty>[
+        PuzzleDifficulty.gentle,
       ]);
     });
 
@@ -79,11 +79,11 @@ void main() {
       final SudokuGenerator generator = SudokuGenerator(SudokuSpec.light);
       final SudokuLogicSolver logic = SudokuLogicSolver(SudokuSpec.light);
       final SudokuRater rater = SudokuRater(SudokuSpec.light);
-      final Map<SudokuDifficulty, int> tally = <SudokuDifficulty, int>{};
+      final Map<PuzzleDifficulty, int> tally = <PuzzleDifficulty, int>{};
 
       const int grids = 400;
       for (int seed = 1; seed <= grids; seed++) {
-        final SudokuDifficulty? rating = rater.rate(
+        final PuzzleDifficulty? rating = rater.rate(
           logic.solve(generator.generate(seed).givens),
         );
         if (rating != null) {
@@ -92,22 +92,22 @@ void main() {
       }
 
       final int middle =
-          (tally[SudokuDifficulty.medium] ?? 0) +
-          (tally[SudokuDifficulty.hard] ?? 0);
+          (tally[PuzzleDifficulty.medium] ?? 0) +
+          (tally[PuzzleDifficulty.hard] ?? 0);
       expect(
         middle / grids,
         lessThan(0.02),
         reason: 'the middle tiers became common; 6x6 could now offer them',
       );
-      expect(SudokuRater.tiersFor(SudokuSpec.light), <SudokuDifficulty>[
-        SudokuDifficulty.gentle,
-        SudokuDifficulty.easy,
-        SudokuDifficulty.fiendish,
+      expect(SudokuRater.tiersFor(SudokuSpec.light), <PuzzleDifficulty>[
+        PuzzleDifficulty.gentle,
+        PuzzleDifficulty.easy,
+        PuzzleDifficulty.fiendish,
       ]);
     });
 
     test('a 9x9 spans the whole ladder', () {
-      expect(SudokuRater.tiersFor(SudokuSpec.classic), SudokuDifficulty.values);
+      expect(SudokuRater.tiersFor(SudokuSpec.classic), PuzzleDifficulty.values);
     });
   });
 
@@ -116,17 +116,17 @@ void main() {
       // The rule the whole model rests on. If clue count told you the tier,
       // these ranges would sit side by side instead of on top of each other.
       final SudokuGenerator generator = SudokuGenerator(SudokuSpec.classic);
-      final Map<SudokuDifficulty, List<int>> counts =
-          <SudokuDifficulty, List<int>>{};
-      for (final SudokuDifficulty tier in SudokuDifficulty.values) {
+      final Map<PuzzleDifficulty, List<int>> counts =
+          <PuzzleDifficulty, List<int>>{};
+      for (final PuzzleDifficulty tier in PuzzleDifficulty.values) {
         counts[tier] = <int>[
           for (int seed = 1; seed <= 12; seed++)
             generator.generateAt(tier, seed).givenCount,
         ];
       }
 
-      for (final SudokuDifficulty a in SudokuDifficulty.values) {
-        for (final SudokuDifficulty b in SudokuDifficulty.values) {
+      for (final PuzzleDifficulty a in PuzzleDifficulty.values) {
+        for (final PuzzleDifficulty b in PuzzleDifficulty.values) {
           if (a == b) {
             continue;
           }
@@ -161,16 +161,16 @@ void main() {
       final SudokuLogicSolver logic = SudokuLogicSolver(SudokuSpec.classic);
 
       for (int seed = 1; seed <= 6; seed++) {
-        for (final SudokuDifficulty tier in <SudokuDifficulty>[
-          SudokuDifficulty.medium,
-          SudokuDifficulty.hard,
+        for (final PuzzleDifficulty tier in <PuzzleDifficulty>[
+          PuzzleDifficulty.medium,
+          PuzzleDifficulty.hard,
         ]) {
           final SudokuSolveReport report = logic.solve(
             generator.generateAt(tier, seed).givens,
           );
           final int steps = report.countOf(TechniqueTier.intermediate);
           expect(
-            tier == SudokuDifficulty.hard ? steps >= line : steps < line,
+            tier == PuzzleDifficulty.hard ? steps >= line : steps < line,
             isTrue,
             reason: '${tier.name} seed $seed used $steps of them',
           );
@@ -184,7 +184,7 @@ void main() {
       // A save stores a seed and a tier rather than a grid, so this is the
       // property that lets a puzzle be put down and picked up again.
       final SudokuGenerator generator = SudokuGenerator(SudokuSpec.classic);
-      for (final SudokuDifficulty tier in SudokuDifficulty.values) {
+      for (final PuzzleDifficulty tier in PuzzleDifficulty.values) {
         final SudokuPuzzle first = generator.generateAt(tier, 77);
         final SudokuPuzzle second = SudokuGenerator(SudokuSpec.classic)
             .generateAt(tier, 77);
@@ -198,7 +198,7 @@ void main() {
       expect(
         () =>
             SudokuGenerator(SudokuSpec.mini)
-                .generateAt(SudokuDifficulty.fiendish, 1, maxAttempts: 5),
+                .generateAt(PuzzleDifficulty.fiendish, 1, maxAttempts: 5),
         throwsA(isA<SudokuGenerationException>()),
       );
     });
@@ -210,7 +210,7 @@ void main() {
       final SudokuGenerator generator = SudokuGenerator(SudokuSpec.classic);
       final Stopwatch watch = Stopwatch()..start();
       for (int seed = 1; seed <= 5; seed++) {
-        generator.generateAt(SudokuDifficulty.fiendish, seed);
+        generator.generateAt(PuzzleDifficulty.fiendish, seed);
       }
       watch.stop();
       expect(watch.elapsed, lessThan(const Duration(seconds: 20)));

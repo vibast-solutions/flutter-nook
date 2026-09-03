@@ -1,22 +1,10 @@
-/// How hard a family of deductions is to see at the board.
-///
-/// The three bands come straight from the technique ladder in the design docs.
-/// They exist so difficulty can be described by *what kind* of thinking a
-/// puzzle demanded, before any counting happens.
-enum TechniqueTier {
-  /// Look at one cell, or one unit, and read the answer off it.
-  simple,
+import '../technique.dart';
 
-  /// Reason about a small group of cells to rule candidates out, then place.
-  intermediate,
-
-  /// Reason across several units at once. Notes are effectively necessary.
-  advanced,
-}
+export '../technique.dart' show TechniqueTier;
 
 /// One deduction a person could make at a Sudoku board.
 ///
-/// Like [SudokuDifficulty] these carry no names: the name a player is shown in
+/// Like [PuzzleDifficulty] these carry no names: the name a player is shown in
 /// a hint is translated, and this package must stay Flutter-free.
 ///
 /// The declaration order is the ladder: the solver tries them in this order and

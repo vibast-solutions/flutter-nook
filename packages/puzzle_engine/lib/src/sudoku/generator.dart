@@ -18,7 +18,7 @@ class SudokuGenerationException implements Exception {
   final SudokuSpec spec;
 
   /// The tier that could not be reached.
-  final SudokuDifficulty target;
+  final PuzzleDifficulty target;
 
   /// How many grids were tried before giving up.
   final int attempts;
@@ -105,7 +105,7 @@ class SudokuGenerator {
   ///
   /// Throws [SudokuGenerationException] if [maxAttempts] grids all fail.
   SudokuPuzzle generateAt(
-    SudokuDifficulty target,
+    PuzzleDifficulty target,
     int seed, {
     int maxAttempts = defaultMaxAttempts,
   }) {
@@ -113,7 +113,7 @@ class SudokuGenerator {
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       final int attemptSeed = attempts.nextUint32();
       final _Carved carved = _carve(attemptSeed);
-      final SudokuDifficulty? rating = _rate(carved.givens);
+      final PuzzleDifficulty? rating = _rate(carved.givens);
 
       if (rating != target) {
         if (!_isAbove(rating, target)) {
@@ -143,13 +143,13 @@ class SudokuGenerator {
   /// Whether [rating] is harder than [target]. An unrated puzzle — one the
   /// technique solver could not finish — counts as harder than anything, which
   /// is what lets easing rescue it instead of throwing the grid away.
-  bool _isAbove(SudokuDifficulty? rating, SudokuDifficulty target) =>
+  bool _isAbove(PuzzleDifficulty? rating, PuzzleDifficulty target) =>
       rating == null || rating.index > target.index;
 
   /// Puts givens back until the grid measures [target], leaving [carved]
   /// changed only if it succeeded.
   bool _easeTowards(
-    SudokuDifficulty target,
+    PuzzleDifficulty target,
     _Carved carved,
     PuzzleRandom random,
   ) {
@@ -163,7 +163,7 @@ class SudokuGenerator {
         final int index = spare[slot];
         carved.givens[index] = carved.solution[index];
         budget--;
-        final SudokuDifficulty? rating = _rate(carved.givens);
+        final PuzzleDifficulty? rating = _rate(carved.givens);
         if (rating == target) {
           return true;
         }
@@ -183,7 +183,7 @@ class SudokuGenerator {
     return false;
   }
 
-  SudokuDifficulty? _rate(List<int> givens) =>
+  PuzzleDifficulty? _rate(List<int> givens) =>
       _rater.rate(_logic.solve(givens));
 
   /// Carves a minimal puzzle out of a fresh solution, recording which cells it

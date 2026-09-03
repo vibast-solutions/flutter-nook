@@ -33,7 +33,7 @@ class SudokuPuzzle {
   ///
   /// Measured by running a solver that only makes deductions a person could
   /// make, never inferred from [givenCount].
-  final SudokuDifficulty? difficulty;
+  final PuzzleDifficulty? difficulty;
 
   /// The starting grid, `0` for the cells the player must fill.
   final List<int> givens;
