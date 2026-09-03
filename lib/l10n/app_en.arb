@@ -116,9 +116,65 @@
   "starsLegendLabel": "The regions, each with its own colour and pattern",
   "@starsLegendLabel": { "description": "Screen-reader label for the legend of region swatches below the Stars board." },
   "duoTitle": "Duo",
-  "@duoTitle": { "description": "Name of the Duo puzzle, listed on the home screen before it is playable." },
-  "duoSubtitle": "Circles and squares, never three in a row · coming soon",
-  "@duoSubtitle": { "description": "What Duo is, plus a note that it is not playable yet." },
+  "@duoTitle": { "description": "Name of the Duo puzzle, in the game list and its header." },
+  "duoSubtitle": "Circles and squares, never three in a row",
+  "@duoSubtitle": { "description": "The one-line description of Duo in the home game list." },
+  "duoInstruction": "Tap a cell for a circle, again for a square",
+  "@duoInstruction": { "description": "The single line of instruction under the Duo board: a tap cycles a cell from empty, to a circle, to a square, and back." },
+  "duoLegendLabel": "The board's key: what each symbol and badge means",
+  "@duoLegendLabel": { "description": "Screen-reader label for the legend below the Duo board, which explains the two symbols and the two badges." },
+  "duoLegendCircle": "Circle",
+  "@duoLegendCircle": { "description": "The word for the round symbol, beside a circle glyph in the Duo legend." },
+  "duoLegendSquare": "Square",
+  "@duoLegendSquare": { "description": "The word for the square symbol, beside a square glyph in the Duo legend." },
+  "duoLegendEqual": "Same",
+  "@duoLegendEqual": { "description": "What an '=' badge means in Duo: the two cells it sits between hold the same symbol. Shown beside the '=' glyph in the legend." },
+  "duoLegendUnequal": "Different",
+  "@duoLegendUnequal": { "description": "What an 'x' badge means in Duo: the two cells it sits between hold different symbols. Shown beside the 'x' glyph in the legend." },
+  "duoBadgeEqual": "Same-symbol badge",
+  "@duoBadgeEqual": { "description": "Screen-reader label for an '=' badge on the Duo board: the two cells it joins must hold the same symbol." },
+  "duoBadgeUnequal": "Different-symbol badge",
+  "@duoBadgeUnequal": { "description": "Screen-reader label for an 'x' badge on the Duo board: the two cells it joins must hold different symbols." },
+  "cellDuoEmpty": "Row {row}, column {column}, empty",
+  "@cellDuoEmpty": {
+    "description": "Screen-reader label for an empty Duo cell. Rows and columns are counted from one.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoCircle": "Row {row}, column {column}, circle",
+  "@cellDuoCircle": {
+    "description": "Screen-reader label for a Duo cell holding a circle the player placed.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoSquare": "Row {row}, column {column}, square",
+  "@cellDuoSquare": {
+    "description": "Screen-reader label for a Duo cell holding a square the player placed.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoGivenCircle": "Row {row}, column {column}, circle, given",
+  "@cellDuoGivenCircle": {
+    "description": "Screen-reader label for a Duo cell whose circle came with the puzzle and cannot be changed.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
+  "cellDuoGivenSquare": "Row {row}, column {column}, square, given",
+  "@cellDuoGivenSquare": {
+    "description": "Screen-reader label for a Duo cell whose square came with the puzzle and cannot be changed.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" }
+    }
+  },
 
   "gridSize": "{size}x{size}",
   "@gridSize": {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../chrome/continue_card.dart';
 import '../chrome/difficulty_naming.dart';
@@ -7,6 +8,8 @@ import '../chrome/play_clock.dart';
 import '../chrome/resume.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
+import '../games/duo/duo_screen.dart';
+import '../games/duo/duo_variant.dart';
 import '../games/stars/stars_difficulty.dart';
 import '../games/stars/stars_naming.dart';
 import '../games/stars/stars_save.dart';
@@ -74,8 +77,11 @@ class HomeScreen extends ConsumerWidget {
     _GameEntry(
       title: l10n.duoTitle,
       subtitle: l10n.duoSubtitle,
-      icon: Icons.circle_outlined,
+      icon: duoIcon,
       accent: false,
+      open: (BuildContext context) => Navigator.of(
+        context,
+      ).push(DuoGamePage.route(DuoVariant.standard, PuzzleDifficulty.gentle)),
     ),
   ];
 
@@ -222,6 +228,12 @@ IconData sudokuIcon(SudokuVariant variant) {
 /// card and the row must never disagree about which game the player is looking
 /// at.
 const IconData starsIcon = Icons.star_outline_rounded;
+
+/// The glyph Duo is drawn with, on its game row.
+///
+/// A constant, not a function of the variant: there is one Duo board, and the
+/// row must always show the same game the player is looking at.
+const IconData duoIcon = Icons.contrast_rounded;
 
 /// The puzzle waiting to be carried on with, at the top of the home screen.
 ///

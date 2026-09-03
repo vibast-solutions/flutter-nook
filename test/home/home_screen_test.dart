@@ -98,16 +98,18 @@ void main() {
       );
     });
 
-    testWidgets('marks the games that are not built yet', (
+    testWidgets('every game in the list is playable', (
       WidgetTester tester,
     ) async {
       await pumpHome(tester);
 
-      // Every Sudoku and Stars is playable now; only Duo is still to come.
-      expect(find.textContaining('coming soon'), findsOneWidget);
+      // Every game is built now — Duo landed with VIB-93 — so nothing in the
+      // list is greyed with a "coming soon".
+      expect(find.textContaining('coming soon'), findsNothing);
       expect(find.text('9x9 · the full grid'), findsOneWidget);
       expect(find.text('6x6 · a gentler grid'), findsOneWidget);
       expect(find.text('4x4 · a few quiet minutes'), findsOneWidget);
+      expect(find.text(en.duoSubtitle), findsOneWidget);
     });
 
     for (final SudokuVariant variant in allVariants) {
@@ -150,19 +152,6 @@ void main() {
         );
       });
     }
-
-    testWidgets('does nothing when a game that is not ready is tapped', (
-      WidgetTester tester,
-    ) async {
-      await pumpHome(tester);
-
-      // Duo is still to come; tapping it should go nowhere.
-      await tester.tap(find.text('Duo'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('START A NEW ONE'), findsNothing);
-      expect(find.byType(HomeScreen), findsOneWidget);
-    });
 
     testWidgets('every screen can be backed out of', (
       WidgetTester tester,

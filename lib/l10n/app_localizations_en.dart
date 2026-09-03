@@ -104,8 +104,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get duoTitle => 'Duo';
 
   @override
-  String get duoSubtitle =>
-      'Circles and squares, never three in a row · coming soon';
+  String get duoSubtitle => 'Circles and squares, never three in a row';
+
+  @override
+  String get duoInstruction => 'Tap a cell for a circle, again for a square';
+
+  @override
+  String get duoLegendLabel =>
+      'The board\'s key: what each symbol and badge means';
+
+  @override
+  String get duoLegendCircle => 'Circle';
+
+  @override
+  String get duoLegendSquare => 'Square';
+
+  @override
+  String get duoLegendEqual => 'Same';
+
+  @override
+  String get duoLegendUnequal => 'Different';
+
+  @override
+  String get duoBadgeEqual => 'Same-symbol badge';
+
+  @override
+  String get duoBadgeUnequal => 'Different-symbol badge';
+
+  @override
+  String cellDuoEmpty(int row, int column) {
+    return 'Row $row, column $column, empty';
+  }
+
+  @override
+  String cellDuoCircle(int row, int column) {
+    return 'Row $row, column $column, circle';
+  }
+
+  @override
+  String cellDuoSquare(int row, int column) {
+    return 'Row $row, column $column, square';
+  }
+
+  @override
+  String cellDuoGivenCircle(int row, int column) {
+    return 'Row $row, column $column, circle, given';
+  }
+
+  @override
+  String cellDuoGivenSquare(int row, int column) {
+    return 'Row $row, column $column, square, given';
+  }
 
   @override
   String gridSize(int size) {
