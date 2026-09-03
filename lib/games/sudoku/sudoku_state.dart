@@ -129,7 +129,7 @@ class SudokuGameState {
   SudokuSpec get spec => puzzle.spec;
 
   /// The tier this puzzle was measured at.
-  SudokuDifficulty? get difficulty => puzzle.difficulty;
+  PuzzleDifficulty? get difficulty => puzzle.difficulty;
 
   /// The side length of the grid, and its largest digit.
   int get size => spec.size;

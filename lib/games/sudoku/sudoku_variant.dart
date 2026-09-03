@@ -73,7 +73,7 @@ class SudokuVariant {
   ///
   /// Not every size spans the whole ladder — the engine measured which ones do
   /// — and a tier that cannot be generated is one the screen must not offer.
-  List<SudokuDifficulty> get tiers => SudokuRater.tiersFor(spec);
+  List<PuzzleDifficulty> get tiers => SudokuRater.tiersFor(spec);
 
   @override
   bool operator ==(Object other) => other is SudokuVariant && other.id == id;

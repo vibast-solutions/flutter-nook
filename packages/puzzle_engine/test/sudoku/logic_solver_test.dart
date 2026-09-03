@@ -168,7 +168,7 @@ void main() {
 
     test('counts add up per tier and per technique', () {
       final SudokuPuzzle puzzle = SudokuGenerator(SudokuSpec.classic)
-          .generateAt(SudokuDifficulty.hard, 4);
+          .generateAt(PuzzleDifficulty.hard, 4);
       final SudokuSolveReport report = SudokuLogicSolver(SudokuSpec.classic)
           .solve(puzzle.givens);
 

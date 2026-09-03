@@ -39,6 +39,8 @@ class NookColors extends ThemeExtension<NookColors> {
     required this.disabledLine,
     required this.disabledInk,
     required this.disabledInkFaint,
+    required this.regionFills,
+    required this.regionTextureInk,
   });
 
   /// The page background.
@@ -135,6 +137,25 @@ class NookColors extends ThemeExtension<NookColors> {
   /// handwriting.
   final Color cellComplete;
 
+  /// The fill of each of a Stars board's eight regions, one per region index.
+  ///
+  /// Paired by index with [RegionTexture.values]: region `i` is drawn in
+  /// `regionFills[i]` **and** textured with `RegionTexture.values[i]`. The
+  /// pairing is the theme's, not a screen's, because it is what keeps the board
+  /// solvable for a player who cannot tell the colours apart — the texture
+  /// carries the same information the colour does, so neither is load-bearing
+  /// alone. A theme that changed the fills would leave the textures where they
+  /// are; the geometry is fixed and only the colour is a matter of taste.
+  final List<Color> regionFills;
+
+  /// The stroke a region's texture is drawn in, over its [regionFills] entry.
+  ///
+  /// One ink for all eight: the fills are pale enough that a single translucent
+  /// dark reads on every one of them, and a texture that changed colour by
+  /// region would be a second colour code rather than the shape-based one it is
+  /// meant to be.
+  final Color regionTextureInk;
+
   /// A control that has nothing left to do.
   final Color disabledSurface;
 
@@ -178,6 +199,20 @@ class NookColors extends ThemeExtension<NookColors> {
     disabledLine: Color(0xFFE8DCCA),
     disabledInk: Color(0xFFC9BAA7),
     disabledInkFaint: Color(0xFFCFC1AE),
+    // Eight soft fills, warm enough to sit inside the Soft Clay board. They are
+    // only half the story: each is paired with a texture, so the board reads
+    // the same with every one of them turned to grey.
+    regionFills: <Color>[
+      Color(0xFFF2D9C4), // peach
+      Color(0xFFDBE7D0), // sage
+      Color(0xFFCFE0EE), // sky
+      Color(0xFFE5DBEE), // lilac
+      Color(0xFFF2D6DC), // rose
+      Color(0xFFF1E8C2), // butter
+      Color(0xFFCDE7DE), // mint
+      Color(0xFFE7D8BE), // wheat
+    ],
+    regionTextureInk: Color(0x59695B4B),
   );
 
   @override
@@ -211,6 +246,8 @@ class NookColors extends ThemeExtension<NookColors> {
     Color? disabledLine,
     Color? disabledInk,
     Color? disabledInkFaint,
+    List<Color>? regionFills,
+    Color? regionTextureInk,
   }) {
     return NookColors(
       sand: sand ?? this.sand,
@@ -242,6 +279,8 @@ class NookColors extends ThemeExtension<NookColors> {
       disabledLine: disabledLine ?? this.disabledLine,
       disabledInk: disabledInk ?? this.disabledInk,
       disabledInkFaint: disabledInkFaint ?? this.disabledInkFaint,
+      regionFills: regionFills ?? this.regionFills,
+      regionTextureInk: regionTextureInk ?? this.regionTextureInk,
     );
   }
 
@@ -281,8 +320,54 @@ class NookColors extends ThemeExtension<NookColors> {
       disabledLine: mix(disabledLine, other.disabledLine),
       disabledInk: mix(disabledInk, other.disabledInk),
       disabledInkFaint: mix(disabledInkFaint, other.disabledInkFaint),
+      regionFills: <Color>[
+        for (int i = 0; i < regionFills.length; i++)
+          mix(regionFills[i], other.regionFills[i]),
+      ],
+      regionTextureInk: mix(regionTextureInk, other.regionTextureInk),
     );
   }
+}
+
+/// How many regions a Stars board is partitioned into, and so how many fills
+/// and textures a theme pairs up.
+///
+/// Nook's Stars is eight regions; a variant with a different count would want
+/// its own token set, so this is stated once here rather than assumed at every
+/// `regionFills[i]`.
+const int kRegionCount = 8;
+
+/// The texture drawn over each region, so the eight regions read apart with the
+/// colour taken away entirely.
+///
+/// Paired by index with [NookColors.regionFills]: region `i` is
+/// `RegionTexture.values[i]`. A colour-only board is unplayable for a
+/// meaningful share of players, so a Stars board never leans on colour alone —
+/// every region carries one of these, and no two regions carry the same one.
+enum RegionTexture {
+  /// A field of small filled dots.
+  dots,
+
+  /// A field of small hollow rings.
+  rings,
+
+  /// Parallel lines running bottom-left to top-right.
+  diagonalUp,
+
+  /// Parallel lines running top-left to bottom-right.
+  diagonalDown,
+
+  /// Both diagonals at once.
+  crossHatch,
+
+  /// Horizontal lines.
+  horizontal,
+
+  /// Vertical lines.
+  vertical,
+
+  /// Horizontal and vertical lines at once.
+  grid,
 }
 
 /// Reaches Nook's tokens from a [BuildContext].

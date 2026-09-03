@@ -62,7 +62,7 @@ void main() {
       // One move for the answer and one per pencil mark: each is separately
       // undoable, and each has to survive being written down.
       expect(save.history.moves, hasLength(1 + pencilledMarks.digits.length));
-      expect(save.difficulty, SudokuDifficulty.gentle.name);
+      expect(save.difficulty, PuzzleDifficulty.gentle.name);
       expect(save.seed, fixedMiniPuzzle().seed);
       expect(save.notesMode, isTrue);
     });

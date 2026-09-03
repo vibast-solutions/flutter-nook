@@ -195,17 +195,47 @@ abstract class AppLocalizations {
   /// **'a few quiet minutes'**
   String get sudokuMiniBlurb;
 
-  /// Name of the Stars puzzle, listed on the home screen before it is playable.
+  /// Name of the Stars puzzle, in the game list and its header.
   ///
   /// In en, this message translates to:
   /// **'Stars'**
   String get starsTitle;
 
-  /// What Stars is, plus a note that it is not playable yet.
+  /// The one-line description of Stars in the home game list.
   ///
   /// In en, this message translates to:
-  /// **'One star per row, column and region · coming soon'**
+  /// **'One star in every row, column and region'**
   String get starsSubtitle;
+
+  /// The single line of instruction under the Stars board: a tap cycles a cell from empty, to a ruled-out dot, to a star, and back.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap once to rule out, twice for a star'**
+  String get starsInstruction;
+
+  /// The running count above the Stars board: how many stars are placed out of how many a finished board holds. A star icon sits before it.
+  ///
+  /// In en, this message translates to:
+  /// **'{placed} of {target}'**
+  String starsCounter(int placed, int target);
+
+  /// Screen-reader label for the star counter above the board.
+  ///
+  /// In en, this message translates to:
+  /// **'{placed} of {target} stars placed'**
+  String starsCounterLabel(int placed, int target);
+
+  /// The caption under the legend below the Stars board, saying that colour is not the only thing telling the regions apart.
+  ///
+  /// In en, this message translates to:
+  /// **'Each region has its own colour and pattern'**
+  String get starsLegend;
+
+  /// Screen-reader label for the legend of region swatches below the Stars board.
+  ///
+  /// In en, this message translates to:
+  /// **'The regions, each with its own colour and pattern'**
+  String get starsLegendLabel;
 
   /// Name of the Duo puzzle, listed on the home screen before it is playable.
   ///
@@ -560,6 +590,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **', '**
   String get listSeparator;
+
+  /// Screen-reader label for an empty Stars cell. Rows, columns and regions are counted from one; the region is which of the coloured, textured shapes the cell belongs to.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, empty'**
+  String cellStarsEmpty(int row, int column, int region);
+
+  /// Screen-reader label for a Stars cell the player has marked as holding no star. The mark is an annotation only — never placed for the player, never checked.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, ruled out'**
+  String cellStarsRuledOut(int row, int column, int region);
+
+  /// Screen-reader label for a Stars cell holding a star the player placed.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star'**
+  String cellStarsStar(int row, int column, int region);
 
   /// Control that takes back the last move.
   ///

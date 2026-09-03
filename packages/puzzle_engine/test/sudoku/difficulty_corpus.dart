@@ -18,7 +18,7 @@ class CorpusEntry {
   final int seed;
 
   /// The tier that was asked for, and measured back.
-  final SudokuDifficulty difficulty;
+  final PuzzleDifficulty difficulty;
 
   /// The hardest rung of the ladder the technique solver needed.
   final SudokuTechnique hardest;
@@ -49,7 +49,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.mini,
     seed: 101,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 12,
     givens: '0000040000020301',
@@ -57,7 +57,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.mini,
     seed: 102,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 12,
     givens: '0030000004003010',
@@ -65,7 +65,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.mini,
     seed: 103,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 12,
     givens: '0002030000030400',
@@ -73,7 +73,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 101,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 27,
     givens: '500600000201062000000000630000000400',
@@ -81,7 +81,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 102,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 23,
     givens: '500640020510300020060400400000000204',
@@ -89,7 +89,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 103,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 24,
     givens: '500000340560030140000000025601000000',
@@ -97,7 +97,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 101,
-    difficulty: SudokuDifficulty.easy,
+    difficulty: PuzzleDifficulty.easy,
     hardest: SudokuTechnique.hiddenSingle,
     deductions: 26,
     givens: '000104040300054000003000200030000500',
@@ -105,7 +105,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 102,
-    difficulty: SudokuDifficulty.easy,
+    difficulty: PuzzleDifficulty.easy,
     hardest: SudokuTechnique.hiddenSingle,
     deductions: 27,
     givens: '500640020500300000060000400000000200',
@@ -113,7 +113,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 103,
-    difficulty: SudokuDifficulty.easy,
+    difficulty: PuzzleDifficulty.easy,
     hardest: SudokuTechnique.hiddenSingle,
     deductions: 26,
     givens: '500000300060030140000000025601000000',
@@ -121,7 +121,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 101,
-    difficulty: SudokuDifficulty.fiendish,
+    difficulty: PuzzleDifficulty.fiendish,
     hardest: SudokuTechnique.simpleColouring,
     deductions: 28,
     givens: '000004640000000500061000000020020106',
@@ -129,7 +129,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 102,
-    difficulty: SudokuDifficulty.fiendish,
+    difficulty: PuzzleDifficulty.fiendish,
     hardest: SudokuTechnique.simpleColouring,
     deductions: 31,
     givens: '020000500060000030000005300050050400',
@@ -137,7 +137,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.light,
     seed: 103,
-    difficulty: SudokuDifficulty.fiendish,
+    difficulty: PuzzleDifficulty.fiendish,
     hardest: SudokuTechnique.xyWing,
     deductions: 30,
     givens: '200050000000000006001400400201030000',
@@ -145,7 +145,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 101,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 53,
     givens: '000500000006000370047102006200010000401920000000005920000000084000009560520460007',
@@ -153,7 +153,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 102,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 49,
     givens: '608500403000260050050008200017903065000607100400010300090402501000090000080006004',
@@ -161,7 +161,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 103,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     hardest: SudokuTechnique.nakedSingle,
     deductions: 49,
     givens: '080300005000004370007009180014950000003060010002010804008040200290001507500207000',
@@ -169,7 +169,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 101,
-    difficulty: SudokuDifficulty.easy,
+    difficulty: PuzzleDifficulty.easy,
     hardest: SudokuTechnique.hiddenSingle,
     deductions: 55,
     givens: '000500000006000370047100006200010000401920000000005920000000084000000560520460007',
@@ -177,7 +177,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 102,
-    difficulty: SudokuDifficulty.easy,
+    difficulty: PuzzleDifficulty.easy,
     hardest: SudokuTechnique.hiddenSingle,
     deductions: 56,
     givens: '008500400000260000050008200017003065000007000400010300090400501000090000080006004',
@@ -185,7 +185,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 103,
-    difficulty: SudokuDifficulty.easy,
+    difficulty: PuzzleDifficulty.easy,
     hardest: SudokuTechnique.hiddenSingle,
     deductions: 55,
     givens: '080000005000004370007009180004950000003060010000010804008040200290000507500000000',
@@ -193,7 +193,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 101,
-    difficulty: SudokuDifficulty.medium,
+    difficulty: PuzzleDifficulty.medium,
     hardest: SudokuTechnique.nakedPair,
     deductions: 59,
     givens: '000500000006000370047100006200000000401920000000005900000000084000000060520460007',
@@ -201,7 +201,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 102,
-    difficulty: SudokuDifficulty.medium,
+    difficulty: PuzzleDifficulty.medium,
     hardest: SudokuTechnique.nakedPair,
     deductions: 60,
     givens: '020000400080001000000389100070000080000605340400000060004000900000800010590200000',
@@ -209,7 +209,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 103,
-    difficulty: SudokuDifficulty.medium,
+    difficulty: PuzzleDifficulty.medium,
     hardest: SudokuTechnique.pointingPair,
     deductions: 60,
     givens: '000400790100200000900000016040390000060000470010005000002630080800000000000071000',
@@ -217,7 +217,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 101,
-    difficulty: SudokuDifficulty.hard,
+    difficulty: PuzzleDifficulty.hard,
     hardest: SudokuTechnique.nakedPair,
     deductions: 61,
     givens: '280000060009000030140000800001056000000201000000000700900063000000048320060005040',
@@ -225,7 +225,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 102,
-    difficulty: SudokuDifficulty.hard,
+    difficulty: PuzzleDifficulty.hard,
     hardest: SudokuTechnique.nakedPair,
     deductions: 60,
     givens: '000030610000000000008000920800900001060200000450000360000008005302607000010009070',
@@ -233,7 +233,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 103,
-    difficulty: SudokuDifficulty.hard,
+    difficulty: PuzzleDifficulty.hard,
     hardest: SudokuTechnique.boxLineReduction,
     deductions: 61,
     givens: '000000000048073001200600400000040083080000000705906000620000000070300000000008904',
@@ -241,7 +241,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 101,
-    difficulty: SudokuDifficulty.fiendish,
+    difficulty: PuzzleDifficulty.fiendish,
     hardest: SudokuTechnique.xyWing,
     deductions: 56,
     givens: '008000003001064008000020400900005084803000020600270090000906800000003640009400030',
@@ -249,7 +249,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 102,
-    difficulty: SudokuDifficulty.fiendish,
+    difficulty: PuzzleDifficulty.fiendish,
     hardest: SudokuTechnique.xyWing,
     deductions: 57,
     givens: '014070300920106800030000509000000050400001900790000281009600004000900700100200000',
@@ -257,7 +257,7 @@ const List<CorpusEntry> difficultyCorpus = <CorpusEntry>[
   CorpusEntry(
     spec: SudokuSpec.classic,
     seed: 103,
-    difficulty: SudokuDifficulty.fiendish,
+    difficulty: PuzzleDifficulty.fiendish,
     hardest: SudokuTechnique.xyWing,
     deductions: 57,
     givens: '500020004002000580048510000010690030604800070000050002000900000069070800450186000',

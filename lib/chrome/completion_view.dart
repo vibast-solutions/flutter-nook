@@ -1,32 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puzzle_engine/puzzle_engine.dart';
 
-import '../../chrome/play_clock.dart';
-import '../../design/tokens.dart';
-import '../../design/typography.dart';
-import '../../l10n/app_localizations.dart';
-import '../../store/game_stats.dart';
+import '../design/tokens.dart';
+import '../design/typography.dart';
+import '../l10n/app_localizations.dart';
+import '../store/game_stats.dart';
+import 'play_clock.dart';
 import 'solve_outcome.dart';
-import 'sudoku_controller.dart';
-import 'sudoku_naming.dart';
-import 'sudoku_variant.dart';
 
-/// What a player sees when they finish a puzzle.
+/// What a player sees when they finish a puzzle, in any game.
 ///
-/// **Nothing is asked of them here.** No rating prompt, no tip, no "enjoying
-/// Nook?", no anything: this is the most positive moment the app has, and
-/// spending it on a request would be spending the one piece of goodwill Nook
-/// earns. The screen says what they did, offers another puzzle, and gets out
-/// of the way. That is not an oversight to be filled in later — it is the
+/// Shared rather than any one game's: the finished screen is the same for a
+/// Sudoku and a Stars puzzle, so it takes the two words that differ — the
+/// [gameName] and the [tierLabel] — and a callback for another puzzle, and
+/// reads everything else off the game-agnostic [solveOutcomeProvider] and
+/// clock.
+///
+/// **Nothing is asked of the player here.** No rating prompt, no tip, no
+/// "enjoying Nook?", no anything: this is the most positive moment the app has,
+/// and spending it on a request would be spending the one piece of goodwill
+/// Nook earns. The screen says what they did, offers another puzzle, and gets
+/// out of the way. That is not an oversight to be filled in later — it is the
 /// feature.
 ///
-/// The figures are the player's own and nobody else's. There is no
-/// leaderboard, no percentile and no comparison with other people anywhere in
-/// Nook, so the only thing a time is measured against is the same player's
-/// last one.
-class SudokuCompletionView extends ConsumerWidget {
-  const SudokuCompletionView({super.key});
+/// The figures are the player's own and nobody else's. There is no leaderboard,
+/// no percentile and no comparison with other people anywhere in Nook, so the
+/// only thing a time is measured against is the same player's last one.
+class GameCompletionView extends ConsumerWidget {
+  const GameCompletionView({
+    required this.gameName,
+    required this.tierLabel,
+    required this.onAnother,
+    super.key,
+  });
+
+  /// The name of the game just finished, for the line under "Solved".
+  final String gameName;
+
+  /// The tier it was played at, for that line and the "another" button.
+  final String tierLabel;
+
+  /// Starts another puzzle at the same game and tier.
+  final VoidCallback onAnother;
 
   /// The card showing how long this puzzle took.
   static const Key timeKey = ValueKey<String>('completion-time');
@@ -55,15 +70,12 @@ class SudokuCompletionView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final SudokuVariant variant = ref.watch(sudokuVariantProvider);
-    final SudokuDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
     final SolveOutcome? outcome = ref.watch(solveOutcomeProvider);
-    // The time is on the clock the moment the last digit lands; the figures
-    // beside it come from the database and arrive a beat later. Reading the
-    // clock rather than waiting means the number the player cares about is
+    // The time is on the clock the moment the last star (or digit) lands; the
+    // figures beside it come from the database and arrive a beat later. Reading
+    // the clock rather than waiting means the number the player cares about is
     // never the one that is missing.
     final Duration time = outcome?.time ?? ref.watch(playClockProvider);
-    final String tier = difficulty.label(l10n);
 
     return SafeArea(
       child: Column(
@@ -93,7 +105,7 @@ class SudokuCompletionView extends ConsumerWidget {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          l10n.completionSubtitle(variant.title(l10n), tier),
+                          l10n.completionSubtitle(gameName, tierLabel),
                           style: NookType.rowSubtitle(colors.inkMuted),
                         ),
                         if (outcome?.isPersonalBest ?? false) ...<Widget>[
@@ -114,16 +126,14 @@ class SudokuCompletionView extends ConsumerWidget {
             child: Column(
               children: <Widget>[
                 _WideButton(
-                  buttonKey: SudokuCompletionView.anotherKey,
-                  label: l10n.completionAnother(tier),
-                  onTap: () => ref
-                      .read(sudokuControllerProvider.notifier)
-                      .startNewPuzzle(),
+                  buttonKey: GameCompletionView.anotherKey,
+                  label: l10n.completionAnother(tierLabel),
+                  onTap: onAnother,
                   primary: true,
                 ),
                 const SizedBox(height: 11),
                 _WideButton(
-                  buttonKey: SudokuCompletionView.homeKey,
+                  buttonKey: GameCompletionView.homeKey,
                   label: l10n.completionBackHome,
                   // All the way out rather than one step back: "Back to Nook"
                   // means the game list, and a player who has finished is done
@@ -157,15 +167,15 @@ class _Figures extends StatelessWidget {
     final String reading = clockReading(time);
     final String noTime = l10n.completionNoTime;
 
-    // The three cards are as tall as the tallest of them, so a wrapped
-    // heading in one does not leave the other two short.
+    // The three cards are as tall as the tallest of them, so a wrapped heading
+    // in one does not leave the other two short.
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Expanded(
             child: _StatCard(
-              cardKey: SudokuCompletionView.timeKey,
+              cardKey: GameCompletionView.timeKey,
               heading: l10n.completionTime,
               value: reading,
               label: l10n.completionTimeLabel(reading),
@@ -174,7 +184,7 @@ class _Figures extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: _StatCard(
-              cardKey: SudokuCompletionView.previousKey,
+              cardKey: GameCompletionView.previousKey,
               heading: l10n.completionPrevious,
               // A tier with no best time yet says so with a dash. A zero would
               // read as a time nobody could beat.
@@ -188,7 +198,7 @@ class _Figures extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: _StatCard(
-              cardKey: SudokuCompletionView.solvedKey,
+              cardKey: GameCompletionView.solvedKey,
               // The designs put the daily streak here. There is no daily puzzle
               // yet (VIB-67) and so no streak, and a made-up number in the one
               // place the app is telling the player about themselves would be
@@ -268,7 +278,7 @@ class _PersonalBestChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
     return Container(
-      key: SudokuCompletionView.personalBestKey,
+      key: GameCompletionView.personalBestKey,
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
       decoration: BoxDecoration(
         color: colors.sageSoft,
@@ -356,8 +366,8 @@ class _WideButton extends StatelessWidget {
 
 /// The way out that is not a decision.
 ///
-/// Goes back one step, to the difficulties for this game, so a player who
-/// wants another puzzle at a different tier does not have to go home for it.
+/// Goes back one step, to the difficulties for this game, so a player who wants
+/// another puzzle at a different tier does not have to go home for it.
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.label});
 
@@ -371,7 +381,7 @@ class _CloseButton extends StatelessWidget {
       button: true,
       excludeSemantics: true,
       child: Material(
-        key: SudokuCompletionView.closeKey,
+        key: GameCompletionView.closeKey,
         color: colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(NookRadius.tile),

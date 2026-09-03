@@ -591,7 +591,7 @@ void main() {
       );
       final SavedGame old = SavedGame(
         gameId: SudokuVariant.miniId,
-        difficulty: SudokuDifficulty.gentle.name,
+        difficulty: PuzzleDifficulty.gentle.name,
         seed: game.puzzle.seed,
         givens: game.puzzle.givens,
         solution: game.puzzle.solution,

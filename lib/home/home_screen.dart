@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../chrome/continue_card.dart';
+import '../chrome/difficulty_naming.dart';
 import '../chrome/play_clock.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
+import '../games/stars/stars_difficulty.dart';
+import '../games/stars/stars_variant.dart';
 import '../games/sudoku/difficulty_screen.dart';
 import '../games/sudoku/sudoku_naming.dart';
 import '../games/sudoku/sudoku_save.dart';
@@ -60,6 +63,9 @@ class HomeScreen extends ConsumerWidget {
       subtitle: l10n.starsSubtitle,
       icon: Icons.star_outline_rounded,
       accent: false,
+      open: (BuildContext context) =>
+          Navigator.of(context)
+              .push(StarsDifficultyPage.route(StarsVariant.standard)),
     ),
     _GameEntry(
       title: l10n.duoTitle,

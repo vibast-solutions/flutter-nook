@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nook/chrome/difficulty_naming.dart';
 import 'package:nook/board/sudoku_board.dart';
 import 'package:nook/chrome/continue_card.dart';
 import 'package:nook/games/sudoku/sudoku_naming.dart';
@@ -48,7 +49,7 @@ void main() {
       // One of the ten blanks filled in, after a minute and a half.
       expect(
         find.text(
-          en.continueDetails(SudokuDifficulty.gentle.label(en), '01:30', 10),
+          en.continueDetails(PuzzleDifficulty.gentle.label(en), '01:30', 10),
         ),
         findsOneWidget,
       );
@@ -63,7 +64,7 @@ void main() {
       await store.save(
         SavedGame(
           gameId: SudokuVariant.classicId,
-          difficulty: SudokuDifficulty.hard.name,
+          difficulty: PuzzleDifficulty.hard.name,
           seed: 7,
           givens: List<int>.filled(81, 0),
           solution: List<int>.filled(81, 1),
@@ -102,8 +103,8 @@ void main() {
     ) async {
       await pumpHome(tester);
 
-      // Every Sudoku is playable now; only Stars and Duo are still to come.
-      expect(find.textContaining('coming soon'), findsNWidgets(2));
+      // Every Sudoku and Stars is playable now; only Duo is still to come.
+      expect(find.textContaining('coming soon'), findsOneWidget);
       expect(find.text('9x9 · the full grid'), findsOneWidget);
       expect(find.text('6x6 · a gentler grid'), findsOneWidget);
       expect(find.text('4x4 · a few quiet minutes'), findsOneWidget);
@@ -122,7 +123,7 @@ void main() {
         // player says how hard they want to think before a puzzle is made.
         expect(find.byType(SudokuBoard), findsNothing);
         expect(find.text('START A NEW ONE'), findsOneWidget);
-        for (final SudokuDifficulty tier in variant.tiers) {
+        for (final PuzzleDifficulty tier in variant.tiers) {
           expect(find.text(tier.label(en)), findsOneWidget);
         }
       });
@@ -134,7 +135,7 @@ void main() {
 
         await tester.tap(find.text(variant.title(en)));
         await tester.pumpAndSettle();
-        await tester.tap(find.text(SudokuDifficulty.gentle.label(en)));
+        await tester.tap(find.text(PuzzleDifficulty.gentle.label(en)));
         await tester.pumpAndSettle();
 
         expect(find.byType(SudokuBoard), findsOneWidget);
@@ -142,7 +143,7 @@ void main() {
           find.text(
             en.gameSubtitle(
               variant.sizeLabel(en),
-              SudokuDifficulty.gentle.label(en),
+              PuzzleDifficulty.gentle.label(en),
             ),
           ),
           findsOneWidget,
@@ -155,7 +156,8 @@ void main() {
     ) async {
       await pumpHome(tester);
 
-      await tester.tap(find.text('Stars'));
+      // Duo is still to come; tapping it should go nowhere.
+      await tester.tap(find.text('Duo'));
       await tester.pumpAndSettle();
 
       expect(find.text('START A NEW ONE'), findsNothing);
@@ -169,7 +171,7 @@ void main() {
 
       await tester.tap(find.text('Sudoku Mini'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(SudokuDifficulty.gentle.label(en)));
+      await tester.tap(find.text(PuzzleDifficulty.gentle.label(en)));
       await tester.pumpAndSettle();
       expect(find.byType(SudokuBoard), findsOneWidget);
 

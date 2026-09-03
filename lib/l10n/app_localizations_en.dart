@@ -78,8 +78,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get starsTitle => 'Stars';
 
   @override
-  String get starsSubtitle =>
-      'One star per row, column and region · coming soon';
+  String get starsSubtitle => 'One star in every row, column and region';
+
+  @override
+  String get starsInstruction => 'Tap once to rule out, twice for a star';
+
+  @override
+  String starsCounter(int placed, int target) {
+    return '$placed of $target';
+  }
+
+  @override
+  String starsCounterLabel(int placed, int target) {
+    return '$placed of $target stars placed';
+  }
+
+  @override
+  String get starsLegend => 'Each region has its own colour and pattern';
+
+  @override
+  String get starsLegendLabel =>
+      'The regions, each with its own colour and pattern';
 
   @override
   String get duoTitle => 'Duo';
@@ -327,6 +346,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get listSeparator => ', ';
+
+  @override
+  String cellStarsEmpty(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, empty';
+  }
+
+  @override
+  String cellStarsRuledOut(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, ruled out';
+  }
+
+  @override
+  String cellStarsStar(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star';
+  }
 
   @override
   String get actionUndo => 'Undo';
