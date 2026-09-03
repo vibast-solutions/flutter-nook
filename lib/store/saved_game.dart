@@ -31,6 +31,7 @@ class SavedGame {
     required DateTime updatedAt,
     List<int>? hints,
     List<int>? regions,
+    List<int>? badges,
     this.notesMode = false,
     this.wasHinted = false,
   }) : updatedAt = updatedAt.toUtc(),
@@ -39,7 +40,8 @@ class SavedGame {
        cells = List<int>.unmodifiable(cells),
        notes = List<int>.unmodifiable(notes),
        hints = List<int>.unmodifiable(hints ?? const <int>[]),
-       regions = regions == null ? null : List<int>.unmodifiable(regions);
+       regions = regions == null ? null : List<int>.unmodifiable(regions),
+       badges = badges == null ? null : List<int>.unmodifiable(badges);
 
   /// Which game this is a save of — the stable identifier, never a name the
   /// player reads. One save per game id: starting another discards this one.
@@ -80,6 +82,17 @@ class SavedGame {
   /// second table, so a Sudoku row is untouched and every field a save holds
   /// stays a named column a query can reach.
   final List<int>? regions;
+
+  /// The constraint badges between cells, as flat triples of small integers —
+  /// two cell indices and a relation — or `null` for a game whose board has no
+  /// badges.
+  ///
+  /// Duo's counterpart of [regions]: its `=`/`x` badges are half the puzzle,
+  /// and a Duo save carries them here while Sudoku and Stars leave the column
+  /// null. What the three integers of a triple mean is the Duo save layer's
+  /// business, the way a mark's meaning is Stars'; this layer only promises to
+  /// keep the numbers.
+  final List<int>? badges;
 
   /// The cells whose contents were given away rather than worked out.
   ///
