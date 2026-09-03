@@ -73,6 +73,9 @@ const Set<String> allowedLiterals = <String>{
   'nook.sqlite',
   'SavedGameRow',
   'GameStatsRow',
+  // The bundled-pack asset key, with the pack id interpolated into the middle.
+  // A file path, never read by a player.
+  'assets/packs/.pack.gz',
 
   // ---- Typography ----------------------------------------------------------
   // Font families, matching the `family:` keys in pubspec.yaml. Translating
@@ -107,6 +110,8 @@ const Set<String> allowedLiterals = <String>{
   'gameStatsStore',
   'gameStats',
   'solveOutcome',
+  'packProgressStore',
+  'packLibrary',
 
   // ---- Messages for whoever is holding the debugger ------------------------
   // `toString` output.
