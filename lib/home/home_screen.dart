@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../chrome/continue_card.dart';
 import '../chrome/difficulty_naming.dart';
+import '../daily/daily_card.dart';
 import '../chrome/play_clock.dart';
 import '../chrome/resume.dart';
 import '../design/tokens.dart';
@@ -210,6 +211,10 @@ class HomeScreen extends ConsumerWidget {
               _ContinueRow(resume: resume),
               const SizedBox(height: 20),
             ],
+            // Today's puzzle sits between what you were playing and everything
+            // you can play. The section brings its own heading and spacing, and
+            // shows nothing until the saves are read, exactly like Continue.
+            const DailySection(),
             Text(
               l10n.homeAllGames,
               style: NookType.sectionLabel(colors.inkFaint),

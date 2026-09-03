@@ -81,6 +81,10 @@ class StarsGamePage extends StatelessWidget {
       child: Consumer(
         builder: (BuildContext context, WidgetRef ref, Widget? child) {
           final SavedGameStore store = ref.watch(savedGameStoreProvider);
+          // The variant's own slot unless the route says otherwise — the daily
+          // keeps its save under its own id so the two can never discard each
+          // other.
+          final String slot = ref.watch(saveSlotProvider) ?? variant.id;
           return GameSession<StarsGameState>(
             gameProvider: starsControllerProvider,
             isSolved: (StarsGameState game) => game.isSolved,
@@ -92,10 +96,10 @@ class StarsGamePage extends StatelessWidget {
                     difficulty: difficulty,
                     elapsed: elapsed,
                     at: at,
+                    slot: slot,
                   ),
                 ),
-            discardSave: (StarsGameState game) =>
-                store.discard(game.variant.id),
+            discardSave: (StarsGameState game) => store.discard(slot),
             child: const _StarsScreen(),
           );
         },
@@ -121,8 +125,11 @@ class _StarsScreen extends ConsumerWidget {
         body: GameCompletionView(
           gameName: variant.title(l10n),
           tierLabel: difficulty.label(l10n),
-          onAnother: () =>
-              ref.read(starsControllerProvider.notifier).startNewPuzzle(),
+          // Regenerating in place is right for an ordinary game; the daily
+          // route pins its seed and supplies a jump to an ordinary one instead.
+          onAnother:
+              ref.watch(completionAnotherProvider) ??
+              () => ref.read(starsControllerProvider.notifier).startNewPuzzle(),
         ),
       );
     }

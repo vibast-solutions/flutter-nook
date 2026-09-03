@@ -23,7 +23,9 @@ void main() {
       expect(find.text('Sudoku Classic'), findsOneWidget);
       expect(find.text('Sudoku Light'), findsOneWidget);
       expect(find.text('Sudoku Mini'), findsOneWidget);
-      expect(find.text('Stars'), findsOneWidget);
+      // Twice, not a mistake: the fixture's day is one whose daily puzzle is
+      // Stars, so the daily card names it above its own row.
+      expect(find.text('Stars'), findsNWidgets(2));
       expect(find.text('Duo'), findsOneWidget);
     });
 

@@ -141,6 +141,41 @@ abstract class AppLocalizations {
   /// **'No ads. No tracking. No account. Ever.'**
   String get homePromise;
 
+  /// Heading above the daily-puzzle card on the home screen — the one puzzle that is the same for every player on a given day. Upper case in English by design; use whatever the language's convention for a small section heading is.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY\'S PUZZLE'**
+  String get homeDaily;
+
+  /// The second line of the daily-puzzle card before it has been started: which day this is the puzzle of, and how hard the day makes it.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · {difficulty}'**
+  String dailyDetails(DateTime date, String difficulty);
+
+  /// The second line of the daily-puzzle card while today's puzzle is under way: the day, how long it has been played for, and how far along it is.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · {time} · {percent}% filled in'**
+  String dailyDetailsProgress(DateTime date, String time, int percent);
+
+  /// Screen-reader label for the daily-puzzle card before it has been started. One sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s puzzle: {game}, {date}, {difficulty}. Not started yet'**
+  String dailyLabel(String game, DateTime date, String difficulty);
+
+  /// Screen-reader label for the daily-puzzle card while today's puzzle is under way. One sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue today\'s puzzle: {game}, {date}, {time} played, {percent}% filled in'**
+  String dailyLabelProgress(
+    String game,
+    DateTime date,
+    String time,
+    int percent,
+  );
+
   /// Screen-reader label for a playable game in the home list.
   ///
   /// In en, this message translates to:
