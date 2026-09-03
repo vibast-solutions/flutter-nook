@@ -164,6 +164,20 @@ class StarsGameState {
   /// to unsolve it by accident.
   bool get canUndo => history.canUndo && !isSolved;
 
+  /// Whether erase has a cell to empty: one is selected, it is not already
+  /// empty, and the puzzle is still being played.
+  bool get canErase =>
+      !isSolved &&
+      selectedIndex != null &&
+      cells[selectedIndex!] != StarsMark.empty;
+
+  /// Whether there is a ruled-out dot anywhere for "clear marks" to wipe.
+  ///
+  /// Stars alone: only the dot is the player's annotation, so this is the one
+  /// control that reaches across the board rather than the selected cell.
+  bool get canClearMarks =>
+      !isSolved && cells.any((StarsMark mark) => mark == StarsMark.ruledOut);
+
   /// A copy with the given fields replaced.
   ///
   /// [selectedIndex] cannot be cleared through this; nothing needs to.

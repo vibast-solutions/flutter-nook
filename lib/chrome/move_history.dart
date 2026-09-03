@@ -12,11 +12,15 @@ import 'package:flutter/foundation.dart';
 /// back restores what was written and what was noted together rather than
 /// leaving one of them behind.
 ///
-/// One move is one thing the player did, and a single action can tidy marks
-/// out of cells it did not write to — a Sudoku digit rubs itself out of the
-/// notes of its own row, column and box. Those go in [clearedNotes] rather
-/// than becoming moves of their own, so undo stays the exact inverse of one
-/// tap and the history stays a list of things a person actually did.
+/// One move is one thing the player did, and a single action can change cells
+/// it did not name as its own. Two kinds of that happen, and they are kept
+/// apart because they come back differently. A Sudoku digit rubs itself out of
+/// the *notes* of its own row, column and box — bits taken from cells that keep
+/// whatever answer they held — and those go in [clearedNotes]. A Stars "clear
+/// marks" wipes the *whole mark* out of every dotted cell at once, and those go
+/// in [clearedMarks]. Either way the tidied cells travel with the move that
+/// tidied them rather than becoming moves of their own, so undo stays the exact
+/// inverse of one tap and the history stays a list of things a person did.
 @immutable
 class BoardMove {
   const BoardMove({
@@ -26,6 +30,7 @@ class BoardMove {
     this.notesBefore = 0,
     this.notesAfter = 0,
     this.clearedNotes = const <int, int>{},
+    this.clearedMarks = const <int, int>{},
   });
 
   /// Reads a move back from stored data.
@@ -35,21 +40,31 @@ class BoardMove {
   /// tidy them elsewhere — still reads back as the move it was rather than
   /// failing and taking the saved game with it.
   factory BoardMove.fromJson(Map<String, Object?> json) {
-    final Map<Object?, Object?>? cleared =
-        json['clearedNotes'] as Map<Object?, Object?>?;
     return BoardMove(
       index: json['index']! as int,
       before: json['before']! as int,
       after: json['after']! as int,
       notesBefore: json['notesBefore'] as int? ?? 0,
       notesAfter: json['notesAfter'] as int? ?? 0,
-      clearedNotes: cleared == null
-          ? const <int, int>{}
-          : Map<int, int>.unmodifiable(<int, int>{
-              for (final MapEntry<Object?, Object?> entry in cleared.entries)
-                int.parse(entry.key! as String): entry.value! as int,
-            }),
+      clearedNotes: _cellMapFromJson(json['clearedNotes']),
+      clearedMarks: _cellMapFromJson(json['clearedMarks']),
     );
+  }
+
+  /// Reads a cell-keyed `{cell: value}` map back from stored data, where the
+  /// keys arrive as strings because JSON has no integer keys.
+  ///
+  /// Returns the shared empty map when the field is absent, which is how a
+  /// history written before the field existed reads back unchanged.
+  static Map<int, int> _cellMapFromJson(Object? raw) {
+    final Map<Object?, Object?>? map = raw as Map<Object?, Object?>?;
+    if (map == null) {
+      return const <int, int>{};
+    }
+    return Map<int, int>.unmodifiable(<int, int>{
+      for (final MapEntry<Object?, Object?> entry in map.entries)
+        int.parse(entry.key! as String): entry.value! as int,
+    });
   }
 
   /// Which cell changed.
@@ -76,10 +91,21 @@ class BoardMove {
   /// not make.
   final Map<int, int> clearedNotes;
 
+  /// The whole marks this move wiped out of *other* cells, as cell index to
+  /// the mark value that cell held before, restored on undo.
+  ///
+  /// Empty for every move but a Stars "clear marks", which empties every dotted
+  /// cell in one go and must come back in one undo. Unlike [clearedNotes],
+  /// which restores pencil bits onto cells that kept their answer, this
+  /// restores each cell's whole mark, because clearing a dot takes the cell's
+  /// only content.
+  final Map<int, int> clearedMarks;
+
   /// This move as plain data.
   ///
-  /// [clearedNotes] is left out when it is empty, which keeps the common move
-  /// the same handful of numbers it has always been on disk.
+  /// [clearedNotes] and [clearedMarks] are each left out when empty, which
+  /// keeps the common move the same handful of numbers it has always been on
+  /// disk and lets a save written before either existed read back unchanged.
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'index': index,
@@ -87,11 +113,16 @@ class BoardMove {
       'after': after,
       'notesBefore': notesBefore,
       'notesAfter': notesAfter,
-      if (clearedNotes.isNotEmpty)
-        'clearedNotes': <String, int>{
-          for (final MapEntry<int, int> entry in clearedNotes.entries)
-            '${entry.key}': entry.value,
-        },
+      if (clearedNotes.isNotEmpty) 'clearedNotes': _cellMapToJson(clearedNotes),
+      if (clearedMarks.isNotEmpty) 'clearedMarks': _cellMapToJson(clearedMarks),
+    };
+  }
+
+  /// A cell-keyed map as JSON, with the integer keys written as strings.
+  static Map<String, int> _cellMapToJson(Map<int, int> map) {
+    return <String, int>{
+      for (final MapEntry<int, int> entry in map.entries)
+        '${entry.key}': entry.value,
     };
   }
 
@@ -103,20 +134,21 @@ class BoardMove {
         other.after == after &&
         other.notesBefore == notesBefore &&
         other.notesAfter == notesAfter &&
-        _sameCleared(other.clearedNotes);
+        _sameCells(clearedNotes, other.clearedNotes) &&
+        _sameCells(clearedMarks, other.clearedMarks);
   }
 
-  /// Whether [other] is the same set of tidied marks as [clearedNotes].
+  /// Whether two cell-keyed maps hold the same entries.
   ///
   /// Written out rather than reached for from a package: a map of two ints is
   /// not worth a dependency, and equality here has to be by value because a
   /// move is compared by what it did.
-  bool _sameCleared(Map<int, int> other) {
-    if (other.length != clearedNotes.length) {
+  static bool _sameCells(Map<int, int> a, Map<int, int> b) {
+    if (a.length != b.length) {
       return false;
     }
-    for (final MapEntry<int, int> entry in clearedNotes.entries) {
-      if (other[entry.key] != entry.value) {
+    for (final MapEntry<int, int> entry in a.entries) {
+      if (b[entry.key] != entry.value) {
         return false;
       }
     }
@@ -130,21 +162,26 @@ class BoardMove {
     after,
     notesBefore,
     notesAfter,
-    // Sorted, so two moves that tidied the same marks hash alike whatever
-    // order the cells happened to be visited in.
-    Object.hashAll(<int>[
-      for (final int cell in clearedNotes.keys.toList()..sort()) ...<int>[
-        cell,
-        clearedNotes[cell]!,
-      ],
-    ]),
+    _cellsHash(clearedNotes),
+    _cellsHash(clearedMarks),
   );
+
+  /// A cell-keyed map hashed by its sorted entries, so two moves that changed
+  /// the same cells hash alike whatever order the cells were visited in.
+  static int _cellsHash(Map<int, int> map) {
+    return Object.hashAll(<int>[
+      for (final int cell in map.keys.toList()..sort()) ...<int>[
+        cell,
+        map[cell]!,
+      ],
+    ]);
+  }
 
   @override
   String toString() =>
       'BoardMove(index: $index, before: $before, after: $after, '
       'notesBefore: $notesBefore, notesAfter: $notesAfter, '
-      'clearedNotes: $clearedNotes)';
+      'clearedNotes: $clearedNotes, clearedMarks: $clearedMarks)';
 }
 
 /// The moves a player can still take back, oldest first.

@@ -621,6 +621,12 @@ abstract class AppLocalizations {
   /// **'Erase'**
   String get actionErase;
 
+  /// Stars control that wipes every ruled-out dot off the board at once, leaving the stars where they are. A 'mark' is the small dot a player pencils into a cell to say a star cannot go there.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear marks'**
+  String get actionClearMarks;
+
   /// Control that switches between writing answers and writing pencil marks.
   ///
   /// In en, this message translates to:
@@ -662,6 +668,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'nothing to take back'**
   String get reasonNothingToUndo;
+
+  /// Why erase is unavailable: no cell is selected, or the selected cell is already empty. Reads as the end of a sentence, so lower case.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing to erase'**
+  String get reasonNothingToErase;
+
+  /// Why the Stars 'clear marks' control is unavailable: there are no ruled-out dots on the board to wipe. Reads as the end of a sentence, so lower case.
+  ///
+  /// In en, this message translates to:
+  /// **'no marks to clear'**
+  String get reasonNoMarks;
 
   /// Why the hint control is unavailable: one was given a few seconds ago and the control waits before offering another. This is pacing, not rationing — hints are unlimited and free, and nothing is being counted or spent. Reads as the end of a sentence, so lower case.
   ///
