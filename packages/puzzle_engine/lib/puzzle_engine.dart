@@ -10,6 +10,7 @@ export 'src/difficulty.dart';
 export 'src/random.dart';
 export 'src/stars/difficulty.dart';
 export 'src/stars/generator.dart';
+export 'src/stars/hint.dart';
 export 'src/stars/logic_solver.dart';
 export 'src/stars/puzzle.dart';
 export 'src/stars/solver.dart';
