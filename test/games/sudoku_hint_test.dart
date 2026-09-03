@@ -4,7 +4,6 @@ import 'package:nook/board/sudoku_board.dart';
 import 'package:nook/chrome/action_row.dart';
 import 'package:nook/design/tokens.dart';
 import 'package:nook/games/sudoku/sudoku_save.dart';
-import 'package:nook/games/sudoku/sudoku_screen.dart';
 import 'package:nook/games/sudoku/sudoku_state.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/store/nook_database.dart';

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/stars_board.dart';
+import 'package:nook/chrome/action_row.dart';
 import 'package:nook/chrome/move_history.dart';
 import 'package:nook/chrome/play_clock.dart';
 import 'package:nook/design/theme.dart';
@@ -119,6 +120,7 @@ Future<void> pumpStarsGame(
   NookDatabase? database,
   TestClock? clock,
   double width = 400,
+  bool disableAnimations = false,
 }) async {
   final StarsPuzzle fixed = puzzle ?? fixedStarsPuzzle();
   await setPhoneSurface(tester, width: width);
@@ -131,6 +133,11 @@ Future<void> pumpStarsGame(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
+        builder: (BuildContext context, Widget? child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(disableAnimations: disableAnimations),
+          child: child!,
+        ),
         home: StarsGamePage(
           variant: StarsVariant.standard,
           difficulty: PuzzleDifficulty.gentle,
@@ -140,6 +147,33 @@ Future<void> pumpStarsGame(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// Lets the hint control's pacing run out, so it can be used again.
+///
+/// The wait is four seconds of a clock the test owns, not four seconds of
+/// anybody's life.
+Future<void> settleHintPacing(WidgetTester tester) async {
+  await tester.pump(kHintPacing);
+  await tester.pumpAndSettle();
+}
+
+/// The colour the action-row control with the id [id] is filled with.
+Color actionBackground(WidgetTester tester, String id) {
+  return tester.widget<Material>(find.byKey(BoardActionRow.keyFor(id))).color!;
+}
+
+/// Whether the action-row control with the id [id] can be used.
+bool actionEnabled(WidgetTester tester, String id) {
+  return tester
+          .widget<InkWell>(
+            find.descendant(
+              of: find.byKey(BoardActionRow.keyFor(id)),
+              matching: find.byType(InkWell),
+            ),
+          )
+          .onTap !=
+      null;
 }
 
 /// A part-played Stars puzzle, written exactly as the app would write it.
