@@ -1166,16 +1166,234 @@ class StatisticsCompanion extends UpdateCompanion<GameStatsRow> {
   }
 }
 
+class $PackProgressTable extends PackProgress
+    with TableInfo<$PackProgressTable, PackProgressData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PackProgressTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _packIdMeta = const VerificationMeta('packId');
+  @override
+  late final GeneratedColumn<String> packId = GeneratedColumn<String>(
+    'pack_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _servedMeta = const VerificationMeta('served');
+  @override
+  late final GeneratedColumn<int> served = GeneratedColumn<int>(
+    'served',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [packId, served];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pack_progress';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PackProgressData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('pack_id')) {
+      context.handle(
+        _packIdMeta,
+        packId.isAcceptableOrUnknown(data['pack_id']!, _packIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_packIdMeta);
+    }
+    if (data.containsKey('served')) {
+      context.handle(
+        _servedMeta,
+        served.isAcceptableOrUnknown(data['served']!, _servedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {packId};
+  @override
+  PackProgressData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PackProgressData(
+      packId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pack_id'],
+      )!,
+      served: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}served'],
+      )!,
+    );
+  }
+
+  @override
+  $PackProgressTable createAlias(String alias) {
+    return $PackProgressTable(attachedDatabase, alias);
+  }
+}
+
+class PackProgressData extends DataClass
+    implements Insertable<PackProgressData> {
+  /// The pack's identity, `game-tier`, matching its asset file name.
+  final String packId;
+
+  /// How many of the pack's puzzles have been handed out — the index of the
+  /// next one to serve.
+  final int served;
+  const PackProgressData({required this.packId, required this.served});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['pack_id'] = Variable<String>(packId);
+    map['served'] = Variable<int>(served);
+    return map;
+  }
+
+  PackProgressCompanion toCompanion(bool nullToAbsent) {
+    return PackProgressCompanion(packId: Value(packId), served: Value(served));
+  }
+
+  factory PackProgressData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PackProgressData(
+      packId: serializer.fromJson<String>(json['packId']),
+      served: serializer.fromJson<int>(json['served']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'packId': serializer.toJson<String>(packId),
+      'served': serializer.toJson<int>(served),
+    };
+  }
+
+  PackProgressData copyWith({String? packId, int? served}) => PackProgressData(
+    packId: packId ?? this.packId,
+    served: served ?? this.served,
+  );
+  PackProgressData copyWithCompanion(PackProgressCompanion data) {
+    return PackProgressData(
+      packId: data.packId.present ? data.packId.value : this.packId,
+      served: data.served.present ? data.served.value : this.served,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PackProgressData(')
+          ..write('packId: $packId, ')
+          ..write('served: $served')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(packId, served);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PackProgressData &&
+          other.packId == this.packId &&
+          other.served == this.served);
+}
+
+class PackProgressCompanion extends UpdateCompanion<PackProgressData> {
+  final Value<String> packId;
+  final Value<int> served;
+  final Value<int> rowid;
+  const PackProgressCompanion({
+    this.packId = const Value.absent(),
+    this.served = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PackProgressCompanion.insert({
+    required String packId,
+    this.served = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : packId = Value(packId);
+  static Insertable<PackProgressData> custom({
+    Expression<String>? packId,
+    Expression<int>? served,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (packId != null) 'pack_id': packId,
+      if (served != null) 'served': served,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PackProgressCompanion copyWith({
+    Value<String>? packId,
+    Value<int>? served,
+    Value<int>? rowid,
+  }) {
+    return PackProgressCompanion(
+      packId: packId ?? this.packId,
+      served: served ?? this.served,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (packId.present) {
+      map['pack_id'] = Variable<String>(packId.value);
+    }
+    if (served.present) {
+      map['served'] = Variable<int>(served.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PackProgressCompanion(')
+          ..write('packId: $packId, ')
+          ..write('served: $served, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$NookDatabase extends GeneratedDatabase {
   _$NookDatabase(QueryExecutor e) : super(e);
   $NookDatabaseManager get managers => $NookDatabaseManager(this);
   late final $SavedGamesTable savedGames = $SavedGamesTable(this);
   late final $StatisticsTable statistics = $StatisticsTable(this);
+  late final $PackProgressTable packProgress = $PackProgressTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [savedGames, statistics];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    savedGames,
+    statistics,
+    packProgress,
+  ];
 }
 
 typedef $$SavedGamesTableCreateCompanionBuilder = SavedGamesCompanion Function({
@@ -1739,6 +1957,153 @@ typedef $$StatisticsTableProcessedTableManager =
       GameStatsRow,
       PrefetchHooks Function()
     >;
+typedef $$PackProgressTableCreateCompanionBuilder =
+    PackProgressCompanion Function({
+      required String packId,
+      Value<int> served,
+      Value<int> rowid,
+    });
+typedef $$PackProgressTableUpdateCompanionBuilder =
+    PackProgressCompanion Function({
+      Value<String> packId,
+      Value<int> served,
+      Value<int> rowid,
+    });
+
+class $$PackProgressTableFilterComposer
+    extends Composer<_$NookDatabase, $PackProgressTable> {
+  $$PackProgressTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get packId => $composableBuilder(
+    column: $table.packId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get served => $composableBuilder(
+    column: $table.served,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PackProgressTableOrderingComposer
+    extends Composer<_$NookDatabase, $PackProgressTable> {
+  $$PackProgressTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get packId => $composableBuilder(
+    column: $table.packId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get served => $composableBuilder(
+    column: $table.served,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PackProgressTableAnnotationComposer
+    extends Composer<_$NookDatabase, $PackProgressTable> {
+  $$PackProgressTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get packId =>
+      $composableBuilder(column: $table.packId, builder: (column) => column);
+
+  GeneratedColumn<int> get served =>
+      $composableBuilder(column: $table.served, builder: (column) => column);
+}
+
+class $$PackProgressTableTableManager
+    extends
+        RootTableManager<
+          _$NookDatabase,
+          $PackProgressTable,
+          PackProgressData,
+          $$PackProgressTableFilterComposer,
+          $$PackProgressTableOrderingComposer,
+          $$PackProgressTableAnnotationComposer,
+          $$PackProgressTableCreateCompanionBuilder,
+          $$PackProgressTableUpdateCompanionBuilder,
+          (
+            PackProgressData,
+            BaseReferences<
+              _$NookDatabase,
+              $PackProgressTable,
+              PackProgressData
+            >,
+          ),
+          PackProgressData,
+          PrefetchHooks Function()
+        > {
+  $$PackProgressTableTableManager(_$NookDatabase db, $PackProgressTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PackProgressTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PackProgressTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PackProgressTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> packId = const Value.absent(),
+                Value<int> served = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PackProgressCompanion(
+                packId: packId,
+                served: served,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String packId,
+                Value<int> served = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PackProgressCompanion.insert(
+                packId: packId,
+                served: served,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PackProgressTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NookDatabase,
+      $PackProgressTable,
+      PackProgressData,
+      $$PackProgressTableFilterComposer,
+      $$PackProgressTableOrderingComposer,
+      $$PackProgressTableAnnotationComposer,
+      $$PackProgressTableCreateCompanionBuilder,
+      $$PackProgressTableUpdateCompanionBuilder,
+      (
+        PackProgressData,
+        BaseReferences<_$NookDatabase, $PackProgressTable, PackProgressData>,
+      ),
+      PackProgressData,
+      PrefetchHooks Function()
+    >;
 
 class $NookDatabaseManager {
   final _$NookDatabase _db;
@@ -1747,4 +2112,6 @@ class $NookDatabaseManager {
       $$SavedGamesTableTableManager(_db, _db.savedGames);
   $$StatisticsTableTableManager get statistics =>
       $$StatisticsTableTableManager(_db, _db.statistics);
+  $$PackProgressTableTableManager get packProgress =>
+      $$PackProgressTableTableManager(_db, _db.packProgress);
 }

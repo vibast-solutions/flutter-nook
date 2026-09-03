@@ -107,12 +107,37 @@ class Statistics extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{gameId, difficulty};
 }
 
+/// How far into each bundled pack the player has been served.
+///
+/// A pack is an ordered list of pre-generated puzzles shipped in the app so the
+/// first tap after a cold launch is instant (VIB-78). Handing them out in order
+/// and remembering how many have gone is the whole of "a puzzle already played
+/// is not served again while unplayed ones remain": [served] is the index of the
+/// next one to give, so a puzzle is handed out at most once until the pack is
+/// spent and the app falls back to generating on the device.
+///
+/// Deliberately not a save and not a statistic — it is neither the puzzle nor
+/// its result, only a bookmark into shipped content — but it lives in the same
+/// database because it is the same kind of thing: a small durable fact about
+/// what the player has seen, that has to survive the app being closed.
+class PackProgress extends Table {
+  /// The pack's identity, `game-tier`, matching its asset file name.
+  TextColumn get packId => text()();
+
+  /// How many of the pack's puzzles have been handed out — the index of the
+  /// next one to serve.
+  IntColumn get served => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{packId};
+}
+
 /// Everything Nook keeps on the device.
 ///
 /// One database for saves and statistics: they are the same data seen twice —
 /// a puzzle in progress, and what was left of it once it was finished — and a
 /// result is only interesting next to the ones before it.
-@DriftDatabase(tables: <Type>[SavedGames, Statistics])
+@DriftDatabase(tables: <Type>[SavedGames, Statistics, PackProgress])
 class NookDatabase extends _$NookDatabase {
   NookDatabase(super.e);
 
@@ -132,11 +157,14 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// Version 2 added the two hint columns (VIB-76); version 3 the statistics
   /// table (VIB-77); version 4 the nullable `regions` column, which is what
-  /// lets a game whose puzzle is a region map — Stars — be saved (VIB-89).
+  /// lets a game whose puzzle is a region map — Stars — be saved (VIB-89);
+  /// version 5 the `pack_progress` table, the bookmark into each bundled pack
+  /// (VIB-78). An upgrading player starts every pack from the beginning, which
+  /// is exactly right — they have seen none of these puzzles.
   ///
   /// A save from version 1 is a puzzle nobody was helped with, which is
   /// exactly what the column defaults say. A player who arrives at version 3
@@ -160,6 +188,9 @@ class NookDatabase extends _$NookDatabase {
         }
         if (from < 4) {
           await m.addColumn(savedGames, savedGames.regions);
+        }
+        if (from < 5) {
+          await m.createTable(packProgress);
         }
       },
     );
@@ -353,6 +384,46 @@ class GameStatsStore {
   }
 }
 
+/// Claiming puzzles out of the bundled packs, in order and each at most once.
+///
+/// The one place the served-cursor is read and moved, so "a puzzle already
+/// played is not served again while unplayed ones remain" is enforced in a
+/// single transaction rather than trusted to every caller.
+class PackProgressStore {
+  const PackProgressStore(this._db);
+
+  final NookDatabase _db;
+
+  /// Claims the next unused puzzle of [packId], given the pack holds [count] of
+  /// them, and returns its index — or `null` when the pack is spent.
+  ///
+  /// Read and write are one transaction: two starts in quick succession can
+  /// never claim the same index, and a `null` is the caller's cue to generate on
+  /// the device instead. The cursor only ever moves forward, so a puzzle handed
+  /// out is never handed out again while any remain.
+  Future<int?> claimNext(String packId, int count) {
+    return _db.transaction(() async {
+      final PackProgressData? row =
+          await (_db.select(_db.packProgress)
+                ..where(($PackProgressTable r) => r.packId.equals(packId)))
+              .getSingleOrNull();
+      final int served = row?.served ?? 0;
+      if (served >= count) {
+        return null;
+      }
+      await _db
+          .into(_db.packProgress)
+          .insertOnConflictUpdate(
+            PackProgressCompanion.insert(
+              packId: packId,
+              served: Value<int>(served + 1),
+            ),
+          );
+      return served;
+    });
+  }
+}
+
 /// The database itself. Overridden in tests with an in-memory one.
 final Provider<NookDatabase> nookDatabaseProvider = Provider<NookDatabase>((
   Ref ref,
@@ -384,6 +455,13 @@ final Provider<GameStatsStore> gameStatsStoreProvider =
     Provider<GameStatsStore>(
       (Ref ref) => GameStatsStore(ref.watch(nookDatabaseProvider)),
       name: 'gameStatsStore',
+    );
+
+/// The bookmark into each bundled pack, read and moved.
+final Provider<PackProgressStore> packProgressStoreProvider =
+    Provider<PackProgressStore>(
+      (Ref ref) => PackProgressStore(ref.watch(nookDatabaseProvider)),
+      name: 'packProgressStore',
     );
 
 /// What has been solved, for every game and tier.
