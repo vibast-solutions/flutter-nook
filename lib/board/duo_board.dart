@@ -155,7 +155,7 @@ class _DuoBoardState extends State<DuoBoard>
     final int size = game.spec.size;
     final double cell = (edge - DuoBoard.ruleWidth * 2) / size;
     final double inner = cell * size;
-    final double badgeExtent = (cell * 0.42).clamp(15.0, 22.0);
+    final double badgeExtent = (cell * 0.34).clamp(13.0, 18.0);
 
     return Semantics(
       container: true,
@@ -492,12 +492,16 @@ class _DuoRemoval extends StatelessWidget {
   }
 }
 
-/// A constraint badge: a small chip carrying `=` or `x`, sat on the edge between
-/// two cells.
+/// A constraint badge: a small `=` or `x` sat on the edge between two cells.
 ///
-/// A chip on a surface so it reads over either cell it straddles, and its glyph
-/// is geometry rather than a font character, so it stays crisp at any board size
-/// and legible in light and dark alike.
+/// An annotation on the grid line rather than a tile: a borderless knockout in
+/// the board's own surface lifts the glyph clear of the hairline and any cell
+/// wash beneath, and the sign is drawn in a quiet [NookColors.inkMuted] so it
+/// reads as a note on the boundary rather than competing with the circles and
+/// squares in the cells. A bordered chip here made a 6x6 read as a dense field
+/// twice as wide, the cells and the constraints shouting at one volume. The
+/// glyph is geometry rather than a font character, so it stays crisp at any
+/// board size and legible in light and dark alike.
 class _BadgeMark extends StatelessWidget {
   const _BadgeMark({required this.relation, super.key});
 
@@ -516,13 +520,12 @@ class _BadgeMark extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.surface,
-          border: Border.all(color: colors.boardRule, width: 1.5),
-          borderRadius: const BorderRadius.all(Radius.circular(6)),
+          shape: BoxShape.circle,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(3.5),
           child: CustomPaint(
-            painter: _BadgeGlyph(relation: relation, ink: colors.ink),
+            painter: _BadgeGlyph(relation: relation, ink: colors.inkMuted),
           ),
         ),
       ),
@@ -646,11 +649,14 @@ class _LegendBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    // A faint ring stands in for the board's borderless knockout, which would
+    // vanish on the legend's own surface; the glyph is the same quiet ink the
+    // board draws, so key and board read as one.
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.surface,
-        border: Border.all(color: colors.boardRule, width: 1.5),
-        borderRadius: const BorderRadius.all(Radius.circular(5)),
+        border: Border.all(color: colors.boardRule, width: 1),
+        shape: BoxShape.circle,
       ),
       child: Padding(
         padding: const EdgeInsets.all(3.5),
@@ -658,7 +664,7 @@ class _LegendBadge extends StatelessWidget {
           width: 10,
           height: 10,
           child: CustomPaint(
-            painter: _BadgeGlyph(relation: relation, ink: colors.ink),
+            painter: _BadgeGlyph(relation: relation, ink: colors.inkMuted),
           ),
         ),
       ),
