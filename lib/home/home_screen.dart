@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../chrome/continue_card.dart';
 import '../chrome/difficulty_naming.dart';
@@ -8,7 +7,7 @@ import '../chrome/play_clock.dart';
 import '../chrome/resume.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
-import '../games/duo/duo_screen.dart';
+import '../games/duo/duo_difficulty.dart';
 import '../games/duo/duo_variant.dart';
 import '../games/stars/stars_difficulty.dart';
 import '../games/stars/stars_naming.dart';
@@ -79,9 +78,9 @@ class HomeScreen extends ConsumerWidget {
       subtitle: l10n.duoSubtitle,
       icon: duoIcon,
       accent: false,
-      open: (BuildContext context) => Navigator.of(
-        context,
-      ).push(DuoGamePage.route(DuoVariant.standard, PuzzleDifficulty.gentle)),
+      open: (BuildContext context) =>
+          Navigator.of(context)
+              .push(DuoDifficultyPage.route(DuoVariant.standard)),
     ),
   ];
 
