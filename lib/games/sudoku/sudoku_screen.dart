@@ -5,15 +5,19 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import '../../board/number_pad.dart';
 import '../../board/sudoku_board.dart';
 import '../../chrome/action_row.dart';
+import '../../chrome/completion_view.dart';
+import '../../chrome/difficulty_naming.dart';
+import '../../chrome/game_providers.dart';
+import '../../chrome/game_header.dart';
+import '../../chrome/game_session.dart';
 import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
-import 'completion_view.dart';
+import '../../store/nook_database.dart';
 import 'sudoku_controller.dart';
 import 'sudoku_naming.dart';
 import 'sudoku_save.dart';
-import 'sudoku_session.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
 
@@ -42,13 +46,13 @@ class SudokuGamePage extends StatelessWidget {
   final SudokuVariant variant;
 
   /// How hard the player asked for it to be.
-  final SudokuDifficulty difficulty;
+  final PuzzleDifficulty difficulty;
 
   /// The puzzle to carry on with, or `null` to generate a new one.
   final SudokuSave? resume;
 
   /// Builds a route to a new puzzle.
-  static Route<void> route(SudokuVariant variant, SudokuDifficulty difficulty) {
+  static Route<void> route(SudokuVariant variant, PuzzleDifficulty difficulty) {
     return MaterialPageRoute<void>(
       builder: (BuildContext context) =>
           SudokuGamePage(variant: variant, difficulty: difficulty),
@@ -74,13 +78,38 @@ class SudokuGamePage extends StatelessWidget {
         sudokuVariantProvider.overrideWithValue(variant),
         sudokuDifficultyProvider.overrideWithValue(difficulty),
         sudokuResumeProvider.overrideWithValue(saved?.game),
+        // The game-agnostic identity the shared chrome records against. Sudoku
+        // keeps its own variant/difficulty providers for the controller; these
+        // are what the completion screen and the solve recorder read.
+        gameIdProvider.overrideWithValue(variant.id),
+        gameDifficultyProvider.overrideWithValue(difficulty),
         resumedElapsedProvider.overrideWithValue(
           saved?.elapsed ?? Duration.zero,
         ),
       ],
-      child: SudokuSession(
-        difficulty: difficulty,
-        child: const _SudokuScreen(),
+      // A Consumer so the save callbacks can reach the store from inside the
+      // scope this page opened.
+      child: Consumer(
+        builder: (BuildContext context, WidgetRef ref, Widget? child) {
+          final SavedGameStore store = ref.watch(savedGameStoreProvider);
+          return GameSession<SudokuGameState>(
+            gameProvider: sudokuControllerProvider,
+            isSolved: (SudokuGameState game) => game.isSolved,
+            wasHinted: (SudokuGameState game) => game.wasHinted,
+            writeSave: (SudokuGameState game, Duration elapsed, DateTime at) =>
+                store.save(
+                  savedGameFor(
+                    game,
+                    difficulty: difficulty,
+                    elapsed: elapsed,
+                    at: at,
+                  ),
+                ),
+            discardSave: (SudokuGameState game) =>
+                store.discard(game.variant.id),
+            child: const _SudokuScreen(),
+          );
+        },
       ),
     );
   }
@@ -94,7 +123,7 @@ class _SudokuScreen extends ConsumerWidget {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final SudokuVariant variant = ref.watch(sudokuVariantProvider);
-    final SudokuDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
+    final PuzzleDifficulty difficulty = ref.watch(sudokuDifficultyProvider);
     final AsyncValue<SudokuGameState> game = ref.watch(
       sudokuControllerProvider,
     );
@@ -106,7 +135,12 @@ class _SudokuScreen extends ConsumerWidget {
     if (game.value?.isSolved ?? false) {
       return Scaffold(
         backgroundColor: colors.sand,
-        body: const SudokuCompletionView(),
+        body: GameCompletionView(
+          gameName: variant.title(l10n),
+          tierLabel: difficulty.label(l10n),
+          onAnother: () =>
+              ref.read(sudokuControllerProvider.notifier).startNewPuzzle(),
+        ),
       );
     }
 
@@ -115,7 +149,7 @@ class _SudokuScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            _Header(
+            GameHeader(
               title: variant.title(l10n),
               subtitle: l10n.gameSubtitle(
                 variant.sizeLabel(l10n),
@@ -134,107 +168,6 @@ class _SudokuScreen extends ConsumerWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final NookColors colors = Theme.of(context).nook;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 2, 20, 10),
-      child: Row(
-        children: <Widget>[
-          _IconButtonTile(
-            semanticLabel: AppLocalizations.of(context).backToGameList,
-            icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Navigator.of(context).maybePop(),
-          ),
-          Expanded(
-            child: Column(
-              children: <Widget>[
-                Text(title, style: NookType.title(colors.ink)),
-                const SizedBox(height: 1),
-                Text(subtitle, style: NookType.sectionLabel(colors.inkFaint)),
-              ],
-            ),
-          ),
-          const _Clock(),
-        ],
-      ),
-    );
-  }
-}
-
-/// How long this puzzle has been played for.
-///
-/// Sits where the designs put it, opposite the back button, and is wide enough
-/// to keep the title centred as the digits change — a clock that shoved the
-/// game's name sideways every time it ticked would be worse than no clock.
-class _Clock extends ConsumerWidget {
-  const _Clock();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final NookColors colors = Theme.of(context).nook;
-    final Duration elapsed = ref.watch(playClockProvider);
-    final String reading = clockReading(elapsed);
-
-    return Semantics(
-      label: AppLocalizations.of(context).gameElapsedLabel(reading),
-      excludeSemantics: true,
-      child: SizedBox(
-        width: kMinTapTarget + 14,
-        child: Text(
-          reading,
-          textAlign: TextAlign.end,
-          style: NookType.sectionLabel(colors.inkMuted),
-        ),
-      ),
-    );
-  }
-}
-
-class _IconButtonTile extends StatelessWidget {
-  const _IconButtonTile({
-    required this.semanticLabel,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String semanticLabel;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final NookColors colors = Theme.of(context).nook;
-    return Semantics(
-      label: semanticLabel,
-      button: true,
-      excludeSemantics: true,
-      child: Material(
-        color: colors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(NookRadius.tile),
-          side: BorderSide(color: colors.line),
-        ),
-        child: InkWell(
-          borderRadius: const BorderRadius.all(NookRadius.tile),
-          onTap: onTap,
-          child: SizedBox(
-            width: kMinTapTarget,
-            height: kMinTapTarget,
-            child: Icon(icon, size: 18, color: colors.inkMuted),
-          ),
         ),
       ),
     );

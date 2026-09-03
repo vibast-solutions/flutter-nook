@@ -39,7 +39,7 @@ SudokuPuzzle fixedMiniPuzzle() {
   return SudokuPuzzle(
     spec: SudokuSpec.mini,
     seed: 0,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     givens: <int>[
       0, 0, 0, 0, //
       0, 0, 1, 2, //
@@ -84,7 +84,7 @@ SudokuPuzzle fixedPuzzle(SudokuVariant variant) {
     return fixedMiniPuzzle();
   }
   return SudokuGenerator(variant.spec)
-      .generateAt(SudokuDifficulty.gentle, 2026);
+      .generateAt(PuzzleDifficulty.gentle, 2026);
 }
 
 /// The three Sudokus, for a test that has to hold for all of them.
@@ -152,7 +152,7 @@ SavedGame partPlayedMiniSave({
   );
   return savedGameFor(
     game,
-    difficulty: SudokuDifficulty.gentle,
+    difficulty: PuzzleDifficulty.gentle,
     elapsed: elapsed,
     at: at ?? DateTime.utc(2026, 9, 2, 9),
   );
@@ -225,7 +225,7 @@ Widget nookScope({
     overrides: [
       sudokuPuzzleSourceProvider.overrideWithValue(
         source ??
-            (SudokuSpec spec, SudokuDifficulty tier, int seed) async => puzzle,
+            (SudokuSpec spec, PuzzleDifficulty tier, int seed) async => puzzle,
       ),
       nookDatabaseProvider.overrideWithValue(database ?? memoryDatabase()),
       nowProvider.overrideWithValue((clock ?? TestClock()).call),
@@ -363,7 +363,7 @@ Future<void> pumpHome(
 Future<void> pumpSudokuGame(
   WidgetTester tester, {
   SudokuVariant variant = SudokuVariant.mini,
-  SudokuDifficulty difficulty = SudokuDifficulty.gentle,
+  PuzzleDifficulty difficulty = PuzzleDifficulty.gentle,
   SudokuPuzzle? puzzle,
   SudokuSave? resume,
   NookDatabase? database,

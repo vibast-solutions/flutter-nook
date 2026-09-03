@@ -14,7 +14,7 @@ import 'sudoku_variant.dart';
 /// hop stays in one place.
 typedef SudokuPuzzleSource = Future<SudokuPuzzle> Function(
   SudokuSpec spec,
-  SudokuDifficulty difficulty,
+  PuzzleDifficulty difficulty,
   int seed,
 );
 
@@ -34,8 +34,8 @@ final Provider<SudokuVariant> sudokuVariantProvider = Provider<SudokuVariant>(
 /// Scoped like [sudokuVariantProvider] and for the same reason: a screen must
 /// say what it is playing, and the puzzle a player gets has to be the one they
 /// chose rather than whatever the generator happened to produce.
-final Provider<SudokuDifficulty> sudokuDifficultyProvider =
-    Provider<SudokuDifficulty>(
+final Provider<PuzzleDifficulty> sudokuDifficultyProvider =
+    Provider<PuzzleDifficulty>(
       (Ref ref) => throw UnimplementedError(
         'sudokuDifficultyProvider must be overridden by the game screen.',
       ),
@@ -387,7 +387,7 @@ class SudokuController extends AsyncNotifier<SudokuGameState> {
   /// itself would throw away the game the player is in the middle of.
   Future<SudokuGameState> _freshGame() async {
     final SudokuVariant variant = ref.read(sudokuVariantProvider);
-    final SudokuDifficulty difficulty = ref.read(sudokuDifficultyProvider);
+    final PuzzleDifficulty difficulty = ref.read(sudokuDifficultyProvider);
     final SudokuPuzzleSource source = ref.read(sudokuPuzzleSourceProvider);
     final int seed = ref.read(sudokuSeedSourceProvider)();
     final SudokuPuzzle puzzle = await source(variant.spec, difficulty, seed);
@@ -410,7 +410,7 @@ enum _Writer { player, hintFilling, hintClearing }
 /// than being added once someone notices a dropped frame.
 Future<SudokuPuzzle> generateSudokuOffThread(
   SudokuSpec spec,
-  SudokuDifficulty difficulty,
+  PuzzleDifficulty difficulty,
   int seed,
 ) {
   return compute(_generate, _GenerateRequest(spec, difficulty, seed));
@@ -421,7 +421,7 @@ class _GenerateRequest {
   const _GenerateRequest(this.spec, this.difficulty, this.seed);
 
   final SudokuSpec spec;
-  final SudokuDifficulty difficulty;
+  final PuzzleDifficulty difficulty;
   final int seed;
 }
 

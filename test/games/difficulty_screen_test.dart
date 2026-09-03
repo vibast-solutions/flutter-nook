@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nook/chrome/difficulty_naming.dart';
 import 'package:nook/board/sudoku_board.dart';
 import 'package:nook/chrome/continue_card.dart';
 import 'package:nook/chrome/discard_dialog.dart';
@@ -35,7 +36,7 @@ Future<void> pumpDifficulty(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
-        home: SudokuDifficultyPage(variant: variant),
+        home: PuzzleDifficultyPage(variant: variant),
       ),
     ),
   );
@@ -43,10 +44,10 @@ Future<void> pumpDifficulty(
 }
 
 /// How many bars of [difficulty]'s meter are lit.
-int filledRungs(WidgetTester tester, SudokuDifficulty difficulty) {
+int filledRungs(WidgetTester tester, PuzzleDifficulty difficulty) {
   final Iterable<Container> bars = tester.widgetList<Container>(
     find.descendant(
-      of: find.byKey(SudokuDifficultyPage.tierKey(difficulty)),
+      of: find.byKey(PuzzleDifficultyPage.tierKey(difficulty)),
       matching: find.byType(Container),
     ),
   );
@@ -68,10 +69,10 @@ void main() {
         await pumpDifficulty(tester, variant: variant);
 
         expect(find.text(variant.title(en)), findsOneWidget);
-        for (final SudokuDifficulty tier in SudokuDifficulty.values) {
+        for (final PuzzleDifficulty tier in PuzzleDifficulty.values) {
           final bool offered = variant.tiers.contains(tier);
           expect(
-            find.byKey(SudokuDifficultyPage.tierKey(tier)),
+            find.byKey(PuzzleDifficultyPage.tierKey(tier)),
             offered ? findsOneWidget : findsNothing,
             reason: offered
                 ? '${tier.label(en)} should be offered on ${variant.title(en)}'
@@ -88,10 +89,10 @@ void main() {
         // brand-new player can start on the hardest thing the grid makes.
         await pumpDifficulty(tester, variant: variant);
 
-        for (final SudokuDifficulty tier in variant.tiers) {
+        for (final PuzzleDifficulty tier in variant.tiers) {
           final InkWell way = tester.widget<InkWell>(
             find.descendant(
-              of: find.byKey(SudokuDifficultyPage.tierKey(tier)),
+              of: find.byKey(PuzzleDifficultyPage.tierKey(tier)),
               matching: find.byType(InkWell),
             ),
           );
@@ -112,9 +113,9 @@ void main() {
           width: kSmallestSupportedWidth,
         );
 
-        for (final SudokuDifficulty tier in variant.tiers) {
+        for (final PuzzleDifficulty tier in variant.tiers) {
           final Size row = tester.getSize(
-            find.byKey(SudokuDifficultyPage.tierKey(tier)),
+            find.byKey(PuzzleDifficultyPage.tierKey(tier)),
           );
           expect(
             row.height,
@@ -156,10 +157,10 @@ void main() {
     ) async {
       await pumpDifficulty(tester);
 
-      expect(filledRungs(tester, SudokuDifficulty.gentle), 1);
-      expect(filledRungs(tester, SudokuDifficulty.easy), 2);
-      expect(filledRungs(tester, SudokuDifficulty.medium), 3);
-      expect(filledRungs(tester, SudokuDifficulty.hard), 4);
+      expect(filledRungs(tester, PuzzleDifficulty.gentle), 1);
+      expect(filledRungs(tester, PuzzleDifficulty.easy), 2);
+      expect(filledRungs(tester, PuzzleDifficulty.medium), 3);
+      expect(filledRungs(tester, PuzzleDifficulty.hard), 4);
     });
 
     testWidgets('Fiendish says what it needs instead of showing a meter', (
@@ -170,13 +171,13 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(
-            SudokuDifficultyPage.tierKey(SudokuDifficulty.fiendish),
+            PuzzleDifficultyPage.tierKey(PuzzleDifficulty.fiendish),
           ),
           matching: find.text('needs notes'),
         ),
         findsOneWidget,
       );
-      expect(filledRungs(tester, SudokuDifficulty.fiendish), 0);
+      expect(filledRungs(tester, PuzzleDifficulty.fiendish), 0);
     });
 
     testWidgets('every tier says what it feels like to play', (
@@ -220,7 +221,7 @@ void main() {
       await pumpDifficulty(tester);
 
       await tester.tap(
-        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.hard)),
+        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.hard)),
       );
       await tester.pumpAndSettle();
 
@@ -234,12 +235,12 @@ void main() {
       // The header could read the tier straight off the route and look right
       // while the puzzle underneath was generated at some other difficulty.
       // This watches what the generator was actually asked for.
-      final List<SudokuDifficulty> asked = <SudokuDifficulty>[];
+      final List<PuzzleDifficulty> asked = <PuzzleDifficulty>[];
       await setPhoneSurface(tester);
       await tester.pumpWidget(
         nookScope(
           puzzle: fixedPuzzle(SudokuVariant.classic),
-          source: (SudokuSpec spec, SudokuDifficulty tier, int seed) async {
+          source: (SudokuSpec spec, PuzzleDifficulty tier, int seed) async {
             asked.add(tier);
             return fixedPuzzle(SudokuVariant.classic);
           },
@@ -247,18 +248,18 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             theme: buildNookTheme(NookColors.softClay),
-            home: const SudokuDifficultyPage(variant: SudokuVariant.classic),
+            home: const PuzzleDifficultyPage(variant: SudokuVariant.classic),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.fiendish)),
+        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.fiendish)),
       );
       await tester.pumpAndSettle();
 
-      expect(asked, <SudokuDifficulty>[SudokuDifficulty.fiendish]);
+      expect(asked, <PuzzleDifficulty>[PuzzleDifficulty.fiendish]);
     });
   });
 
@@ -307,7 +308,7 @@ void main() {
       final NookDatabase database = await pumpWithSave(tester);
 
       await tester.tap(
-        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
 
@@ -326,7 +327,7 @@ void main() {
       final NookDatabase database = await pumpWithSave(tester);
 
       await tester.tap(
-        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(DiscardDialog.keepKey));
@@ -351,7 +352,7 @@ void main() {
       final NookDatabase database = await pumpWithSave(tester);
 
       await tester.tap(
-        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(DiscardDialog.confirmKey));
@@ -375,7 +376,7 @@ void main() {
       await pumpDifficulty(tester, variant: SudokuVariant.mini);
 
       await tester.tap(
-        find.byKey(SudokuDifficultyPage.tierKey(SudokuDifficulty.gentle)),
+        find.byKey(PuzzleDifficultyPage.tierKey(PuzzleDifficulty.gentle)),
       );
       await tester.pumpAndSettle();
 
@@ -389,7 +390,7 @@ void main() {
     /// of them taking [best] unless there is no best time to have.
     Future<void> record(
       NookDatabase database, {
-      required SudokuDifficulty tier,
+      required PuzzleDifficulty tier,
       int solved = 1,
       Duration? best = const Duration(minutes: 1),
       String gameId = SudokuVariant.classicId,
@@ -408,10 +409,10 @@ void main() {
     }
 
     /// The line under [tier]'s name.
-    String lineUnder(WidgetTester tester, SudokuDifficulty tier) {
+    String lineUnder(WidgetTester tester, PuzzleDifficulty tier) {
       final Iterable<Text> lines = tester.widgetList<Text>(
         find.descendant(
-          of: find.byKey(SudokuDifficultyPage.tierKey(tier)),
+          of: find.byKey(PuzzleDifficultyPage.tierKey(tier)),
           matching: find.byType(Text),
         ),
       );
@@ -426,8 +427,8 @@ void main() {
       await pumpDifficulty(tester);
 
       expect(
-        lineUnder(tester, SudokuDifficulty.medium),
-        SudokuDifficulty.medium.blurb(en),
+        lineUnder(tester, PuzzleDifficulty.medium),
+        PuzzleDifficulty.medium.blurb(en),
       );
     });
 
@@ -435,12 +436,12 @@ void main() {
       WidgetTester tester,
     ) async {
       final NookDatabase database = memoryDatabase();
-      await record(database, tier: SudokuDifficulty.medium, solved: 3);
+      await record(database, tier: PuzzleDifficulty.medium, solved: 3);
 
       await pumpDifficulty(tester, database: database);
 
       expect(
-        lineUnder(tester, SudokuDifficulty.medium),
+        lineUnder(tester, PuzzleDifficulty.medium),
         en.difficultyTierBest('01:00', 3),
       );
       expect(find.text('best 01:00 · 3 solved'), findsOneWidget);
@@ -450,12 +451,12 @@ void main() {
       WidgetTester tester,
     ) async {
       final NookDatabase database = memoryDatabase();
-      await record(database, tier: SudokuDifficulty.hard, best: null);
+      await record(database, tier: PuzzleDifficulty.hard, best: null);
 
       await pumpDifficulty(tester, database: database);
 
       expect(
-        lineUnder(tester, SudokuDifficulty.hard),
+        lineUnder(tester, PuzzleDifficulty.hard),
         en.difficultyTierSolved(1),
       );
       expect(find.text('1 solved'), findsOneWidget);
@@ -465,22 +466,22 @@ void main() {
       WidgetTester tester,
     ) async {
       final NookDatabase database = memoryDatabase();
-      await record(database, tier: SudokuDifficulty.gentle);
+      await record(database, tier: PuzzleDifficulty.gentle);
       await record(
         database,
-        tier: SudokuDifficulty.easy,
+        tier: PuzzleDifficulty.easy,
         gameId: SudokuVariant.miniId,
       );
 
       await pumpDifficulty(tester, database: database);
 
       expect(
-        lineUnder(tester, SudokuDifficulty.gentle),
+        lineUnder(tester, PuzzleDifficulty.gentle),
         en.difficultyTierBest('01:00', 1),
       );
       expect(
-        lineUnder(tester, SudokuDifficulty.easy),
-        SudokuDifficulty.easy.blurb(en),
+        lineUnder(tester, PuzzleDifficulty.easy),
+        PuzzleDifficulty.easy.blurb(en),
         reason: 'a Sudoku Mini time was shown on Sudoku Classic',
       );
     });
@@ -491,7 +492,7 @@ void main() {
       final SemanticsHandle handle = tester.ensureSemantics();
       try {
         final NookDatabase database = memoryDatabase();
-        await record(database, tier: SudokuDifficulty.gentle, solved: 2);
+        await record(database, tier: PuzzleDifficulty.gentle, solved: 2);
 
         await pumpDifficulty(tester, database: database);
 

@@ -28,31 +28,6 @@ extension SudokuVariantNaming on SudokuVariant {
   String sizeLabel(AppLocalizations l10n) => l10n.gridSize(spec.size);
 }
 
-/// The name of a difficulty tier.
-extension SudokuDifficultyNaming on SudokuDifficulty {
-  /// The tier's name, as it appears on the difficulty screen and in headers.
-  String label(AppLocalizations l10n) => switch (this) {
-    SudokuDifficulty.gentle => l10n.difficultyGentle,
-    SudokuDifficulty.easy => l10n.difficultyEasy,
-    SudokuDifficulty.medium => l10n.difficultyMedium,
-    SudokuDifficulty.hard => l10n.difficultyHard,
-    SudokuDifficulty.fiendish => l10n.difficultyFiendish,
-  };
-
-  /// What solving a puzzle of this tier feels like — the line under the name.
-  ///
-  /// Describes the thinking rather than the clue count, because clue count is
-  /// not what makes a Sudoku hard and saying otherwise would be a lie the
-  /// player can check.
-  String blurb(AppLocalizations l10n) => switch (this) {
-    SudokuDifficulty.gentle => l10n.difficultyGentleBlurb,
-    SudokuDifficulty.easy => l10n.difficultyEasyBlurb,
-    SudokuDifficulty.medium => l10n.difficultyMediumBlurb,
-    SudokuDifficulty.hard => l10n.difficultyHardBlurb,
-    SudokuDifficulty.fiendish => l10n.difficultyFiendishBlurb,
-  };
-}
-
 /// The name of a solving technique.
 ///
 /// Nothing shows these yet. They are here because hints (VIB-76) will name the

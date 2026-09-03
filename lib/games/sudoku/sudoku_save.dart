@@ -26,7 +26,7 @@ class SudokuSave {
   final SudokuVariant variant;
 
   /// The tier it was started at.
-  final SudokuDifficulty difficulty;
+  final PuzzleDifficulty difficulty;
 
   /// The board, the notes and the moves, exactly as they were left.
   final SudokuGameState game;
@@ -43,7 +43,7 @@ class SudokuSave {
     if (variant == null) {
       return null;
     }
-    final SudokuDifficulty? difficulty = _difficultyNamed(save.difficulty);
+    final PuzzleDifficulty? difficulty = _difficultyNamed(save.difficulty);
     if (difficulty == null) {
       return null;
     }
@@ -78,8 +78,8 @@ class SudokuSave {
     );
   }
 
-  static SudokuDifficulty? _difficultyNamed(String name) {
-    for (final SudokuDifficulty difficulty in SudokuDifficulty.values) {
+  static PuzzleDifficulty? _difficultyNamed(String name) {
+    for (final PuzzleDifficulty difficulty in PuzzleDifficulty.values) {
       if (difficulty.name == name) {
         return difficulty;
       }
@@ -95,7 +95,7 @@ class SudokuSave {
 /// screen by a test may have been measured at nothing at all.
 SavedGame savedGameFor(
   SudokuGameState game, {
-  required SudokuDifficulty difficulty,
+  required PuzzleDifficulty difficulty,
   required Duration elapsed,
   required DateTime at,
 }) {

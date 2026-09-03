@@ -728,7 +728,7 @@ void main() {
         ProviderScope(
           overrides: [
             sudokuPuzzleSourceProvider.overrideWithValue(
-              (SudokuSpec spec, SudokuDifficulty tier, int seed) =>
+              (SudokuSpec spec, PuzzleDifficulty tier, int seed) =>
                   pending.future,
             ),
           ],
@@ -738,7 +738,7 @@ void main() {
             theme: buildNookTheme(NookColors.softClay),
             home: const SudokuGamePage(
               variant: SudokuVariant.mini,
-              difficulty: SudokuDifficulty.gentle,
+              difficulty: PuzzleDifficulty.gentle,
             ),
           ),
         ),
@@ -759,12 +759,12 @@ void main() {
       // one place the isolate hop and the generator are exercised together.
       final SudokuPuzzle puzzle = await generateSudokuOffThread(
         SudokuSpec.mini,
-        SudokuDifficulty.gentle,
+        PuzzleDifficulty.gentle,
         4242,
       );
 
       expect(puzzle.seed, 4242);
-      expect(puzzle.difficulty, SudokuDifficulty.gentle);
+      expect(puzzle.difficulty, PuzzleDifficulty.gentle);
       expect(puzzle.givens, hasLength(16));
       expect(puzzle.givenCount, greaterThan(0));
       expect(puzzle.givenCount, lessThan(16));

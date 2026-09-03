@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../chrome/continue_card.dart';
+import '../../chrome/difficulty_naming.dart';
 import '../../chrome/discard_dialog.dart';
 import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
@@ -29,8 +30,8 @@ import 'sudoku_variant.dart';
 /// measurement rather than a decision — see [SudokuRater.tiersFor]. Offering a
 /// tier a 4x4 cannot make would mean five buttons handing back the same puzzle,
 /// which is a worse kind of dishonesty than a short list.
-class SudokuDifficultyPage extends ConsumerWidget {
-  const SudokuDifficultyPage({required this.variant, super.key});
+class PuzzleDifficultyPage extends ConsumerWidget {
+  const PuzzleDifficultyPage({required this.variant, super.key});
 
   /// The Sudoku whose difficulties are being offered.
   final SudokuVariant variant;
@@ -42,12 +43,12 @@ class SudokuDifficultyPage extends ConsumerWidget {
   /// Builds a route to this page.
   static Route<void> route(SudokuVariant variant) {
     return MaterialPageRoute<void>(
-      builder: (BuildContext context) => SudokuDifficultyPage(variant: variant),
+      builder: (BuildContext context) => PuzzleDifficultyPage(variant: variant),
     );
   }
 
   /// The key of the row that starts a [difficulty] game.
-  static Key tierKey(SudokuDifficulty difficulty) =>
+  static Key tierKey(PuzzleDifficulty difficulty) =>
       ValueKey<String>('difficulty-${difficulty.name}');
 
   /// This game's unfinished puzzle, if it has one this build can open.
@@ -69,7 +70,7 @@ class SudokuDifficultyPage extends ConsumerWidget {
   Future<void> _start(
     BuildContext context,
     WidgetRef ref,
-    SudokuDifficulty tier,
+    PuzzleDifficulty tier,
     SudokuSave? saved,
   ) async {
     final NavigatorState navigator = Navigator.of(context);
@@ -90,7 +91,7 @@ class SudokuDifficultyPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final List<SudokuDifficulty> tiers = variant.tiers;
+    final List<PuzzleDifficulty> tiers = variant.tiers;
     final SudokuSave? saved = _saved(ref.watch(savedGamesProvider).value);
     final List<GameStats> figures =
         ref.watch(gameStatsProvider).value ?? const <GameStats>[];
@@ -119,7 +120,7 @@ class SudokuDifficultyPage extends ConsumerWidget {
                     style: NookType.sectionLabel(colors.inkFaint),
                   ),
                   const SizedBox(height: 10),
-                  for (final SudokuDifficulty tier in tiers) ...<Widget>[
+                  for (final PuzzleDifficulty tier in tiers) ...<Widget>[
                     _TierRow(
                       difficulty: tier,
                       stats: statsFor(
@@ -132,7 +133,7 @@ class SudokuDifficultyPage extends ConsumerWidget {
                     const SizedBox(height: 9),
                   ],
                   if (tiers.length <
-                      SudokuDifficulty.values.length) ...<Widget>[
+                      PuzzleDifficulty.values.length) ...<Widget>[
                     const SizedBox(height: 4),
                     _ShortLadderNote(variant: variant),
                   ],
@@ -232,7 +233,7 @@ class _TierRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final SudokuDifficulty difficulty;
+  final PuzzleDifficulty difficulty;
 
   /// What the player has done here before, or `null` if this is new ground.
   final GameStats? stats;
@@ -268,7 +269,7 @@ class _TierRow extends StatelessWidget {
     // The designs mark Fiendish with words rather than a full meter: four
     // filled bars would say "hardest", where what a player needs to know is
     // that this is the tier they will want to write notes for.
-    final bool needsNotes = difficulty == SudokuDifficulty.fiendish;
+    final bool needsNotes = difficulty == PuzzleDifficulty.fiendish;
 
     return Semantics(
       // Two whole messages rather than one with a bolted-on tail: a language
@@ -279,7 +280,7 @@ class _TierRow extends StatelessWidget {
       button: true,
       excludeSemantics: true,
       child: Material(
-        key: SudokuDifficultyPage.tierKey(difficulty),
+        key: PuzzleDifficultyPage.tierKey(difficulty),
         color: colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(NookRadius.row),
@@ -335,7 +336,7 @@ class _TierRow extends StatelessWidget {
 class _DifficultyMeter extends StatelessWidget {
   const _DifficultyMeter({required this.difficulty});
 
-  final SudokuDifficulty difficulty;
+  final PuzzleDifficulty difficulty;
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +350,7 @@ class _DifficultyMeter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: <Widget>[
-        for (int rung = 0; rung < SudokuDifficultyPage.meterRungs; rung++)
+        for (int rung = 0; rung < PuzzleDifficultyPage.meterRungs; rung++)
           Padding(
             padding: EdgeInsets.only(left: rung == 0 ? 0 : 3),
             child: Container(

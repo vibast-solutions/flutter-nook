@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/board/number_pad.dart';
 import 'package:nook/board/sudoku_board.dart';
-import 'package:nook/games/sudoku/completion_view.dart';
+import 'package:nook/chrome/completion_view.dart';
 import 'package:nook/games/sudoku/sudoku_variant.dart';
 import 'package:nook/store/game_stats.dart';
 import 'package:nook/store/nook_database.dart';
@@ -58,7 +58,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(figureOn(tester, SudokuCompletionView.timeKey), '01:32');
+      expect(figureOn(tester, GameCompletionView.timeKey), '01:32');
       expect(find.byType(SudokuBoard), findsNothing);
       expect(find.byType(NumberPad), findsNothing);
     });
@@ -70,10 +70,10 @@ void main() {
 
       await playAndSolve(tester, clock);
 
-      expect(figureOn(tester, SudokuCompletionView.solvedKey), '1');
+      expect(figureOn(tester, GameCompletionView.solvedKey), '1');
       final GameStats stats = (await storedStats(tester, database)).single;
       expect(stats.gameId, SudokuVariant.miniId);
-      expect(stats.difficulty, SudokuDifficulty.gentle.name);
+      expect(stats.difficulty, PuzzleDifficulty.gentle.name);
       expect(stats.solved, 1);
       expect(stats.bestTime, const Duration(minutes: 1));
     });
@@ -84,7 +84,7 @@ void main() {
       await pumpSudokuGame(tester, database: database, clock: clock);
       await playAndSolve(tester, clock);
 
-      await tester.tap(find.byKey(SudokuCompletionView.anotherKey));
+      await tester.tap(find.byKey(GameCompletionView.anotherKey));
       await tester.pumpAndSettle();
       // The screen goes back to a board: the result belonged to the puzzle
       // that produced it, not to the game.
@@ -93,7 +93,7 @@ void main() {
 
       await playAndSolve(tester, clock);
 
-      expect(figureOn(tester, SudokuCompletionView.solvedKey), '2');
+      expect(figureOn(tester, GameCompletionView.solvedKey), '2');
       expect((await storedStats(tester, database)).single.solved, 2);
     });
   });
@@ -107,10 +107,10 @@ void main() {
 
       await playAndSolve(tester, clock);
 
-      expect(find.byKey(SudokuCompletionView.personalBestKey), findsOneWidget);
+      expect(find.byKey(GameCompletionView.personalBestKey), findsOneWidget);
       expect(find.text(en.completionPersonalBest), findsOneWidget);
       expect(
-        figureOn(tester, SudokuCompletionView.previousKey),
+        figureOn(tester, GameCompletionView.previousKey),
         en.completionNoTime,
         reason: 'there was no previous time, and a zero would read as one',
       );
@@ -124,17 +124,17 @@ void main() {
       await pumpSudokuGame(tester, database: database, clock: clock);
       await playAndSolve(tester, clock, after: const Duration(minutes: 1));
 
-      await tester.tap(find.byKey(SudokuCompletionView.anotherKey));
+      await tester.tap(find.byKey(GameCompletionView.anotherKey));
       await tester.pumpAndSettle();
       await playAndSolve(tester, clock, after: const Duration(minutes: 5));
 
       expect(
-        find.byKey(SudokuCompletionView.personalBestKey),
+        find.byKey(GameCompletionView.personalBestKey),
         findsNothing,
         reason: 'a slower puzzle was called a personal best',
       );
-      expect(figureOn(tester, SudokuCompletionView.timeKey), '05:00');
-      expect(figureOn(tester, SudokuCompletionView.previousKey), '01:00');
+      expect(figureOn(tester, GameCompletionView.timeKey), '05:00');
+      expect(figureOn(tester, GameCompletionView.previousKey), '01:00');
       expect(
         (await storedStats(tester, database)).single.bestTime,
         const Duration(minutes: 1),
@@ -148,12 +148,12 @@ void main() {
       await pumpSudokuGame(tester, database: database, clock: clock);
       await playAndSolve(tester, clock, after: const Duration(minutes: 5));
 
-      await tester.tap(find.byKey(SudokuCompletionView.anotherKey));
+      await tester.tap(find.byKey(GameCompletionView.anotherKey));
       await tester.pumpAndSettle();
       await playAndSolve(tester, clock, after: const Duration(minutes: 1));
 
-      expect(find.byKey(SudokuCompletionView.personalBestKey), findsOneWidget);
-      expect(figureOn(tester, SudokuCompletionView.previousKey), '05:00');
+      expect(find.byKey(GameCompletionView.personalBestKey), findsOneWidget);
+      expect(figureOn(tester, GameCompletionView.previousKey), '05:00');
       expect(
         (await storedStats(tester, database)).single.bestTime,
         const Duration(minutes: 1),
@@ -174,10 +174,10 @@ void main() {
         withHint: true,
       );
 
-      expect(figureOn(tester, SudokuCompletionView.timeKey), '00:30');
-      expect(figureOn(tester, SudokuCompletionView.solvedKey), '1');
+      expect(figureOn(tester, GameCompletionView.timeKey), '00:30');
+      expect(figureOn(tester, GameCompletionView.solvedKey), '1');
       expect(
-        find.byKey(SudokuCompletionView.personalBestKey),
+        find.byKey(GameCompletionView.personalBestKey),
         findsNothing,
         reason: 'a hint set a personal best',
       );
@@ -204,10 +204,10 @@ void main() {
         withHintedRemoval: true,
       );
 
-      expect(figureOn(tester, SudokuCompletionView.timeKey), '00:30');
-      expect(figureOn(tester, SudokuCompletionView.solvedKey), '1');
+      expect(figureOn(tester, GameCompletionView.timeKey), '00:30');
+      expect(figureOn(tester, GameCompletionView.solvedKey), '1');
       expect(
-        find.byKey(SudokuCompletionView.personalBestKey),
+        find.byKey(GameCompletionView.personalBestKey),
         findsNothing,
         reason: 'a hint that cleared a mistake set a personal best',
       );
@@ -225,7 +225,7 @@ void main() {
       await pumpSudokuGame(tester, database: database, clock: clock);
       await playAndSolve(tester, clock, after: const Duration(minutes: 5));
 
-      await tester.tap(find.byKey(SudokuCompletionView.anotherKey));
+      await tester.tap(find.byKey(GameCompletionView.anotherKey));
       await tester.pumpAndSettle();
       await playAndSolve(
         tester,
@@ -234,8 +234,8 @@ void main() {
         withHint: true,
       );
 
-      expect(find.byKey(SudokuCompletionView.personalBestKey), findsNothing);
-      expect(figureOn(tester, SudokuCompletionView.previousKey), '05:00');
+      expect(find.byKey(GameCompletionView.personalBestKey), findsNothing);
+      expect(figureOn(tester, GameCompletionView.previousKey), '05:00');
       expect(
         (await storedStats(tester, database)).single.bestTime,
         const Duration(minutes: 5),
@@ -278,9 +278,9 @@ void main() {
       await playAndSolve(tester, clock);
 
       expect(find.byType(InkWell), findsNWidgets(3));
-      expect(find.byKey(SudokuCompletionView.anotherKey), findsOneWidget);
-      expect(find.byKey(SudokuCompletionView.homeKey), findsOneWidget);
-      expect(find.byKey(SudokuCompletionView.closeKey), findsOneWidget);
+      expect(find.byKey(GameCompletionView.anotherKey), findsOneWidget);
+      expect(find.byKey(GameCompletionView.homeKey), findsOneWidget);
+      expect(find.byKey(GameCompletionView.closeKey), findsOneWidget);
       expect(
         find.text(en.completionAnother(en.difficultyGentle)),
         findsOneWidget,
@@ -323,7 +323,7 @@ void main() {
       await pumpSudokuGame(tester, database: memoryDatabase(), clock: clock);
       await playAndSolve(tester, clock);
 
-      await tester.tap(find.byKey(SudokuCompletionView.anotherKey));
+      await tester.tap(find.byKey(GameCompletionView.anotherKey));
       await tester.pumpAndSettle();
 
       expect(find.byType(SudokuBoard), findsOneWidget);
@@ -345,7 +345,7 @@ void main() {
       final TestClock clock = TestClock();
       await pumpDifficultyThenPlay(tester, clock);
 
-      await tester.tap(find.byKey(SudokuCompletionView.closeKey));
+      await tester.tap(find.byKey(GameCompletionView.closeKey));
       await tester.pumpAndSettle();
 
       expect(find.text(en.difficultyStartNew), findsOneWidget);
@@ -357,7 +357,7 @@ void main() {
       final TestClock clock = TestClock();
       await pumpDifficultyThenPlay(tester, clock);
 
-      await tester.tap(find.byKey(SudokuCompletionView.homeKey));
+      await tester.tap(find.byKey(GameCompletionView.homeKey));
       await tester.pumpAndSettle();
 
       expect(find.text(en.homeAllGames), findsOneWidget);
