@@ -7,6 +7,7 @@
 library;
 
 export 'src/difficulty.dart';
+export 'src/duo/difficulty.dart';
 export 'src/duo/generator.dart';
 export 'src/duo/logic_solver.dart';
 export 'src/duo/puzzle.dart';

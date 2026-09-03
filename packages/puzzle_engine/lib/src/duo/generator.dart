@@ -1,5 +1,6 @@
 import '../difficulty.dart';
 import '../random.dart';
+import 'difficulty.dart';
 import 'logic_solver.dart';
 import 'puzzle.dart';
 import 'solver.dart';
@@ -49,21 +50,27 @@ class DuoGenerationException implements Exception {
 ///    without guessing, restore givens until they could — the extreme being the
 ///    finished grid, which needs no deduction at all.
 ///
-/// This story labels whatever the simple technique gate passes
-/// [PuzzleDifficulty.gentle]; rating and the harder tiers are VIB-94.
+/// The difficulty knob (VIB-94) is **how much is given**: a harder tier scatters
+/// fewer badges and keeps fewer givens, a gentler one the reverse. But the tier
+/// a puzzle is finally labelled with is always *measured* off the solve by
+/// [DuoRater], never assumed from those counts — the counts only shape how often
+/// generation lands near a tier, and [generateAt] retries until the measurement
+/// agrees.
 ///
 /// Nothing here reads the clock or an unseeded random source. Two calls with the
 /// same seed produce identical puzzles, badges and all, on any platform.
 class DuoGenerator {
   DuoGenerator(this.spec)
     : _solver = DuoSolver(spec),
-      _logic = DuoLogicSolver(spec) {
+      _logic = DuoLogicSolver(spec),
+      _rater = DuoRater(spec) {
     spec.validate();
   }
 
   final DuoSpec spec;
   final DuoSolver _solver;
   final DuoLogicSolver _logic;
+  final DuoRater _rater;
 
   /// How many complete grids [generate] will try before it gives up.
   ///
@@ -73,15 +80,18 @@ class DuoGenerator {
   /// so the budget is only ever spent in full when the answer is genuinely no.
   static const int defaultMaxAttempts = 200;
 
-  /// The chance each edge carries a badge.
+  /// The chance each edge carries a badge for an untargeted [generate].
   ///
   /// Enough badges to give the simple techniques a foothold on most grids, few
-  /// enough to leave a puzzle worth solving. The rating in VIB-94 will read the
-  /// tier off the solve, so this only shapes how often generation lands rather
-  /// than what a puzzle is finally called.
+  /// enough to leave a puzzle worth solving. [generateAt] varies this by tier.
   static const int _badgePercent = 32;
 
-  /// Generates the puzzle for [seed], labelled [PuzzleDifficulty.gentle].
+  /// Generates the puzzle for [seed], as hard as it happens to fall, and labels
+  /// it with the tier the technique solver measures.
+  ///
+  /// Used where the tier is beside the point — tests, and the daily puzzle's
+  /// fixed seed before it grows a tier of its own. [generateAt] is what a
+  /// player's choice goes through.
   ///
   /// Throws [DuoGenerationException] if the budget is exhausted.
   DuoPuzzle generate(int seed, {int maxAttempts = defaultMaxAttempts}) {
@@ -91,19 +101,157 @@ class DuoGenerator {
       if (solution == null) {
         continue;
       }
-      final List<DuoBadge> badges = _scatterBadges(solution, random);
+      final List<DuoBadge> badges = _scatterBadges(
+        solution,
+        random,
+        _badgePercent,
+      );
       final List<DuoSymbol?> givens = _carve(solution, badges, random);
       _easeToGuessFree(solution, givens, badges, random);
+      final PuzzleDifficulty? tier = _tierOf(givens, badges);
+      if (tier == null) {
+        continue;
+      }
       return DuoPuzzle(
         spec: spec,
         seed: seed,
         givens: givens,
         badges: badges,
         solution: solution,
-        difficulty: PuzzleDifficulty.gentle,
+        difficulty: tier,
       );
     }
     throw DuoGenerationException(spec, maxAttempts);
+  }
+
+  /// Generates a puzzle measured at [target].
+  ///
+  /// Mirrors `StarsGenerator.generateAt`: build a candidate biased toward the
+  /// tier, rate it, accept it if it lands on [target], otherwise vary and retry,
+  /// giving up after a bounded number of attempts. The bias is the give-count —
+  /// fewer badges and fewer givens for the harder tiers — but the *rating* is
+  /// what a puzzle is accepted on, so the tier a player is handed is always the
+  /// tier they asked for.
+  ///
+  /// Throws [DuoGenerationException] if [maxAttempts] grids all fail.
+  DuoPuzzle generateAt(
+    PuzzleDifficulty target,
+    int seed, {
+    int maxAttempts = defaultMaxAttempts,
+  }) {
+    final PuzzleRandom random = PuzzleRandom(seed);
+    final int badgePercent = _badgePercentFor(target);
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      final List<DuoSymbol>? solution = _buildSolution(random);
+      if (solution == null) {
+        continue;
+      }
+      final List<DuoBadge> badges = _scatterBadges(
+        solution,
+        random,
+        badgePercent,
+      );
+      final List<DuoSymbol?> givens = _carve(solution, badges, random);
+      _easeToGuessFree(solution, givens, badges, random);
+      final DuoPuzzle? landed = _reduceToTarget(
+        solution,
+        givens,
+        badges,
+        target,
+        seed,
+        random,
+      );
+      if (landed != null) {
+        return landed;
+      }
+    }
+    throw DuoGenerationException(spec, maxAttempts, target);
+  }
+
+  /// Brings a minimal, guess-free puzzle down to [target] by restoring givens.
+  ///
+  /// A carved puzzle is the hardest that base can be; restoring a given only
+  /// ever makes it easier. So if the puzzle already measures [target] it is
+  /// taken; if it measures harder, givens are put back one at a time until it
+  /// drops onto [target]; and if it is already easier — or overshoots [target]
+  /// on the way down — this base cannot reach the tier and the caller tries
+  /// another. Rating is measured at every step, so the label is never a guess.
+  DuoPuzzle? _reduceToTarget(
+    List<DuoSymbol> solution,
+    List<DuoSymbol?> givens,
+    List<DuoBadge> badges,
+    PuzzleDifficulty target,
+    int seed,
+    PuzzleRandom random,
+  ) {
+    PuzzleDifficulty? current = _tierOf(givens, badges);
+    if (current == target) {
+      return _puzzleOf(solution, givens, badges, seed, target);
+    }
+    if (current == null || current.index < target.index) {
+      return null;
+    }
+    final List<int> spare = <int>[
+      for (int index = 0; index < spec.cellCount; index++)
+        if (givens[index] == null) index,
+    ];
+    random.shuffle(spare);
+    for (final int cell in spare) {
+      givens[cell] = solution[cell];
+      current = _tierOf(givens, badges);
+      if (current == target) {
+        return _puzzleOf(solution, givens, badges, seed, target);
+      }
+      if (current != null && current.index < target.index) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  DuoPuzzle _puzzleOf(
+    List<DuoSymbol> solution,
+    List<DuoSymbol?> givens,
+    List<DuoBadge> badges,
+    int seed,
+    PuzzleDifficulty tier,
+  ) {
+    return DuoPuzzle(
+      spec: spec,
+      seed: seed,
+      givens: givens,
+      badges: badges,
+      solution: solution,
+      difficulty: tier,
+    );
+  }
+
+  /// The measured tier of [givens] and [badges], or `null` if it is not a
+  /// puzzle Nook will offer: more than one solution, or one that cannot be
+  /// finished without a guess.
+  PuzzleDifficulty? _tierOf(List<DuoSymbol?> givens, List<DuoBadge> badges) {
+    if (_solver.countSolutions(givens, badges, limit: 2) != 1) {
+      return null;
+    }
+    return _rater.rate(_logic.solve(givens, badges));
+  }
+
+  /// The badge density to reach for [target]: a gentler tier leans on badges,
+  /// a fiendish one starves the board of them so the line-reading rung has to
+  /// carry the solve.
+  int _badgePercentFor(PuzzleDifficulty target) {
+    switch (target) {
+      case PuzzleDifficulty.gentle:
+        return 55;
+      case PuzzleDifficulty.easy:
+        return 42;
+      case PuzzleDifficulty.medium:
+        return 30;
+      case PuzzleDifficulty.hard:
+        return 22;
+      case PuzzleDifficulty.fiendish:
+        return 14;
+    }
   }
 
   /// Fills a complete grid that obeys balance and the no-three-in-a-row rule,
@@ -173,12 +321,17 @@ class DuoGenerator {
     return upRun >= spec.runLimit;
   }
 
-  /// Places a badge on a random subset of edges, each reading the relation the
-  /// finished grid already has across it.
-  List<DuoBadge> _scatterBadges(List<DuoSymbol> solution, PuzzleRandom random) {
+  /// Places a badge on a random subset of edges — each edge taken with
+  /// probability [percent] — reading the relation the finished grid already has
+  /// across it.
+  List<DuoBadge> _scatterBadges(
+    List<DuoSymbol> solution,
+    PuzzleRandom random,
+    int percent,
+  ) {
     final List<DuoBadge> badges = <DuoBadge>[];
     for (final (int, int) edge in spec.edges()) {
-      if (random.nextInt(100) >= _badgePercent) {
+      if (random.nextInt(100) >= percent) {
         continue;
       }
       final DuoRelation relation = solution[edge.$1] == solution[edge.$2]
