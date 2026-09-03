@@ -90,9 +90,31 @@
   },
 
   "starsTitle": "Stars",
-  "@starsTitle": { "description": "Name of the Stars puzzle, listed on the home screen before it is playable." },
-  "starsSubtitle": "One star per row, column and region · coming soon",
-  "@starsSubtitle": { "description": "What Stars is, plus a note that it is not playable yet." },
+  "@starsTitle": { "description": "Name of the Stars puzzle, in the game list and its header." },
+  "starsSubtitle": "One star in every row, column and region",
+  "@starsSubtitle": { "description": "The one-line description of Stars in the home game list." },
+  "starsInstruction": "Tap once to rule out, twice for a star",
+  "@starsInstruction": { "description": "The single line of instruction under the Stars board: a tap cycles a cell from empty, to a ruled-out dot, to a star, and back." },
+  "starsCounter": "{placed} of {target}",
+  "@starsCounter": {
+    "description": "The running count above the Stars board: how many stars are placed out of how many a finished board holds. A star icon sits before it.",
+    "placeholders": {
+      "placed": { "type": "int", "example": "3" },
+      "target": { "type": "int", "example": "8" }
+    }
+  },
+  "starsCounterLabel": "{placed} of {target} stars placed",
+  "@starsCounterLabel": {
+    "description": "Screen-reader label for the star counter above the board.",
+    "placeholders": {
+      "placed": { "type": "int", "example": "3" },
+      "target": { "type": "int", "example": "8" }
+    }
+  },
+  "starsLegend": "Each region has its own colour and pattern",
+  "@starsLegend": { "description": "The caption under the legend below the Stars board, saying that colour is not the only thing telling the regions apart." },
+  "starsLegendLabel": "The regions, each with its own colour and pattern",
+  "@starsLegendLabel": { "description": "Screen-reader label for the legend of region swatches below the Stars board." },
   "duoTitle": "Duo",
   "@duoTitle": { "description": "Name of the Duo puzzle, listed on the home screen before it is playable." },
   "duoSubtitle": "Circles and squares, never three in a row · coming soon",
@@ -394,6 +416,34 @@
   "listSeparator": ", ",
   "@listSeparator": {
     "description": "What goes between items when a screen reader lists several digits, as in the pencil marks of one cell. Includes its trailing space."
+  },
+
+  "cellStarsEmpty": "Row {row}, column {column}, region {region}, empty",
+  "@cellStarsEmpty": {
+    "description": "Screen-reader label for an empty Stars cell. Rows, columns and regions are counted from one; the region is which of the coloured, textured shapes the cell belongs to.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsRuledOut": "Row {row}, column {column}, region {region}, ruled out",
+  "@cellStarsRuledOut": {
+    "description": "Screen-reader label for a Stars cell the player has marked as holding no star. The mark is an annotation only — never placed for the player, never checked.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsStar": "Row {row}, column {column}, region {region}, star",
+  "@cellStarsStar": {
+    "description": "Screen-reader label for a Stars cell holding a star the player placed.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
   },
 
   "actionUndo": "Undo",
