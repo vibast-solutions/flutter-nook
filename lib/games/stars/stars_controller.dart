@@ -126,6 +126,107 @@ class StarsController extends AsyncNotifier<StarsGameState> {
     );
   }
 
+  /// Empties the selected cell, whether it holds a star or a ruled-out dot.
+  ///
+  /// A move forward like any other, not a reversal: it records itself so undo
+  /// can put back exactly what was emptied. Does nothing when there is no
+  /// selection, when the selected cell is already empty, or when the puzzle is
+  /// solved — in each of those there is nothing to erase, so no move is made.
+  void erase() {
+    final StarsGameState? game = state.value;
+    if (game == null || !game.canErase) {
+      return;
+    }
+    final int index = game.selectedIndex!;
+    final StarsMark current = game.cells[index];
+    final List<StarsMark> cells = List<StarsMark>.of(game.cells)
+      ..[index] = StarsMark.empty;
+    state = AsyncData<StarsGameState>(
+      game.copyWith(
+        cells: cells,
+        selectedIndex: index,
+        hints: game.hints.difference(<int>{index}),
+        history: game.history.push(
+          BoardMove(
+            index: index,
+            before: current.index,
+            after: StarsMark.empty.index,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Wipes every ruled-out dot on the board, leaving the stars where they are.
+  ///
+  /// The whole sweep is one move, so a single undo brings every dot back where
+  /// it was: the first dot rides in the move's own cell and the rest in
+  /// [BoardMove.clearedMarks], the same shape a Sudoku placement uses to carry
+  /// the notes it tidied. Does nothing when there is no dot to clear or the
+  /// puzzle is solved.
+  void clearMarks() {
+    final StarsGameState? game = state.value;
+    if (game == null || !game.canClearMarks) {
+      return;
+    }
+    final List<int> dotted = <int>[
+      for (int index = 0; index < game.cells.length; index++)
+        if (game.cells[index] == StarsMark.ruledOut) index,
+    ];
+    final List<StarsMark> cells = List<StarsMark>.of(game.cells);
+    for (final int index in dotted) {
+      cells[index] = StarsMark.empty;
+    }
+    final int primary = dotted.first;
+    state = AsyncData<StarsGameState>(
+      game.copyWith(
+        cells: cells,
+        history: game.history.push(
+          BoardMove(
+            index: primary,
+            before: StarsMark.ruledOut.index,
+            after: StarsMark.empty.index,
+            clearedMarks: <int, int>{
+              for (final int index in dotted.skip(1))
+                index: StarsMark.ruledOut.index,
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Takes back the last move, and puts the player back on the cell it
+  /// changed.
+  ///
+  /// The strict inverse of one move and nothing more: the cell the move named
+  /// goes back to what it held, and any cells the move swept clear alongside it
+  /// — the dots a "clear marks" took — come back exactly where they were.
+  /// Undoing with nothing to undo, or on a solved board, is a no-op.
+  void undo() {
+    final StarsGameState? game = state.value;
+    if (game == null || !game.canUndo) {
+      return;
+    }
+    final BoardMove move = game.history.last!;
+    final List<StarsMark> cells = List<StarsMark>.of(game.cells)
+      ..[move.index] = StarsMark.values[move.before];
+    for (final MapEntry<int, int> cleared in move.clearedMarks.entries) {
+      cells[cleared.key] = StarsMark.values[cleared.value];
+    }
+    state = AsyncData<StarsGameState>(
+      game.copyWith(
+        cells: cells,
+        hints: game.hints.difference(<int>{
+          move.index,
+          ...move.clearedMarks.keys,
+        }),
+        selectedIndex: move.index,
+        history: game.history.pop(),
+      ),
+    );
+  }
+
   /// Throws away the current puzzle and generates another.
   Future<void> startNewPuzzle() async {
     state = const AsyncLoading<StarsGameState>();
