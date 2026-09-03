@@ -12,7 +12,8 @@ A free puzzle collection for iOS and Android. No ads, no tracking, no account �
 
 ```
 packages/puzzle_engine/   pure Dart, no Flutter — solvers, generators, difficulty rating
-  bin/generate.dart       CLI: batch-produce bundled starter packs (not built yet)
+  bin/generate.dart       CLI: batch-produce bundled starter packs
+  lib/src/pack/           the pack format (shared by the CLI and the app)
 lib/                      the app
   design/                 tokens, themes, typography
   board/                  shared board widgets, selection, gestures
@@ -22,14 +23,11 @@ lib/                      the app
   home/                   the game list
   l10n/                   app_en.arb (the words) + the generated AppLocalizations
   store/                  persistence: the Drift database, saved games,
-                          and the solved counts and best times
-  content/                bundled pack loading (not built yet)
+                          the solved counts and best times, and the pack cursor
+  content/                bundled pack loading, and the pack-first puzzle source
 assets/fonts/             Nunito + Fredoka, bundled
-assets/packs/             generated starter packs (not built yet)
+assets/packs/             generated starter packs (regenerated, never hand-edited)
 ```
-
-Directories marked "not built yet" are in the plan but have no code; create them
-when the ticket that needs them comes up, not before.
 
 ## Rules that matter
 
@@ -137,6 +135,37 @@ when the ticket that needs them comes up, not before.
 - **A cell shows an answer or its pencil marks, never both.** Both are kept, so
   an undo can bring the marks back, but an answer is what the cell draws.
 - Generation runs on a background isolate; the UI never blocks.
+- **Bundled packs are a cache, not content (VIB-78).** The first tap after a
+  cold launch is instant because a few dozen pre-generated puzzles per slow
+  game and tier ship as gzipped assets in `assets/packs/`. A game start takes
+  the next unused pack puzzle and **falls back to on-device generation** when
+  the pack is spent or absent — and the fallback is the normal state after the
+  first few games, never an error path, so nothing may break if `assets/packs/`
+  is empty. Only the grids and tiers a player would actually wait for are
+  packed (measured in VIB-78: 9×9 medium/hard/fiendish and Stars
+  easy/medium/hard/fiendish); the instant ones generate on the device, where a
+  pack would be pure cost.
+- **The pack format lives in the engine, so the CLI and the app share one
+  implementation** (`packages/puzzle_engine/lib/src/pack/`). A record is its
+  seed, its givens (or region map), and the techniques the solver needed — the
+  solution is *not* stored, because every pack puzzle is guess-free and the app
+  recovers the one solution with the same solver that proved it unique. The
+  text is line-oriented (one puzzle per line, sorted by seed) so a pack change
+  reviews as "these puzzles changed"; gzipping happens at the edges because the
+  engine stays free of `dart:io`.
+- **Packs are regenerated, never hand-edited, and byte-identical from a fixed
+  seed.** `dart run puzzle_engine:generate` writes them; a CI job of its own
+  reruns it and fails if a byte differs, which both keeps the committed packs
+  honest and exercises the CLI so it cannot rot as the engine changes.
+  `test/content/packs_test.dart` loads every shipped pack and asserts each
+  puzzle is unique and rates at its stated tier — a pack that ships a wrong
+  puzzle fails CI.
+- **A puzzle handed out from a pack is never handed out again while unplayed
+  ones remain.** `pack_progress` (schema v5) is a per-pack served-cursor: the
+  packs are handed out in order and the cursor only moves forward, so the rule
+  costs one small durable integer per pack. The pack-first puzzle source is
+  wired in at the app root (`main.dart`); tests build their own scope and keep
+  the plain generator unless they ask for the packs.
 - Region colours are always paired with a texture, so colour-blind players can read the board.
 - **Hit targets are never below 44 logical pixels** (`kMinTapTarget`), measured
   at `kSmallestSupportedWidth`. Board cells are the one exception, and only
@@ -238,6 +267,9 @@ flutter analyze && flutter test          # the app
 dart analyze && dart test                # from packages/puzzle_engine
 flutter gen-l10n                         # after editing lib/l10n/*.arb
 dart run build_runner build              # after editing lib/store/*.dart
+dart run puzzle_engine:generate          # regenerate assets/packs (from the
+                                         # engine dir, or with --out; never edit
+                                         # a pack by hand)
 ```
 
 The Drift mapping (`lib/store/nook_database.g.dart`) is generated and
