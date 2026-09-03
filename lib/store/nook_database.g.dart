@@ -1438,12 +1438,551 @@ class PackProgressCompanion extends UpdateCompanion<PackProgressData> {
   }
 }
 
+class $DailySolvesTable extends DailySolves
+    with TableInfo<$DailySolvesTable, DailySolveRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailySolvesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _gameIdMeta = const VerificationMeta('gameId');
+  @override
+  late final GeneratedColumn<String> gameId = GeneratedColumn<String>(
+    'game_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _difficultyMeta = const VerificationMeta(
+    'difficulty',
+  );
+  @override
+  late final GeneratedColumn<String> difficulty = GeneratedColumn<String>(
+    'difficulty',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [date, gameId, difficulty];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_solves';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailySolveRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('game_id')) {
+      context.handle(
+        _gameIdMeta,
+        gameId.isAcceptableOrUnknown(data['game_id']!, _gameIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_gameIdMeta);
+    }
+    if (data.containsKey('difficulty')) {
+      context.handle(
+        _difficultyMeta,
+        difficulty.isAcceptableOrUnknown(data['difficulty']!, _difficultyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_difficultyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  DailySolveRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailySolveRow(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      gameId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}game_id'],
+      )!,
+      difficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulty'],
+      )!,
+    );
+  }
+
+  @override
+  $DailySolvesTable createAlias(String alias) {
+    return $DailySolvesTable(attachedDatabase, alias);
+  }
+}
+
+class DailySolveRow extends DataClass implements Insertable<DailySolveRow> {
+  /// The **local** calendar date this was the daily for, as `yyyy-MM-dd`. The
+  /// daily lives in the player's own day, so this is never a UTC date; it is
+  /// also the primary key, which is what makes solving one day's daily twice a
+  /// single row rather than two.
+  final String date;
+
+  /// Which game the day landed on, as the same stable id a statistic uses.
+  final String gameId;
+
+  /// The tier it was played at, as an identifier rather than a name a player
+  /// reads.
+  final String difficulty;
+  const DailySolveRow({
+    required this.date,
+    required this.gameId,
+    required this.difficulty,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['game_id'] = Variable<String>(gameId);
+    map['difficulty'] = Variable<String>(difficulty);
+    return map;
+  }
+
+  DailySolvesCompanion toCompanion(bool nullToAbsent) {
+    return DailySolvesCompanion(
+      date: Value(date),
+      gameId: Value(gameId),
+      difficulty: Value(difficulty),
+    );
+  }
+
+  factory DailySolveRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailySolveRow(
+      date: serializer.fromJson<String>(json['date']),
+      gameId: serializer.fromJson<String>(json['gameId']),
+      difficulty: serializer.fromJson<String>(json['difficulty']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'gameId': serializer.toJson<String>(gameId),
+      'difficulty': serializer.toJson<String>(difficulty),
+    };
+  }
+
+  DailySolveRow copyWith({String? date, String? gameId, String? difficulty}) =>
+      DailySolveRow(
+        date: date ?? this.date,
+        gameId: gameId ?? this.gameId,
+        difficulty: difficulty ?? this.difficulty,
+      );
+  DailySolveRow copyWithCompanion(DailySolvesCompanion data) {
+    return DailySolveRow(
+      date: data.date.present ? data.date.value : this.date,
+      gameId: data.gameId.present ? data.gameId.value : this.gameId,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailySolveRow(')
+          ..write('date: $date, ')
+          ..write('gameId: $gameId, ')
+          ..write('difficulty: $difficulty')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(date, gameId, difficulty);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailySolveRow &&
+          other.date == this.date &&
+          other.gameId == this.gameId &&
+          other.difficulty == this.difficulty);
+}
+
+class DailySolvesCompanion extends UpdateCompanion<DailySolveRow> {
+  final Value<String> date;
+  final Value<String> gameId;
+  final Value<String> difficulty;
+  final Value<int> rowid;
+  const DailySolvesCompanion({
+    this.date = const Value.absent(),
+    this.gameId = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailySolvesCompanion.insert({
+    required String date,
+    required String gameId,
+    required String difficulty,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       gameId = Value(gameId),
+       difficulty = Value(difficulty);
+  static Insertable<DailySolveRow> custom({
+    Expression<String>? date,
+    Expression<String>? gameId,
+    Expression<String>? difficulty,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (gameId != null) 'game_id': gameId,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailySolvesCompanion copyWith({
+    Value<String>? date,
+    Value<String>? gameId,
+    Value<String>? difficulty,
+    Value<int>? rowid,
+  }) {
+    return DailySolvesCompanion(
+      date: date ?? this.date,
+      gameId: gameId ?? this.gameId,
+      difficulty: difficulty ?? this.difficulty,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (gameId.present) {
+      map['game_id'] = Variable<String>(gameId.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<String>(difficulty.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailySolvesCompanion(')
+          ..write('date: $date, ')
+          ..write('gameId: $gameId, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DailyStreakTable extends DailyStreak
+    with TableInfo<$DailyStreakTable, DailyStreakRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyStreakTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastSolvedDateMeta = const VerificationMeta(
+    'lastSolvedDate',
+  );
+  @override
+  late final GeneratedColumn<String> lastSolvedDate = GeneratedColumn<String>(
+    'last_solved_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, count, lastSolvedDate];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_streak';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailyStreakRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    }
+    if (data.containsKey('last_solved_date')) {
+      context.handle(
+        _lastSolvedDateMeta,
+        lastSolvedDate.isAcceptableOrUnknown(
+          data['last_solved_date']!,
+          _lastSolvedDateMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DailyStreakRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyStreakRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      )!,
+      lastSolvedDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_solved_date'],
+      ),
+    );
+  }
+
+  @override
+  $DailyStreakTable createAlias(String alias) {
+    return $DailyStreakTable(attachedDatabase, alias);
+  }
+}
+
+class DailyStreakRow extends DataClass implements Insertable<DailyStreakRow> {
+  /// A fixed key: there is only ever one streak, so every write lands on the
+  /// same row.
+  final int id;
+
+  /// The current run of consecutive solved days.
+  final int count;
+
+  /// The last local date whose daily was solved, as `yyyy-MM-dd`, or null before
+  /// any daily has been solved. What the read rule measures "today or yesterday"
+  /// against.
+  final String? lastSolvedDate;
+  const DailyStreakRow({
+    required this.id,
+    required this.count,
+    this.lastSolvedDate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['count'] = Variable<int>(count);
+    if (!nullToAbsent || lastSolvedDate != null) {
+      map['last_solved_date'] = Variable<String>(lastSolvedDate);
+    }
+    return map;
+  }
+
+  DailyStreakCompanion toCompanion(bool nullToAbsent) {
+    return DailyStreakCompanion(
+      id: Value(id),
+      count: Value(count),
+      lastSolvedDate: lastSolvedDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSolvedDate),
+    );
+  }
+
+  factory DailyStreakRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyStreakRow(
+      id: serializer.fromJson<int>(json['id']),
+      count: serializer.fromJson<int>(json['count']),
+      lastSolvedDate: serializer.fromJson<String?>(json['lastSolvedDate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'count': serializer.toJson<int>(count),
+      'lastSolvedDate': serializer.toJson<String?>(lastSolvedDate),
+    };
+  }
+
+  DailyStreakRow copyWith({
+    int? id,
+    int? count,
+    Value<String?> lastSolvedDate = const Value.absent(),
+  }) => DailyStreakRow(
+    id: id ?? this.id,
+    count: count ?? this.count,
+    lastSolvedDate: lastSolvedDate.present
+        ? lastSolvedDate.value
+        : this.lastSolvedDate,
+  );
+  DailyStreakRow copyWithCompanion(DailyStreakCompanion data) {
+    return DailyStreakRow(
+      id: data.id.present ? data.id.value : this.id,
+      count: data.count.present ? data.count.value : this.count,
+      lastSolvedDate: data.lastSolvedDate.present
+          ? data.lastSolvedDate.value
+          : this.lastSolvedDate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyStreakRow(')
+          ..write('id: $id, ')
+          ..write('count: $count, ')
+          ..write('lastSolvedDate: $lastSolvedDate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, count, lastSolvedDate);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyStreakRow &&
+          other.id == this.id &&
+          other.count == this.count &&
+          other.lastSolvedDate == this.lastSolvedDate);
+}
+
+class DailyStreakCompanion extends UpdateCompanion<DailyStreakRow> {
+  final Value<int> id;
+  final Value<int> count;
+  final Value<String?> lastSolvedDate;
+  const DailyStreakCompanion({
+    this.id = const Value.absent(),
+    this.count = const Value.absent(),
+    this.lastSolvedDate = const Value.absent(),
+  });
+  DailyStreakCompanion.insert({
+    this.id = const Value.absent(),
+    this.count = const Value.absent(),
+    this.lastSolvedDate = const Value.absent(),
+  });
+  static Insertable<DailyStreakRow> custom({
+    Expression<int>? id,
+    Expression<int>? count,
+    Expression<String>? lastSolvedDate,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (count != null) 'count': count,
+      if (lastSolvedDate != null) 'last_solved_date': lastSolvedDate,
+    });
+  }
+
+  DailyStreakCompanion copyWith({
+    Value<int>? id,
+    Value<int>? count,
+    Value<String?>? lastSolvedDate,
+  }) {
+    return DailyStreakCompanion(
+      id: id ?? this.id,
+      count: count ?? this.count,
+      lastSolvedDate: lastSolvedDate ?? this.lastSolvedDate,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
+    if (lastSolvedDate.present) {
+      map['last_solved_date'] = Variable<String>(lastSolvedDate.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyStreakCompanion(')
+          ..write('id: $id, ')
+          ..write('count: $count, ')
+          ..write('lastSolvedDate: $lastSolvedDate')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$NookDatabase extends GeneratedDatabase {
   _$NookDatabase(QueryExecutor e) : super(e);
   $NookDatabaseManager get managers => $NookDatabaseManager(this);
   late final $SavedGamesTable savedGames = $SavedGamesTable(this);
   late final $StatisticsTable statistics = $StatisticsTable(this);
   late final $PackProgressTable packProgress = $PackProgressTable(this);
+  late final $DailySolvesTable dailySolves = $DailySolvesTable(this);
+  late final $DailyStreakTable dailyStreak = $DailyStreakTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1452,6 +1991,8 @@ abstract class _$NookDatabase extends GeneratedDatabase {
     savedGames,
     statistics,
     packProgress,
+    dailySolves,
+    dailyStreak,
   ];
 }
 
@@ -2183,6 +2724,328 @@ typedef $$PackProgressTableProcessedTableManager =
       PackProgressData,
       PrefetchHooks Function()
     >;
+typedef $$DailySolvesTableCreateCompanionBuilder =
+    DailySolvesCompanion Function({
+      required String date,
+      required String gameId,
+      required String difficulty,
+      Value<int> rowid,
+    });
+typedef $$DailySolvesTableUpdateCompanionBuilder =
+    DailySolvesCompanion Function({
+      Value<String> date,
+      Value<String> gameId,
+      Value<String> difficulty,
+      Value<int> rowid,
+    });
+
+class $$DailySolvesTableFilterComposer
+    extends Composer<_$NookDatabase, $DailySolvesTable> {
+  $$DailySolvesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get gameId => $composableBuilder(
+    column: $table.gameId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailySolvesTableOrderingComposer
+    extends Composer<_$NookDatabase, $DailySolvesTable> {
+  $$DailySolvesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get gameId => $composableBuilder(
+    column: $table.gameId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailySolvesTableAnnotationComposer
+    extends Composer<_$NookDatabase, $DailySolvesTable> {
+  $$DailySolvesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get gameId =>
+      $composableBuilder(column: $table.gameId, builder: (column) => column);
+
+  GeneratedColumn<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => column,
+  );
+}
+
+class $$DailySolvesTableTableManager
+    extends
+        RootTableManager<
+          _$NookDatabase,
+          $DailySolvesTable,
+          DailySolveRow,
+          $$DailySolvesTableFilterComposer,
+          $$DailySolvesTableOrderingComposer,
+          $$DailySolvesTableAnnotationComposer,
+          $$DailySolvesTableCreateCompanionBuilder,
+          $$DailySolvesTableUpdateCompanionBuilder,
+          (
+            DailySolveRow,
+            BaseReferences<_$NookDatabase, $DailySolvesTable, DailySolveRow>,
+          ),
+          DailySolveRow,
+          PrefetchHooks Function()
+        > {
+  $$DailySolvesTableTableManager(_$NookDatabase db, $DailySolvesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailySolvesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DailySolvesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DailySolvesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<String> gameId = const Value.absent(),
+                Value<String> difficulty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailySolvesCompanion(
+                date: date,
+                gameId: gameId,
+                difficulty: difficulty,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String date,
+                required String gameId,
+                required String difficulty,
+                Value<int> rowid = const Value.absent(),
+              }) => DailySolvesCompanion.insert(
+                date: date,
+                gameId: gameId,
+                difficulty: difficulty,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailySolvesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NookDatabase,
+      $DailySolvesTable,
+      DailySolveRow,
+      $$DailySolvesTableFilterComposer,
+      $$DailySolvesTableOrderingComposer,
+      $$DailySolvesTableAnnotationComposer,
+      $$DailySolvesTableCreateCompanionBuilder,
+      $$DailySolvesTableUpdateCompanionBuilder,
+      (
+        DailySolveRow,
+        BaseReferences<_$NookDatabase, $DailySolvesTable, DailySolveRow>,
+      ),
+      DailySolveRow,
+      PrefetchHooks Function()
+    >;
+typedef $$DailyStreakTableCreateCompanionBuilder =
+    DailyStreakCompanion Function({
+      Value<int> id,
+      Value<int> count,
+      Value<String?> lastSolvedDate,
+    });
+typedef $$DailyStreakTableUpdateCompanionBuilder =
+    DailyStreakCompanion Function({
+      Value<int> id,
+      Value<int> count,
+      Value<String?> lastSolvedDate,
+    });
+
+class $$DailyStreakTableFilterComposer
+    extends Composer<_$NookDatabase, $DailyStreakTable> {
+  $$DailyStreakTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSolvedDate => $composableBuilder(
+    column: $table.lastSolvedDate,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailyStreakTableOrderingComposer
+    extends Composer<_$NookDatabase, $DailyStreakTable> {
+  $$DailyStreakTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSolvedDate => $composableBuilder(
+    column: $table.lastSolvedDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailyStreakTableAnnotationComposer
+    extends Composer<_$NookDatabase, $DailyStreakTable> {
+  $$DailyStreakTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
+
+  GeneratedColumn<String> get lastSolvedDate => $composableBuilder(
+    column: $table.lastSolvedDate,
+    builder: (column) => column,
+  );
+}
+
+class $$DailyStreakTableTableManager
+    extends
+        RootTableManager<
+          _$NookDatabase,
+          $DailyStreakTable,
+          DailyStreakRow,
+          $$DailyStreakTableFilterComposer,
+          $$DailyStreakTableOrderingComposer,
+          $$DailyStreakTableAnnotationComposer,
+          $$DailyStreakTableCreateCompanionBuilder,
+          $$DailyStreakTableUpdateCompanionBuilder,
+          (
+            DailyStreakRow,
+            BaseReferences<_$NookDatabase, $DailyStreakTable, DailyStreakRow>,
+          ),
+          DailyStreakRow,
+          PrefetchHooks Function()
+        > {
+  $$DailyStreakTableTableManager(_$NookDatabase db, $DailyStreakTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailyStreakTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DailyStreakTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DailyStreakTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> count = const Value.absent(),
+                Value<String?> lastSolvedDate = const Value.absent(),
+              }) => DailyStreakCompanion(
+                id: id,
+                count: count,
+                lastSolvedDate: lastSolvedDate,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> count = const Value.absent(),
+                Value<String?> lastSolvedDate = const Value.absent(),
+              }) => DailyStreakCompanion.insert(
+                id: id,
+                count: count,
+                lastSolvedDate: lastSolvedDate,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailyStreakTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NookDatabase,
+      $DailyStreakTable,
+      DailyStreakRow,
+      $$DailyStreakTableFilterComposer,
+      $$DailyStreakTableOrderingComposer,
+      $$DailyStreakTableAnnotationComposer,
+      $$DailyStreakTableCreateCompanionBuilder,
+      $$DailyStreakTableUpdateCompanionBuilder,
+      (
+        DailyStreakRow,
+        BaseReferences<_$NookDatabase, $DailyStreakTable, DailyStreakRow>,
+      ),
+      DailyStreakRow,
+      PrefetchHooks Function()
+    >;
 
 class $NookDatabaseManager {
   final _$NookDatabase _db;
@@ -2193,4 +3056,8 @@ class $NookDatabaseManager {
       $$StatisticsTableTableManager(_db, _db.statistics);
   $$PackProgressTableTableManager get packProgress =>
       $$PackProgressTableTableManager(_db, _db.packProgress);
+  $$DailySolvesTableTableManager get dailySolves =>
+      $$DailySolvesTableTableManager(_db, _db.dailySolves);
+  $$DailyStreakTableTableManager get dailyStreak =>
+      $$DailyStreakTableTableManager(_db, _db.dailyStreak);
 }
