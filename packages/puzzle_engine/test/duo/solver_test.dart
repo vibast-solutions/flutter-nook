@@ -23,11 +23,16 @@ void main() {
     });
 
     test('a given that disagrees with the answer admits no completion', () {
+      // Flip one cell of the finished grid: its row and column no longer hold
+      // their share of each symbol, so the board is unbalanced and no
+      // completion of it exists. (Flipping one of the *carved* givens is not a
+      // safe test — a necessary given removed and negated can leave a different
+      // whole grid standing — so the assertion is pinned to the full solution,
+      // which cannot.)
       final DuoPuzzle puzzle = generator.generate(11);
-      final int given = puzzle.givens.indexWhere((DuoSymbol? s) => s != null);
-      final List<DuoSymbol?> broken = List<DuoSymbol?>.of(puzzle.givens);
-      broken[given] = puzzle.givens[given]!.other;
-      expect(solver.countSolutions(broken, puzzle.badges, limit: 2), 0);
+      final List<DuoSymbol?> broken = List<DuoSymbol?>.of(puzzle.solution);
+      broken[0] = puzzle.solution[0].other;
+      expect(solver.countSolutions(broken, const <DuoBadge>[], limit: 2), 0);
     });
 
     test('a badge the givens break admits no completion', () {

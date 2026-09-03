@@ -97,9 +97,18 @@ void main() {
       expect(distinct.length, greaterThan(30));
     });
 
-    test('labels every puzzle Gentle', () {
+    test('labels every puzzle with the tier the solver measures', () {
+      // `generate` no longer hardcodes Gentle (VIB-93): now that there is a
+      // rater, an untargeted puzzle wears the tier its own solve measures.
+      final DuoRater rater = DuoRater(spec);
       for (int seed = 1; seed <= 40; seed++) {
-        expect(generator.generate(seed).difficulty, PuzzleDifficulty.gentle);
+        final DuoPuzzle puzzle = generator.generate(seed);
+        expect(
+          puzzle.difficulty,
+          rater.rate(logic.solve(puzzle.givens, puzzle.badges)),
+          reason: 'seed $seed wears a label its solve does not measure',
+        );
+        expect(puzzle.difficulty, isNotNull);
       }
     });
 
