@@ -445,11 +445,49 @@
       "region": { "type": "int", "example": "5" }
     }
   },
+  "cellStarsStarBreachRow": "Row {row}, column {column}, region {region}, star, another star in its row",
+  "@cellStarsStarBreachRow": {
+    "description": "Screen-reader label for a star that breaks the rule that a row holds one star: another star sits in the same row. Both stars of the pair are marked this way, because which of the two is the intruder is a question only the answer could settle.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsStarBreachColumn": "Row {row}, column {column}, region {region}, star, another star in its column",
+  "@cellStarsStarBreachColumn": {
+    "description": "Screen-reader label for a star that breaks the rule that a column holds one star: another star sits in the same column.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsStarBreachRegion": "Row {row}, column {column}, region {region}, star, another star in its region",
+  "@cellStarsStarBreachRegion": {
+    "description": "Screen-reader label for a star that breaks the rule that a region holds one star: another star sits in the same coloured, textured region.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
+  "cellStarsStarBreachAdjacent": "Row {row}, column {column}, region {region}, star, touching another star",
+  "@cellStarsStarBreachAdjacent": {
+    "description": "Screen-reader label for a star that breaks the rule that no two stars touch: another star is in one of the eight neighbouring cells, diagonals included.",
+    "placeholders": {
+      "row": { "type": "int", "example": "2" },
+      "column": { "type": "int", "example": "3" },
+      "region": { "type": "int", "example": "5" }
+    }
+  },
 
   "actionUndo": "Undo",
   "@actionUndo": { "description": "Control that takes back the last move." },
   "actionErase": "Erase",
   "@actionErase": { "description": "Control that clears the selected cell." },
+  "actionClearMarks": "Clear marks",
+  "@actionClearMarks": { "description": "Stars control that wipes every ruled-out dot off the board at once, leaving the stars where they are. A 'mark' is the small dot a player pencils into a cell to say a star cannot go there." },
   "actionNotes": "Notes",
   "@actionNotes": { "description": "Control that switches between writing answers and writing pencil marks." },
   "actionHint": "Hint",
@@ -482,6 +520,10 @@
   "@reasonPuzzleDone": { "description": "Why a control is unavailable: the puzzle is already solved. Reads as the end of a sentence, so lower case." },
   "reasonNothingToUndo": "nothing to take back",
   "@reasonNothingToUndo": { "description": "Why undo is unavailable: no moves have been made. Reads as the end of a sentence, so lower case." },
+  "reasonNothingToErase": "nothing to erase",
+  "@reasonNothingToErase": { "description": "Why erase is unavailable: no cell is selected, or the selected cell is already empty. Reads as the end of a sentence, so lower case." },
+  "reasonNoMarks": "no marks to clear",
+  "@reasonNoMarks": { "description": "Why the Stars 'clear marks' control is unavailable: there are no ruled-out dots on the board to wipe. Reads as the end of a sentence, so lower case." },
   "reasonHintJustGiven": "just given, back in a moment",
   "@reasonHintJustGiven": { "description": "Why the hint control is unavailable: one was given a few seconds ago and the control waits before offering another. This is pacing, not rationing \u2014 hints are unlimited and free, and nothing is being counted or spent. Reads as the end of a sentence, so lower case." },
 

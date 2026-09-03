@@ -363,10 +363,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String cellStarsStarBreachRow(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, another star in its row';
+  }
+
+  @override
+  String cellStarsStarBreachColumn(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, another star in its column';
+  }
+
+  @override
+  String cellStarsStarBreachRegion(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, another star in its region';
+  }
+
+  @override
+  String cellStarsStarBreachAdjacent(int row, int column, int region) {
+    return 'Row $row, column $column, region $region, star, touching another star';
+  }
+
+  @override
   String get actionUndo => 'Undo';
 
   @override
   String get actionErase => 'Erase';
+
+  @override
+  String get actionClearMarks => 'Clear marks';
 
   @override
   String get actionNotes => 'Notes';
@@ -394,6 +417,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reasonNothingToUndo => 'nothing to take back';
+
+  @override
+  String get reasonNothingToErase => 'nothing to erase';
+
+  @override
+  String get reasonNoMarks => 'no marks to clear';
 
   @override
   String get reasonHintJustGiven => 'just given, back in a moment';

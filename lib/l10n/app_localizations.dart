@@ -609,6 +609,30 @@ abstract class AppLocalizations {
   /// **'Row {row}, column {column}, region {region}, star'**
   String cellStarsStar(int row, int column, int region);
 
+  /// Screen-reader label for a star that breaks the rule that a row holds one star: another star sits in the same row. Both stars of the pair are marked this way, because which of the two is the intruder is a question only the answer could settle.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, another star in its row'**
+  String cellStarsStarBreachRow(int row, int column, int region);
+
+  /// Screen-reader label for a star that breaks the rule that a column holds one star: another star sits in the same column.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, another star in its column'**
+  String cellStarsStarBreachColumn(int row, int column, int region);
+
+  /// Screen-reader label for a star that breaks the rule that a region holds one star: another star sits in the same coloured, textured region.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, another star in its region'**
+  String cellStarsStarBreachRegion(int row, int column, int region);
+
+  /// Screen-reader label for a star that breaks the rule that no two stars touch: another star is in one of the eight neighbouring cells, diagonals included.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {column}, region {region}, star, touching another star'**
+  String cellStarsStarBreachAdjacent(int row, int column, int region);
+
   /// Control that takes back the last move.
   ///
   /// In en, this message translates to:
@@ -620,6 +644,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Erase'**
   String get actionErase;
+
+  /// Stars control that wipes every ruled-out dot off the board at once, leaving the stars where they are. A 'mark' is the small dot a player pencils into a cell to say a star cannot go there.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear marks'**
+  String get actionClearMarks;
 
   /// Control that switches between writing answers and writing pencil marks.
   ///
@@ -662,6 +692,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'nothing to take back'**
   String get reasonNothingToUndo;
+
+  /// Why erase is unavailable: no cell is selected, or the selected cell is already empty. Reads as the end of a sentence, so lower case.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing to erase'**
+  String get reasonNothingToErase;
+
+  /// Why the Stars 'clear marks' control is unavailable: there are no ruled-out dots on the board to wipe. Reads as the end of a sentence, so lower case.
+  ///
+  /// In en, this message translates to:
+  /// **'no marks to clear'**
+  String get reasonNoMarks;
 
   /// Why the hint control is unavailable: one was given a few seconds ago and the control waits before offering another. This is pacing, not rationing — hints are unlimited and free, and nothing is being counted or spent. Reads as the end of a sentence, so lower case.
   ///

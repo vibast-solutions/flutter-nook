@@ -6,6 +6,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/stars/stars_state.dart';
 import '../l10n/app_localizations.dart';
+import 'conflict_hatch.dart';
 
 /// The texture region [region] is drawn with.
 ///
@@ -56,6 +57,10 @@ class StarsBoard extends StatelessWidget {
 
   /// The key of the star or dot drawn in the cell at [index], if it holds one.
   static Key markKey(int index) => ValueKey<String>('stars-mark-$index');
+
+  /// The key of the hatch across the cell at [index], drawn when the star it
+  /// holds breaks a rule.
+  static Key breachKey(int index) => ValueKey<String>('stars-breach-$index');
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +152,9 @@ class _StarsCell extends StatelessWidget {
     final int column = game.spec.columnOf(index);
     final int region = game.regionOf(index);
     final StarsMark mark = game.markAt(index);
+    // Null unless this cell holds a star that breaks a rule. Only a star can
+    // breach: a dot is an annotation and an empty cell has nothing to break.
+    final StarBreach? breach = game.breachAt(index);
 
     // A boundary between two regions is the heavy rule; a join inside one
     // region is the hairline. The board's own frame covers the outer edges.
@@ -158,7 +166,14 @@ class _StarsCell extends StatelessWidget {
         : _edgeBetween(colors, index, index + size);
 
     return Semantics(
-      label: _describe(AppLocalizations.of(context), row, column, region, mark),
+      label: _describe(
+        AppLocalizations.of(context),
+        row,
+        column,
+        region,
+        mark,
+        breach,
+      ),
       button: true,
       excludeSemantics: true,
       child: GestureDetector(
@@ -176,6 +191,15 @@ class _StarsCell extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
+              // The breach wash sits under the region's texture so the region
+              // stays readable through it; the region's own colour never
+              // carries meaning alone, so the texture still paints on top.
+              if (breach != null)
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: colors.cellConflict.withValues(alpha: 0.72),
+                  ),
+                ),
               // Colour never carries meaning alone on a Nook board, so every
               // region wears a texture a player can read without it.
               Positioned.fill(
@@ -186,6 +210,18 @@ class _StarsCell extends StatelessWidget {
                   ),
                 ),
               ),
+              // A breach is a colour *and* a texture, the same hatch Sudoku
+              // draws over a repeated digit, so it survives colour being taken
+              // away and stays the app's one marking language.
+              if (breach != null)
+                Positioned.fill(
+                  child: CustomPaint(
+                    key: StarsBoard.breachKey(index),
+                    painter: ConflictHatch(
+                      colour: colors.conflictLine.withValues(alpha: 0.30),
+                    ),
+                  ),
+                ),
               ?_content(colors),
             ],
           ),
@@ -238,12 +274,16 @@ class _StarsCell extends StatelessWidget {
 
   /// What a screen reader reads out for this cell. Rows, columns and regions
   /// are counted from one, the way a person describes a grid.
+  ///
+  /// A star in breach says *which* rule it breaks, not merely that something is
+  /// wrong — the same fact a sighted player reads from the hatch, spelled out.
   String _describe(
     AppLocalizations l10n,
     int row,
     int column,
     int region,
     StarsMark mark,
+    StarBreach? breach,
   ) {
     final int line = row + 1;
     final int column1 = column + 1;
@@ -251,7 +291,25 @@ class _StarsCell extends StatelessWidget {
     return switch (mark) {
       StarsMark.empty => l10n.cellStarsEmpty(line, column1, region1),
       StarsMark.ruledOut => l10n.cellStarsRuledOut(line, column1, region1),
-      StarsMark.star => l10n.cellStarsStar(line, column1, region1),
+      StarsMark.star => switch (breach) {
+        null => l10n.cellStarsStar(line, column1, region1),
+        StarBreach.row => l10n.cellStarsStarBreachRow(line, column1, region1),
+        StarBreach.column => l10n.cellStarsStarBreachColumn(
+          line,
+          column1,
+          region1,
+        ),
+        StarBreach.region => l10n.cellStarsStarBreachRegion(
+          line,
+          column1,
+          region1,
+        ),
+        StarBreach.adjacent => l10n.cellStarsStarBreachAdjacent(
+          line,
+          column1,
+          region1,
+        ),
+      },
     };
   }
 }
