@@ -4,9 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../chrome/continue_card.dart';
 import '../chrome/difficulty_naming.dart';
 import '../chrome/play_clock.dart';
+import '../chrome/resume.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/stars/stars_difficulty.dart';
+import '../games/stars/stars_naming.dart';
+import '../games/stars/stars_save.dart';
+import '../games/stars/stars_screen.dart';
 import '../games/stars/stars_variant.dart';
 import '../games/sudoku/difficulty_screen.dart';
 import '../games/sudoku/sudoku_naming.dart';
@@ -61,7 +65,7 @@ class HomeScreen extends ConsumerWidget {
     _GameEntry(
       title: l10n.starsTitle,
       subtitle: l10n.starsSubtitle,
-      icon: Icons.star_outline_rounded,
+      icon: starsIcon,
       accent: false,
       open: (BuildContext context) =>
           Navigator.of(context)
@@ -96,19 +100,54 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// The most recent unfinished puzzle this build can open, if there is one.
+  /// How each game turns a saved row into a resume card, tried in turn.
   ///
-  /// Skips a save it cannot read rather than stopping at it: a puzzle written
-  /// by a newer build sits harmlessly in the database, and the player is
-  /// offered the newest one that does open.
-  static SudokuSave? _resumable(List<SavedGame>? saves) {
-    for (final SavedGame save in saves ?? const <SavedGame>[]) {
-      final SudokuSave? sudoku = SudokuSave.read(save);
-      if (sudoku != null) {
-        return sudoku;
-      }
+  /// The whole of what makes the Continue card game-agnostic: a new game is a
+  /// reader added here, not a branch grown in [build]. Order does not matter —
+  /// a row belongs to at most one game — so this is a list, not a chain.
+  static const List<ResumeReader> _resumeReaders = <ResumeReader>[
+    _sudokuResume,
+    _starsResume,
+  ];
+
+  /// A saved Sudoku as a resume card, or `null` if the row is not a Sudoku this
+  /// build can open.
+  static ResumableGame? _sudokuResume(SavedGame save, AppLocalizations l10n) {
+    final SudokuSave? sudoku = SudokuSave.read(save);
+    if (sudoku == null) {
+      return null;
     }
-    return null;
+    final String title = sudoku.variant.title(l10n);
+    final String tier = sudoku.difficulty.label(l10n);
+    final String time = clockReading(sudoku.elapsed);
+    final int percent = (sudoku.progress * 100).round();
+    return ResumableGame(
+      icon: sudokuIcon(sudoku.variant),
+      title: title,
+      details: l10n.continueDetails(tier, time, percent),
+      semanticLabel: l10n.continueLabel(title, tier, time, percent),
+      openRoute: () => SudokuGamePage.resumeRoute(sudoku),
+    );
+  }
+
+  /// A saved Stars puzzle as a resume card, or `null` if the row is not one this
+  /// build can open.
+  static ResumableGame? _starsResume(SavedGame save, AppLocalizations l10n) {
+    final StarsSave? stars = StarsSave.read(save);
+    if (stars == null) {
+      return null;
+    }
+    final String title = stars.variant.title(l10n);
+    final String tier = stars.difficulty.label(l10n);
+    final String time = clockReading(stars.elapsed);
+    final int percent = (stars.progress * 100).round();
+    return ResumableGame(
+      icon: starsIcon,
+      title: title,
+      details: l10n.continueDetails(tier, time, percent),
+      semanticLabel: l10n.continueLabel(title, tier, time, percent),
+      openRoute: () => StarsGamePage.resumeRoute(stars),
+    );
   }
 
   @override
@@ -117,7 +156,11 @@ class HomeScreen extends ConsumerWidget {
     final AppLocalizations l10n = AppLocalizations.of(context);
     // No card at all until the saves have been read: an empty Continue slot
     // that fills in a frame later would flicker on every launch.
-    final SudokuSave? resume = _resumable(ref.watch(savedGamesProvider).value);
+    final ResumableGame? resume = mostRecentResumable(
+      ref.watch(savedGamesProvider).value,
+      l10n,
+      _resumeReaders,
+    );
 
     return Scaffold(
       backgroundColor: colors.sand,
@@ -173,27 +216,30 @@ IconData sudokuIcon(SudokuVariant variant) {
   };
 }
 
+/// The glyph Stars is drawn with, on its game row and its Continue card alike.
+///
+/// A constant, not a function of the variant: there is one Stars board, and the
+/// card and the row must never disagree about which game the player is looking
+/// at.
+const IconData starsIcon = Icons.star_outline_rounded;
+
 /// The puzzle waiting to be carried on with, at the top of the home screen.
+///
+/// Game-agnostic: it is handed a [ResumableGame] a reader has already resolved,
+/// so it draws the same card whether the puzzle is a Sudoku or Stars.
 class _ContinueRow extends StatelessWidget {
   const _ContinueRow({required this.resume});
 
-  final SudokuSave resume;
+  final ResumableGame resume;
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context);
-    final String title = resume.variant.title(l10n);
-    final String tier = resume.difficulty.label(l10n);
-    final String time = clockReading(resume.elapsed);
-    final int percent = (resume.progress * 100).round();
-
     return ContinueCard(
-      icon: sudokuIcon(resume.variant),
-      title: title,
-      details: l10n.continueDetails(tier, time, percent),
-      semanticLabel: l10n.continueLabel(title, tier, time, percent),
-      onTap: () =>
-          Navigator.of(context).push(SudokuGamePage.resumeRoute(resume)),
+      icon: resume.icon,
+      title: resume.title,
+      details: resume.details,
+      semanticLabel: resume.semanticLabel,
+      onTap: () => Navigator.of(context).push(resume.openRoute()),
     );
   }
 }
