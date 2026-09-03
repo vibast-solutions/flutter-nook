@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Override — the type the streak hook is built as — is not in the main barrel.
+import 'package:flutter_riverpod/misc.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../chrome/game_providers.dart';
+import '../chrome/play_clock.dart';
 import '../games/duo/duo_controller.dart';
 import '../games/duo/duo_save.dart';
 import '../games/duo/duo_screen.dart';
@@ -15,6 +18,7 @@ import '../games/sudoku/sudoku_controller.dart';
 import '../games/sudoku/sudoku_save.dart';
 import '../games/sudoku/sudoku_screen.dart';
 import '../games/sudoku/sudoku_variant.dart';
+import '../store/nook_database.dart';
 import '../store/saved_game.dart';
 import 'daily_puzzle.dart';
 
@@ -152,6 +156,30 @@ DailyResume? dailyResume(WidgetRef ref, DailyPuzzle daily, SavedGame save) {
 // A resumed daily keeps the tier its save was started at, even if the ramp has
 // moved between versions: resuming means exactly the puzzle that was left.
 
+/// The override that makes a solved daily count towards the streak.
+///
+/// It records the solve of [gameId] at [tier] for [daily]'s own date, and — only
+/// when that date is the current one — advances the streak. Overriding
+/// [onSolvedProvider] here is what keeps the daily's counting in the daily's own
+/// code: a game screen calls the hook without knowing there is a daily at all,
+/// and an ordinary game leaves the provider at its `null` default.
+Override _streakOverride(
+  DailyPuzzle daily,
+  String gameId,
+  PuzzleDifficulty tier,
+) {
+  return onSolvedProvider.overrideWith((Ref ref) {
+    final DailyStore store = ref.read(dailyStoreProvider);
+    final DateTime Function() now = ref.read(nowProvider);
+    return () => store.recordSolve(
+      date: daily.date,
+      today: now(),
+      gameId: gameId,
+      difficulty: tier.name,
+    );
+  });
+}
+
 Route<void> _sudokuRoute(
   SudokuPuzzleSource source,
   DailyPuzzle daily,
@@ -164,6 +192,7 @@ Route<void> _sudokuRoute(
         sudokuPuzzleSourceProvider.overrideWithValue(source),
         sudokuSeedSourceProvider.overrideWithValue(() => daily.seed),
         saveSlotProvider.overrideWithValue(dailySlotId),
+        _streakOverride(daily, SudokuVariant.classicId, tier),
         completionAnotherProvider.overrideWithValue(
           () => Navigator.of(
             context,
@@ -191,6 +220,7 @@ Route<void> _starsRoute(
         starsPuzzleSourceProvider.overrideWithValue(source),
         starsSeedSourceProvider.overrideWithValue(() => daily.seed),
         saveSlotProvider.overrideWithValue(dailySlotId),
+        _streakOverride(daily, StarsVariant.starsId, tier),
         completionAnotherProvider.overrideWithValue(
           () => Navigator.of(
             context,
@@ -218,6 +248,7 @@ Route<void> _duoRoute(
         duoPuzzleSourceProvider.overrideWithValue(source),
         duoSeedSourceProvider.overrideWithValue(() => daily.seed),
         saveSlotProvider.overrideWithValue(dailySlotId),
+        _streakOverride(daily, DuoVariant.duoId, tier),
         completionAnotherProvider.overrideWithValue(
           () => Navigator.of(context)
               .pushReplacement(DuoGamePage.route(DuoVariant.standard, tier)),
