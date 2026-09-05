@@ -6,13 +6,14 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/stars/stars_state.dart';
 import '../l10n/app_localizations.dart';
+import 'board_frame.dart';
 import 'conflict_hatch.dart';
 
-/// The texture region [region] is drawn with.
+/// The texture paired with region [region].
 ///
-/// The pairing lives in the theme — colour and texture together are region
-/// `region` — and this is the single place the board reads it, so a colour and
-/// its pattern can never drift apart.
+/// The board no longer paints these — the heavy region boundary carries region
+/// identity on its own — but the one-texture-per-region pairing is kept and
+/// tested so the mapping is ready if a future theme wants to draw it again.
 RegionTexture regionTextureFor(int region) =>
     RegionTexture.values[region % RegionTexture.values.length];
 
@@ -21,17 +22,14 @@ RegionTexture regionTextureFor(int region) =>
 /// Built from widgets rather than a painted canvas, for the reasons the
 /// technical design gives: one [Semantics] node per cell lets a screen reader
 /// describe the board, hit testing is free, and animating a single cell (the
-/// breach mark of VIB-88, the hint of VIB-90) costs nothing. Only the region
-/// textures are painted, and those have nothing to hit and nothing to read out —
-/// a cell's sentence is on the cell itself.
+/// breach mark of VIB-88, the hint of VIB-90) costs nothing.
 ///
-/// The **region boundary** is the primary colour-free cue: the heavy rule around
-/// a region walls it off whatever its fill, so the shape a player solves against
-/// reads with colour taken away entirely. The region's texture is a quiet second
-/// voice under the fill — drawn at [boardTextureAlpha] so the soft colour leads
-/// and the board stays calm rather than a quilt of eight competing patterns —
-/// and the legend swatch, which shows the same texture at full strength, is where
-/// it is read as a key.
+/// The **region boundary** carries region identity on its own: the heavy rule
+/// around a region walls it off from its neighbours whatever their fills, so the
+/// shape a player solves against reads with colour taken away entirely. The
+/// board was once textured under the fill as a second colour-free cue, but eight
+/// hatches at once buried the fills and read as noise; the boundary already does
+/// the colour-free work, so the fills are now a calm decorative layer over it.
 ///
 /// Stateful for the one thing the board says by moving: a star being crossed out
 /// as a hint takes it away. There is no completed-unit pulse here on purpose — a
@@ -63,15 +61,6 @@ class StarsBoard extends StatefulWidget {
 
   /// The thickness of the line between two cells in the same region.
   static const double hairlineWidth = 1;
-
-  /// How strongly a region's texture prints on the board, as an opacity.
-  ///
-  /// A whisper: the soft fill leads and the heavy region boundary does the
-  /// colour-free work, so the texture is a quiet redundancy rather than the loud
-  /// hatch it was — eight bold patterns at once buried the fills and hid the
-  /// region shapes. The legend swatch still draws the texture at full strength,
-  /// because that is where it has to read as a key.
-  static const double boardTextureAlpha = 0.12;
 
   /// How long the cross a hint draws over a star it takes away stays up for.
   static const Duration removalDuration = Duration(milliseconds: 300);
@@ -162,22 +151,8 @@ class _StarsBoardState extends State<StarsBoard>
     return Semantics(
       container: true,
       label: l10n.boardLabel(l10n.starsTitle, size),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border.all(
-            color: colors.boardRule,
-            width: StarsBoard.ruleWidth,
-          ),
-          borderRadius: const BorderRadius.all(NookRadius.board),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: colors.ink.withValues(alpha: 0.10),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
+      child: BoardFrameGlow(
+        solved: game.isSolved,
         child: ClipRRect(
           borderRadius: const BorderRadius.all(NookRadius.board),
           child: AnimatedBuilder(
@@ -197,6 +172,20 @@ class _StarsBoardState extends State<StarsBoard>
             ),
           ),
         ),
+        builder:
+            (BuildContext context, List<BoxShadow> shadows, Widget child) =>
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    border: Border.all(
+                      color: colors.boardRule,
+                      width: StarsBoard.ruleWidth,
+                    ),
+                    borderRadius: const BorderRadius.all(NookRadius.board),
+                    boxShadow: shadows,
+                  ),
+                  child: child,
+                ),
       ),
     );
   }
@@ -214,8 +203,8 @@ class _StarsBoardState extends State<StarsBoard>
   }
 }
 
-/// One cell: its region's fill and texture underneath, and a star, a dot, or
-/// nothing on top.
+/// One cell: its region's fill underneath, and a star, a cross, or nothing on
+/// top.
 class _StarsCell extends StatelessWidget {
   const _StarsCell({
     required this.game,
@@ -285,30 +274,15 @@ class _StarsCell extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
-              // The breach wash sits under the region's texture so the region
-              // stays readable through it; the region's own colour never
-              // carries meaning alone, so the texture still paints on top.
+              // The region's own colour never carries meaning alone, so the
+              // wash a breach draws stays readable and the heavy region boundary
+              // does the colour-free work of telling the regions apart.
               if (breach != null)
                 Positioned.fill(
                   child: ColoredBox(
                     color: colors.cellConflict.withValues(alpha: 0.72),
                   ),
                 ),
-              // Colour never carries meaning alone on a Nook board, so every
-              // region wears a texture a player can read without it — printed
-              // quietly here (the heavy region boundary is the loud colour-free
-              // cue) so the board reads calm, and shown at full strength in the
-              // legend swatch, which is where the texture serves as a key.
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _RegionTexture(
-                    texture: regionTextureFor(region),
-                    ink: colors.regionTextureInk.withValues(
-                      alpha: StarsBoard.boardTextureAlpha,
-                    ),
-                  ),
-                ),
-              ),
               // A breach is a colour *and* a texture, the same hatch Sudoku
               // draws over a repeated digit, so it survives colour being taken
               // away and stays the app's one marking language.
@@ -356,18 +330,15 @@ class _StarsCell extends StatelessWidget {
       case StarsMark.empty:
         return null;
       case StarsMark.ruledOut:
-        // A small dot: an annotation, quiet on purpose so it never competes
-        // with a star.
-        return SizedBox(
+        // A small cross: an annotation saying "no star here", quiet on purpose
+        // and no bigger than the dot it replaces so it never competes with a
+        // star. A cross rather than a dot reads as a deliberate ruling-out at a
+        // glance, and its size keeps it from crowding the cell.
+        return Icon(
+          Icons.close_rounded,
           key: StarsBoard.markKey(index),
-          width: extent * 0.2,
-          height: extent * 0.2,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: colors.inkMuted,
-              shape: BoxShape.circle,
-            ),
-          ),
+          size: extent * 0.24,
+          color: colors.inkMuted,
         );
       case StarsMark.star:
         return Icon(
@@ -474,108 +445,13 @@ class _StarsRemoval extends StatelessWidget {
   }
 }
 
-/// A repeating texture across a cell, so a region is legible without its
-/// colour.
-///
-/// The patterns are geometry, not colour, which is the whole point: paired with
-/// the fill and the heavy region boundary, they carry region identity that
-/// survives the fills being flattened to one grey. The board prints this
-/// quietly (see [StarsBoard.boardTextureAlpha]); the legend swatch prints it at
-/// full strength, where it reads as a key.
-class _RegionTexture extends CustomPainter {
-  const _RegionTexture({required this.texture, required this.ink});
-
-  final RegionTexture texture;
-  final Color ink;
-
-  /// The gap between one mark and the next, in logical pixels.
-  ///
-  /// Fixed rather than a fraction of the cell so the pattern stays a pattern on
-  /// a small cell rather than turning into two fat marks.
-  static const double _step = 7;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint stroke = Paint()
-      ..color = ink
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    final Paint fill = Paint()
-      ..color = ink
-      ..style = PaintingStyle.fill;
-
-    switch (texture) {
-      case RegionTexture.dots:
-        _dots(canvas, size, fill, filled: true);
-      case RegionTexture.rings:
-        _dots(canvas, size, stroke, filled: false);
-      case RegionTexture.diagonalUp:
-        _diagonal(canvas, size, stroke, up: true);
-      case RegionTexture.diagonalDown:
-        _diagonal(canvas, size, stroke, up: false);
-      case RegionTexture.crossHatch:
-        _diagonal(canvas, size, stroke, up: true);
-        _diagonal(canvas, size, stroke, up: false);
-      case RegionTexture.horizontal:
-        _horizontal(canvas, size, stroke);
-      case RegionTexture.vertical:
-        _vertical(canvas, size, stroke);
-      case RegionTexture.grid:
-        _horizontal(canvas, size, stroke);
-        _vertical(canvas, size, stroke);
-    }
-  }
-
-  void _dots(Canvas canvas, Size size, Paint paint, {required bool filled}) {
-    const double radius = 1.4;
-    for (double y = _step / 2; y < size.height; y += _step) {
-      for (double x = _step / 2; x < size.width; x += _step) {
-        canvas.drawCircle(Offset(x, y), radius, paint);
-      }
-    }
-  }
-
-  void _diagonal(Canvas canvas, Size size, Paint paint, {required bool up}) {
-    for (double d = -size.height; d < size.width; d += _step) {
-      if (up) {
-        canvas.drawLine(
-          Offset(d, size.height),
-          Offset(d + size.height, 0),
-          paint,
-        );
-      } else {
-        canvas.drawLine(
-          Offset(d, 0),
-          Offset(d + size.height, size.height),
-          paint,
-        );
-      }
-    }
-  }
-
-  void _horizontal(Canvas canvas, Size size, Paint paint) {
-    for (double y = _step / 2; y < size.height; y += _step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  void _vertical(Canvas canvas, Size size, Paint paint) {
-    for (double x = _step / 2; x < size.width; x += _step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RegionTexture oldDelegate) =>
-      oldDelegate.texture != texture || oldDelegate.ink != ink;
-}
-
 /// The key to the eight regions, shown under the board.
 ///
-/// It exists because colour alone is not the code: a player who cannot tell the
-/// fills apart reads the board by its textures, and the legend is where those
-/// textures are named as a set. Eight small swatches, each the fill and pattern
-/// of one region, and a line saying what they are.
+/// A small palette: eight swatches, one per region colour, and a line naming
+/// them. Colour is not what makes the board solvable — the heavy rule walling
+/// each region off is, so a player who cannot tell the fills apart still reads
+/// the regions by their boundaries — but naming the colours is a friendly key
+/// for everyone else.
 class StarsLegend extends StatelessWidget {
   const StarsLegend({required this.regionCount, super.key});
 
@@ -599,12 +475,7 @@ class StarsLegend extends StatelessWidget {
             alignment: WrapAlignment.center,
             children: <Widget>[
               for (int region = 0; region < count; region++)
-                _Swatch(
-                  fill: colors.regionFills[region],
-                  texture: regionTextureFor(region),
-                  ink: colors.regionTextureInk,
-                  line: colors.line,
-                ),
+                _Swatch(fill: colors.regionFills[region], line: colors.line),
             ],
           ),
           const SizedBox(height: 8),
@@ -619,18 +490,11 @@ class StarsLegend extends StatelessWidget {
   }
 }
 
-/// One region's fill and pattern, in a small rounded square.
+/// One region's fill, in a small rounded square.
 class _Swatch extends StatelessWidget {
-  const _Swatch({
-    required this.fill,
-    required this.texture,
-    required this.ink,
-    required this.line,
-  });
+  const _Swatch({required this.fill, required this.line});
 
   final Color fill;
-  final RegionTexture texture;
-  final Color ink;
   final Color line;
 
   @override
@@ -643,9 +507,6 @@ class _Swatch extends StatelessWidget {
         color: fill,
         border: Border.all(color: line),
         borderRadius: const BorderRadius.all(NookRadius.tile),
-      ),
-      child: CustomPaint(
-        painter: _RegionTexture(texture: texture, ink: ink),
       ),
     );
   }

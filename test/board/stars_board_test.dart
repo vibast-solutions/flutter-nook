@@ -123,5 +123,24 @@ void main() {
 
       expect(starMarkAt(tester, notAStar), StarsMark.star);
     });
+
+    testWidgets('a ruled-out cell wears a small cross, a star wears a star', (
+      WidgetTester tester,
+    ) async {
+      // The marks are told apart by their glyph, not their widget type: ruling a
+      // cell out draws a cross where a dot used to be, and a star draws a star.
+      final StarsPuzzle puzzle = fixedStarsPuzzle();
+      await pumpStarsGame(tester, puzzle: puzzle);
+
+      await tapStarsCell(tester, 0);
+      final Icon ruledOut = tester.widget<Icon>(
+        find.byKey(StarsBoard.markKey(0)),
+      );
+      expect(ruledOut.icon, Icons.close_rounded);
+
+      await tapStarsCell(tester, 0);
+      final Icon star = tester.widget<Icon>(find.byKey(StarsBoard.markKey(0)));
+      expect(star.icon, Icons.star_rounded);
+    });
   });
 }

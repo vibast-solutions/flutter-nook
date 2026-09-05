@@ -166,7 +166,7 @@ assets/packs/             generated starter packs (regenerated, never hand-edite
   costs one small durable integer per pack. The pack-first puzzle source is
   wired in at the app root (`main.dart`); tests build their own scope and keep
   the plain generator unless they ask for the packs.
-- Region colours are always paired with a texture, so colour-blind players can read the board.
+- **A Stars region's identity is carried by its heavy boundary, not its colour.** Each region is walled off from its neighbours by the `boardRule` (the same rule as the board's frame), so a player who cannot tell the fills apart still reads every region by tracing its walls — colour and fill are decorative over that. The board used to also print a per-region texture as a second colour-free cue; it was removed (polish, 2026-09) because eight hatches at once buried the fills and read as noise. The one-texture-per-region mapping (`regionTextureFor`, `RegionTexture`) is kept and still tested so a future theme can draw it again, but nothing paints it today. (The conflict/breach hatch is unrelated and stays — colour never carries *that* meaning alone.)
 - **Hit targets are never below 44 logical pixels** (`kMinTapTarget`), measured
   at `kSmallestSupportedWidth`. Board cells are the one exception, and only
   because nine of them across a phone cannot each be 44 wide — they take as

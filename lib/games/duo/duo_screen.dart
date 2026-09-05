@@ -5,6 +5,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import '../../board/duo_board.dart';
 import '../../chrome/action_row.dart';
 import '../../chrome/completion_view.dart';
+import '../../chrome/solved_reveal.dart';
 import '../../chrome/difficulty_naming.dart';
 import '../../chrome/game_header.dart';
 import '../../chrome/game_providers.dart';
@@ -125,11 +126,13 @@ class _DuoScreen extends ConsumerWidget {
     final DuoVariant variant = ref.watch(duoVariantProvider);
     final PuzzleDifficulty difficulty = ref.watch(duoDifficultyProvider);
     final AsyncValue<DuoGameState> game = ref.watch(duoControllerProvider);
+    final bool solved = game.value?.isSolved ?? false;
 
-    if (game.value?.isSolved ?? false) {
-      return Scaffold(
-        backgroundColor: colors.sand,
-        body: GameCompletionView(
+    return Scaffold(
+      backgroundColor: colors.sand,
+      body: SolvedReveal(
+        solved: solved,
+        completion: GameCompletionView(
           gameName: variant.title(l10n),
           tierLabel: difficulty.label(l10n),
           // Regenerating in place is right for an ordinary game; the daily
@@ -138,32 +141,29 @@ class _DuoScreen extends ConsumerWidget {
               ref.watch(completionAnotherProvider) ??
               () => ref.read(duoControllerProvider.notifier).startNewPuzzle(),
         ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: colors.sand,
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            GameHeader(
-              title: variant.title(l10n),
-              subtitle: l10n.gameSubtitle(
-                variant.sizeLabel(l10n),
-                difficulty.label(l10n),
-              ),
-            ),
-            Expanded(
-              child: game.when(
-                loading: () => const _Generating(),
-                error: (Object error, StackTrace stack) => _GenerationFailed(
-                  onRetry: () =>
-                      ref.read(duoControllerProvider.notifier).startNewPuzzle(),
+        playing: SafeArea(
+          child: Column(
+            children: <Widget>[
+              GameHeader(
+                title: variant.title(l10n),
+                subtitle: l10n.gameSubtitle(
+                  variant.sizeLabel(l10n),
+                  difficulty.label(l10n),
                 ),
-                data: (DuoGameState state) => _Playing(game: state),
               ),
-            ),
-          ],
+              Expanded(
+                child: game.when(
+                  loading: () => const _Generating(),
+                  error: (Object error, StackTrace stack) => _GenerationFailed(
+                    onRetry: () => ref
+                        .read(duoControllerProvider.notifier)
+                        .startNewPuzzle(),
+                  ),
+                  data: (DuoGameState state) => _Playing(game: state),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -6,6 +6,7 @@ import '../../board/number_pad.dart';
 import '../../board/sudoku_board.dart';
 import '../../chrome/action_row.dart';
 import '../../chrome/completion_view.dart';
+import '../../chrome/solved_reveal.dart';
 import '../../chrome/difficulty_naming.dart';
 import '../../chrome/game_providers.dart';
 import '../../chrome/game_header.dart';
@@ -133,11 +134,16 @@ class _SudokuScreen extends ConsumerWidget {
     // A finished puzzle takes the whole screen. The board it was played on is
     // complete and has nothing left to do, and the clock in the header has
     // stopped — leaving them up would be leaving the furniture of a game that
-    // is over around the one moment the app has to celebrate.
-    if (game.value?.isSolved ?? false) {
-      return Scaffold(
-        backgroundColor: colors.sand,
-        body: GameCompletionView(
+    // is over around the one moment the app has to celebrate. It gives way with
+    // a beat of ceremony (the board lights up, then the summary flies in) rather
+    // than a hard cut; SolvedReveal owns that and ends on the very same screen.
+    final bool solved = game.value?.isSolved ?? false;
+
+    return Scaffold(
+      backgroundColor: colors.sand,
+      body: SolvedReveal(
+        solved: solved,
+        completion: GameCompletionView(
           gameName: variant.title(l10n),
           tierLabel: difficulty.label(l10n),
           // Regenerating in place is right for an ordinary game; the daily
@@ -147,33 +153,29 @@ class _SudokuScreen extends ConsumerWidget {
               () =>
                   ref.read(sudokuControllerProvider.notifier).startNewPuzzle(),
         ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: colors.sand,
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            GameHeader(
-              title: variant.title(l10n),
-              subtitle: l10n.gameSubtitle(
-                variant.sizeLabel(l10n),
-                difficulty.label(l10n),
-              ),
-            ),
-            Expanded(
-              child: game.when(
-                loading: () => const _Generating(),
-                error: (Object error, StackTrace stack) => _GenerationFailed(
-                  onRetry: () => ref
-                      .read(sudokuControllerProvider.notifier)
-                      .startNewPuzzle(),
+        playing: SafeArea(
+          child: Column(
+            children: <Widget>[
+              GameHeader(
+                title: variant.title(l10n),
+                subtitle: l10n.gameSubtitle(
+                  variant.sizeLabel(l10n),
+                  difficulty.label(l10n),
                 ),
-                data: (SudokuGameState state) => _Playing(game: state),
               ),
-            ),
-          ],
+              Expanded(
+                child: game.when(
+                  loading: () => const _Generating(),
+                  error: (Object error, StackTrace stack) => _GenerationFailed(
+                    onRetry: () => ref
+                        .read(sudokuControllerProvider.notifier)
+                        .startNewPuzzle(),
+                  ),
+                  data: (SudokuGameState state) => _Playing(game: state),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

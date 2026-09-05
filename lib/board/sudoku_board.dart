@@ -8,6 +8,7 @@ import '../design/typography.dart';
 import '../games/sudoku/sudoku_naming.dart';
 import '../games/sudoku/sudoku_state.dart';
 import '../l10n/app_localizations.dart';
+import 'board_frame.dart';
 import 'conflict_hatch.dart';
 
 /// The Sudoku grid.
@@ -196,22 +197,8 @@ class _SudokuBoardState extends State<SudokuBoard>
       child: Semantics(
         container: true,
         label: l10n.boardLabel(game.variant.title(l10n), size),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            border: Border.all(
-              color: colors.boardRule,
-              width: SudokuBoard.ruleWidth,
-            ),
-            borderRadius: const BorderRadius.all(NookRadius.board),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: colors.ink.withValues(alpha: 0.10),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
+        child: BoardFrameGlow(
+          solved: game.isSolved,
           child: ClipRRect(
             borderRadius: const BorderRadius.all(NookRadius.board),
             child: AnimatedBuilder(
@@ -231,6 +218,20 @@ class _SudokuBoardState extends State<SudokuBoard>
               ),
             ),
           ),
+          builder:
+              (BuildContext context, List<BoxShadow> shadows, Widget child) =>
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      border: Border.all(
+                        color: colors.boardRule,
+                        width: SudokuBoard.ruleWidth,
+                      ),
+                      borderRadius: const BorderRadius.all(NookRadius.board),
+                      boxShadow: shadows,
+                    ),
+                    child: child,
+                  ),
         ),
       ),
     );

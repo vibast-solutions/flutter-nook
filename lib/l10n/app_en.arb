@@ -169,9 +169,9 @@
       "target": { "type": "int", "example": "8" }
     }
   },
-  "starsLegend": "Each region has its own colour and pattern",
-  "@starsLegend": { "description": "The caption under the legend below the Stars board, saying that colour is not the only thing telling the regions apart." },
-  "starsLegendLabel": "The regions, each with its own colour and pattern",
+  "starsLegend": "Each region has its own colour",
+  "@starsLegend": { "description": "The caption under the legend below the Stars board, naming what the eight colour swatches are." },
+  "starsLegendLabel": "The regions, each in its own colour",
   "@starsLegendLabel": { "description": "Screen-reader label for the legend of region swatches below the Stars board." },
   "duoTitle": "Duo",
   "@duoTitle": { "description": "Name of the Duo puzzle, in the game list and its header." },
