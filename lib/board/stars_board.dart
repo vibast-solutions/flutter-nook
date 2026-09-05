@@ -7,7 +7,6 @@ import '../design/typography.dart';
 import '../games/stars/stars_state.dart';
 import '../l10n/app_localizations.dart';
 import 'board_frame.dart';
-import 'conflict_hatch.dart';
 
 /// The texture paired with region [region].
 ///
@@ -61,6 +60,10 @@ class StarsBoard extends StatefulWidget {
 
   /// The thickness of the line between two cells in the same region.
   static const double hairlineWidth = 1;
+
+  /// The thickness of the board's outer frame — heavier than the region rule
+  /// so the board reads as one bounded object with a firm edge.
+  static const double frameWidth = 3;
 
   /// How long the cross a hint draws over a star it takes away stays up for.
   static const Duration removalDuration = Duration(milliseconds: 300);
@@ -146,15 +149,14 @@ class _StarsBoardState extends State<StarsBoard>
     final AppLocalizations l10n = AppLocalizations.of(context);
     final StarsGameState game = widget.game;
     final int size = game.spec.size;
-    final double cell = (edge - StarsBoard.ruleWidth * 2) / size;
+    final double cell = (edge - StarsBoard.frameWidth * 2) / size;
 
     return Semantics(
       container: true,
       label: l10n.boardLabel(l10n.starsTitle, size),
       child: BoardFrameGlow(
         solved: game.isSolved,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.all(NookRadius.board),
+        child: ClipRect(
           child: AnimatedBuilder(
             animation: _removal,
             builder: (BuildContext context, Widget? child) => Column(
@@ -172,16 +174,18 @@ class _StarsBoardState extends State<StarsBoard>
             ),
           ),
         ),
+        // Square corners, not the rounded board of the other games: the region
+        // fills run right to the edge, so a rounded clip would shave their
+        // corners. A firmer, slightly darker frame gives the board a clear edge.
         builder:
             (BuildContext context, List<BoxShadow> shadows, Widget child) =>
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color: colors.surface,
                     border: Border.all(
-                      color: colors.boardRule,
-                      width: StarsBoard.ruleWidth,
+                      color: colors.inkFaint,
+                      width: StarsBoard.frameWidth,
                     ),
-                    borderRadius: const BorderRadius.all(NookRadius.board),
                     boxShadow: shadows,
                   ),
                   child: child,
@@ -274,24 +278,22 @@ class _StarsCell extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
-              // The region's own colour never carries meaning alone, so the
-              // wash a breach draws stays readable and the heavy region boundary
-              // does the colour-free work of telling the regions apart.
+              // A breach turns the cell pale red and rings it in the conflict
+              // line. The ring is a shape a player reads without the hue, and a
+              // screen reader still names the rule that broke, so the marking is
+              // never carried by colour alone. The fill covers the region rather
+              // than washing over it, and nothing is drawn past the cell, so a
+              // breach never bleeds into the cell next door.
               if (breach != null)
                 Positioned.fill(
-                  child: ColoredBox(
-                    color: colors.cellConflict.withValues(alpha: 0.72),
-                  ),
-                ),
-              // A breach is a colour *and* a texture, the same hatch Sudoku
-              // draws over a repeated digit, so it survives colour being taken
-              // away and stays the app's one marking language.
-              if (breach != null)
-                Positioned.fill(
-                  child: CustomPaint(
+                  child: DecoratedBox(
                     key: StarsBoard.breachKey(index),
-                    painter: ConflictHatch(
-                      colour: colors.conflictLine.withValues(alpha: 0.30),
+                    decoration: BoxDecoration(
+                      color: colors.cellConflict,
+                      border: Border.all(
+                        color: colors.conflictLine,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -308,7 +310,13 @@ class _StarsCell extends StatelessWidget {
   BorderSide _edgeBetween(NookColors colors, int a, int b) {
     final bool boundary = game.regionOf(a) != game.regionOf(b);
     return BorderSide(
-      color: boundary ? colors.boardRule : colors.boardHairline,
+      // A join inside a region is a soft translucent ink rather than the
+      // near-white hairline: it stays readable over all eight fills so a player
+      // can follow a row or a column across the board by eye, while never
+      // reading as heavy as the region wall.
+      color: boundary
+          ? colors.boardRule
+          : colors.inkFaint.withValues(alpha: 0.30),
       width: boundary ? StarsBoard.ruleWidth : StarsBoard.hairlineWidth,
     );
   }

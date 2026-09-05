@@ -162,7 +162,7 @@ class _DuoBoardState extends State<DuoBoard>
     // A small annotation on the line, not a chip competing with the cells: kept
     // deliberately tiny so the `=`/`x` reads as a note on the boundary and a
     // player follows the grid past it rather than around it.
-    final double badgeExtent = (cell * 0.22).clamp(10.0, 13.0);
+    final double badgeExtent = (cell * 0.20).clamp(9.0, 12.0);
 
     return Semantics(
       container: true,
@@ -253,6 +253,13 @@ class _DuoBoardState extends State<DuoBoard>
     );
   }
 }
+
+/// The colour a Duo value is drawn in: the warm accent for a circle, the cool
+/// one for a square. The two accents sit as far apart as Nook's palette goes,
+/// so the pair reads at a glance; the filled/outlined shape says the same thing
+/// again, so the colour is never the only thing telling them apart.
+Color _symbolInk(NookColors colors, DuoCell cell) =>
+    cell == DuoCell.circle ? colors.clay : colors.sage;
 
 /// One cell: a fixed given or one of the player's own, with a circle, a square,
 /// or nothing on it.
@@ -351,7 +358,7 @@ class _DuoCellTile extends StatelessWidget {
                     ),
                   ),
                 ),
-              ?_symbol(colors, cell, given),
+              ?_symbol(colors, cell),
             ],
           ),
         ),
@@ -361,12 +368,14 @@ class _DuoCellTile extends StatelessWidget {
 
   /// The circle or square the cell holds, or nothing.
   ///
-  /// A given is drawn in [NookColors.inkMuted], the player's own in the accent,
-  /// and a hinted one in the hint ink — three voices, the way the other games
-  /// tell a given from an answer from a hint. A given is the quieter [inkMuted]
-  /// rather than [ink] so a filled circle never reads as a heavy black blob; the
-  /// recessed cell it sits in already says it is the puzzle's own.
-  Widget? _symbol(NookColors colors, DuoCell cell, bool given) {
+  /// The two values are two opposite Nook accents — a warm [NookColors.clay]
+  /// circle against a cool [NookColors.sage] square — so a player tells them
+  /// apart by colour as well as by the filled/outlined shape, and neither cue
+  /// is load-bearing alone. Given and player entries share those colours; the
+  /// recess a given sits in is what marks it as the puzzle's own. A hint is the
+  /// third voice and keeps [NookColors.hintInk] whichever symbol it gave, the
+  /// way a hinted digit does in Sudoku.
+  Widget? _symbol(NookColors colors, DuoCell cell) {
     final DuoRemoval? leaving = removing;
     if (leaving != null) {
       return _DuoRemoval(
@@ -374,20 +383,17 @@ class _DuoCellTile extends StatelessWidget {
         cell: leaving.cell,
         progress: removalProgress,
         cross: colors.conflictLine,
-        // The symbol that is leaving was the player's own, so it fades in the
-        // accent the player's symbols are drawn in.
-        ink: colors.clay,
+        // The symbol that is leaving fades in its own value colour.
+        ink: _symbolInk(colors, leaving.cell),
         cellKey: DuoBoard.removalKey(index),
       );
     }
     if (cell == DuoCell.empty) {
       return null;
     }
-    final Color color = given
-        ? colors.inkMuted
-        : game.isHinted(index)
+    final Color color = game.isHinted(index)
         ? colors.hintInk
-        : colors.clay;
+        : _symbolInk(colors, cell);
     return Icon(
       cell == DuoCell.circle ? DuoBoard.circleIcon : DuoBoard.squareIcon,
       key: DuoBoard.markKey(index),
@@ -504,14 +510,14 @@ class _DuoRemoval extends StatelessWidget {
 
 /// A constraint badge: a small `=` or `x` sat on the edge between two cells.
 ///
-/// An annotation on the grid line rather than a tile: a borderless knockout in
-/// the board's own surface lifts the glyph clear of the hairline and any cell
-/// wash beneath, and the sign is drawn in a quiet [NookColors.inkMuted] so it
-/// reads as a note on the boundary rather than competing with the circles and
-/// squares in the cells. A bordered chip here made a 6x6 read as a dense field
-/// twice as wide, the cells and the constraints shouting at one volume. The
-/// glyph is geometry rather than a font character, so it stays crisp at any
-/// board size and legible in light and dark alike.
+/// An annotation on the grid line rather than a tile: the glyph sits straight
+/// on the boundary with nothing behind it, drawn small and in a quiet
+/// [NookColors.inkMuted] so it reads as a note on the line rather than
+/// competing with the circles and squares in the cells. A bordered chip here
+/// made a 6x6 read as a dense field twice as wide, the cells and the
+/// constraints shouting at one volume. The glyph is geometry rather than a font
+/// character, so it stays crisp at any board size and legible in light and dark
+/// alike.
 class _BadgeMark extends StatelessWidget {
   const _BadgeMark({required this.relation, required this.extent, super.key});
 
@@ -531,16 +537,10 @@ class _BadgeMark extends StatelessWidget {
           ? l10n.duoBadgeEqual
           : l10n.duoBadgeUnequal,
       excludeSemantics: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          shape: BoxShape.circle,
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(extent * 0.18),
-          child: CustomPaint(
-            painter: _BadgeGlyph(relation: relation, ink: colors.inkMuted),
-          ),
+      child: Padding(
+        padding: EdgeInsets.all(extent * 0.18),
+        child: CustomPaint(
+          painter: _BadgeGlyph(relation: relation, ink: colors.inkMuted),
         ),
       ),
     );
@@ -613,11 +613,19 @@ class DuoLegend extends StatelessWidget {
         children: <Widget>[
           _LegendItem(
             label: l10n.duoLegendCircle,
-            child: Icon(DuoBoard.circleIcon, size: 15, color: colors.ink),
+            child: Icon(
+              DuoBoard.circleIcon,
+              size: 15,
+              color: _symbolInk(colors, DuoCell.circle),
+            ),
           ),
           _LegendItem(
             label: l10n.duoLegendSquare,
-            child: Icon(DuoBoard.squareIcon, size: 15, color: colors.ink),
+            child: Icon(
+              DuoBoard.squareIcon,
+              size: 15,
+              color: _symbolInk(colors, DuoCell.square),
+            ),
           ),
           _LegendItem(
             label: l10n.duoLegendEqual,

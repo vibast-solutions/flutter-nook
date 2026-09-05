@@ -120,9 +120,10 @@ class NookColors extends ThemeExtension<NookColors> {
   /// The background of a cell whose digit is repeated in its row, column or
   /// box.
   ///
-  /// Never the only thing saying so: the cell is hatched in [conflictLine] as
-  /// well, because a board that carried this meaning in a colour alone would
-  /// be silent for the players most likely to need it.
+  /// Never the only thing saying so: the cell is also marked in [conflictLine]
+  /// — hatched in Sudoku and Duo, ringed in Stars — because a board that
+  /// carried this meaning in a colour alone would be silent for the players
+  /// most likely to need it.
   final Color cellConflict;
 
   /// The hatch drawn across a conflicting cell, and the stroke of the cross a

@@ -154,12 +154,10 @@ void main() {
   });
 
   group('the board shows a breach', () {
-    testWidgets('with a texture as well as a colour', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('with a ring as well as a colour', (WidgetTester tester) async {
       // Colour alone would be silent for the players most likely to need it, so
-      // the hatch is a widget of its own — found here with the wash's colour
-      // ignored entirely.
+      // a breach also rings the cell — a shape read without the hue — found
+      // here as a keyed widget of its own.
       await pumpStarsGame(tester);
 
       expect(find.byKey(StarsBoard.breachKey(0)), findsNothing);
