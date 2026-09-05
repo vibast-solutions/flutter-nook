@@ -76,9 +76,13 @@ assets/packs/             generated starter packs (regenerated, never hand-edite
   Both are computed on `SudokuGameState` from the grid alone, and the tests
   swap the puzzle's solution for a different one and assert that nothing on the
   board changes — which is the guard that no solution reading ever creeps in.
-- **Colour never carries a meaning by itself.** A conflicting cell is hatched
-  as well as washed (`_ConflictHatch`), the way region colours are, so the
-  board is readable without reading colour.
+- **Colour never carries a meaning by itself.** A conflicting cell is marked
+  by shape as well as by colour, so the board is readable without reading
+  colour: Sudoku and Duo hatch the cell (`ConflictHatch`) as well as washing it,
+  and Stars — where a hatch bled into the coloured cell next door and looked
+  broken (polish, 2026-09) — turns the cell pale red (`cellConflict`) and rings
+  it in the `conflictLine`, the ring being the shape a player reads without the
+  hue. Either way a screen reader still names the rule that broke.
 - **Motion is optional and the words are not.** Anything that moves — the
   completed-unit pulse, the cross a hint draws over a wrong digit, the hint
   control's colour wiping back in — checks `MediaQuery.disableAnimations` and
