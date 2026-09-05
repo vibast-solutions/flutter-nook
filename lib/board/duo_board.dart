@@ -5,6 +5,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/duo/duo_state.dart';
 import '../l10n/app_localizations.dart';
+import 'board_frame.dart';
 import 'conflict_hatch.dart';
 
 /// The Duo grid.
@@ -53,12 +54,15 @@ class DuoBoard extends StatefulWidget {
   /// The thickness of the line between two cells.
   static const double hairlineWidth = 1;
 
-  /// The glyph a circle is drawn with.
+  /// The glyph a circle is drawn with: filled, so it reads as the solid one of
+  /// the pair.
   static const IconData circleIcon = Icons.circle;
 
-  /// The glyph a square is drawn with — a different shape, never merely a
+  /// The glyph a square is drawn with — outline rather than filled, so the two
+  /// symbols are told apart by fill as well as by shape and the board never
+  /// reads as a field of same-weight blobs. A different shape, never merely a
   /// different colour.
-  static const IconData squareIcon = Icons.square_rounded;
+  static const IconData squareIcon = Icons.square_outlined;
 
   /// How long the cross a hint draws over a symbol it takes away stays up for.
   static const Duration removalDuration = Duration(milliseconds: 300);
@@ -155,27 +159,16 @@ class _DuoBoardState extends State<DuoBoard>
     final int size = game.spec.size;
     final double cell = (edge - DuoBoard.ruleWidth * 2) / size;
     final double inner = cell * size;
-    final double badgeExtent = (cell * 0.34).clamp(13.0, 18.0);
+    // A small annotation on the line, not a chip competing with the cells: kept
+    // deliberately tiny so the `=`/`x` reads as a note on the boundary and a
+    // player follows the grid past it rather than around it.
+    final double badgeExtent = (cell * 0.22).clamp(10.0, 13.0);
 
     return Semantics(
       container: true,
       label: l10n.boardLabel(l10n.duoTitle, size),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border.all(
-            color: colors.boardRule,
-            width: DuoBoard.ruleWidth,
-          ),
-          borderRadius: const BorderRadius.all(NookRadius.board),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: colors.ink.withValues(alpha: 0.10),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
+      child: BoardFrameGlow(
+        solved: game.isSolved,
         child: ClipRRect(
           borderRadius: const BorderRadius.all(NookRadius.board),
           child: SizedBox(
@@ -205,6 +198,20 @@ class _DuoBoardState extends State<DuoBoard>
             ),
           ),
         ),
+        builder:
+            (BuildContext context, List<BoxShadow> shadows, Widget child) =>
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    border: Border.all(
+                      color: colors.boardRule,
+                      width: DuoBoard.ruleWidth,
+                    ),
+                    borderRadius: const BorderRadius.all(NookRadius.board),
+                    boxShadow: shadows,
+                  ),
+                  child: child,
+                ),
       ),
     );
   }
@@ -241,6 +248,7 @@ class _DuoBoardState extends State<DuoBoard>
       child: _BadgeMark(
         key: DuoBoard.badgeKey(badge.a, badge.b),
         relation: badge.relation,
+        extent: extent,
       ),
     );
   }
@@ -353,9 +361,11 @@ class _DuoCellTile extends StatelessWidget {
 
   /// The circle or square the cell holds, or nothing.
   ///
-  /// A given is drawn in [NookColors.ink], the player's own in the accent, and a
-  /// hinted one in the hint ink — three voices, the way the other games tell a
-  /// given from an answer from a hint.
+  /// A given is drawn in [NookColors.inkMuted], the player's own in the accent,
+  /// and a hinted one in the hint ink — three voices, the way the other games
+  /// tell a given from an answer from a hint. A given is the quieter [inkMuted]
+  /// rather than [ink] so a filled circle never reads as a heavy black blob; the
+  /// recessed cell it sits in already says it is the puzzle's own.
   Widget? _symbol(NookColors colors, DuoCell cell, bool given) {
     final DuoRemoval? leaving = removing;
     if (leaving != null) {
@@ -374,7 +384,7 @@ class _DuoCellTile extends StatelessWidget {
       return null;
     }
     final Color color = given
-        ? colors.ink
+        ? colors.inkMuted
         : game.isHinted(index)
         ? colors.hintInk
         : colors.clay;
@@ -503,10 +513,14 @@ class _DuoRemoval extends StatelessWidget {
 /// glyph is geometry rather than a font character, so it stays crisp at any
 /// board size and legible in light and dark alike.
 class _BadgeMark extends StatelessWidget {
-  const _BadgeMark({required this.relation, super.key});
+  const _BadgeMark({required this.relation, required this.extent, super.key});
 
   /// Whether the two cells must match (`=`) or differ (`x`).
   final DuoRelation relation;
+
+  /// The badge's diameter, so the knockout ring around the glyph stays
+  /// proportional as the badge shrinks rather than swallowing it.
+  final double extent;
 
   @override
   Widget build(BuildContext context) {
@@ -523,7 +537,7 @@ class _BadgeMark extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(3.5),
+          padding: EdgeInsets.all(extent * 0.18),
           child: CustomPaint(
             painter: _BadgeGlyph(relation: relation, ink: colors.inkMuted),
           ),
@@ -547,7 +561,7 @@ class _BadgeGlyph extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final Paint stroke = Paint()
       ..color = ink
-      ..strokeWidth = 2
+      ..strokeWidth = 1.4
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 

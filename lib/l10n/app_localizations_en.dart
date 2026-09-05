@@ -172,11 +172,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get starsLegend => 'Each region has its own colour and pattern';
+  String get starsLegend => 'Each region has its own colour';
 
   @override
-  String get starsLegendLabel =>
-      'The regions, each with its own colour and pattern';
+  String get starsLegendLabel => 'The regions, each in its own colour';
 
   @override
   String get duoTitle => 'Duo';

@@ -273,16 +273,16 @@ abstract class AppLocalizations {
   /// **'{placed} of {target} stars placed'**
   String starsCounterLabel(int placed, int target);
 
-  /// The caption under the legend below the Stars board, saying that colour is not the only thing telling the regions apart.
+  /// The caption under the legend below the Stars board, naming what the eight colour swatches are.
   ///
   /// In en, this message translates to:
-  /// **'Each region has its own colour and pattern'**
+  /// **'Each region has its own colour'**
   String get starsLegend;
 
   /// Screen-reader label for the legend of region swatches below the Stars board.
   ///
   /// In en, this message translates to:
-  /// **'The regions, each with its own colour and pattern'**
+  /// **'The regions, each in its own colour'**
   String get starsLegendLabel;
 
   /// Name of the Duo puzzle, in the game list and its header.

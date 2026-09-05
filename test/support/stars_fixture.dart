@@ -244,13 +244,18 @@ Future<void> tapStarsCell(WidgetTester tester, int index) async {
   await tester.pump();
 }
 
-/// The mark drawn in the cell at [index]: a star, a ruled-out dot, or empty.
+/// The mark drawn in the cell at [index]: a star, a ruled-out cross, or empty.
 StarsMark starMarkAt(WidgetTester tester, int index) {
   final Finder mark = find.byKey(StarsBoard.markKey(index));
   if (mark.evaluate().isEmpty) {
     return StarsMark.empty;
   }
-  return tester.widget(mark) is Icon ? StarsMark.star : StarsMark.ruledOut;
+  // Both a star and a ruling-out are icons now (a star and a small cross), so
+  // they are told apart by which glyph, not by widget type.
+  final Widget widget = tester.widget(mark);
+  return widget is Icon && widget.icon == Icons.star_rounded
+      ? StarsMark.star
+      : StarsMark.ruledOut;
 }
 
 /// Drives the board to the puzzle's solution: two taps on each star cell
