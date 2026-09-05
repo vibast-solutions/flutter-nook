@@ -86,6 +86,9 @@ class DuoGamePage extends StatelessWidget {
           // keeps its save under its own id so the two can never discard each
           // other.
           final String slot = ref.watch(saveSlotProvider) ?? variant.id;
+          // Nothing for an ordinary game; the daily route supplies a hook that
+          // records the solve and advances the streak.
+          final Future<void> Function()? onSolved = ref.watch(onSolvedProvider);
           return GameSession<DuoGameState>(
             gameProvider: duoControllerProvider,
             isSolved: (DuoGameState game) => game.isSolved,
@@ -100,7 +103,10 @@ class DuoGamePage extends StatelessWidget {
                     slot: slot,
                   ),
                 ),
-            discardSave: (DuoGameState game) => store.discard(slot),
+            discardSave: (DuoGameState game) async {
+              await store.discard(slot);
+              await onSolved?.call();
+            },
             child: const _DuoScreen(),
           );
         },

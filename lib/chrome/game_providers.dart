@@ -43,6 +43,18 @@ final Provider<String?> saveSlotProvider = Provider<String?>(
   name: 'saveSlot',
 );
 
+/// What the session runs once the puzzle it is watching is solved, after the
+/// save has been discarded, or `null` for nothing.
+///
+/// Nothing is the right default: an ordinary solve counts towards its game's
+/// statistics and nothing else. The daily is the exception — it counts towards
+/// the streak — so its route overrides this with a call into the daily store,
+/// and the discard-the-save seam every game already has is where it runs. A game
+/// screen reads it and calls it beside discarding, so no game grows a branch of
+/// its own for the daily.
+final Provider<Future<void> Function()?> onSolvedProvider =
+    Provider<Future<void> Function()?>((Ref ref) => null, name: 'onSolved');
+
 /// What the completion screen's "another puzzle" button does instead of
 /// regenerating in place, or `null` for the default.
 ///

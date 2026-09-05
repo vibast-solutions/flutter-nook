@@ -44,7 +44,7 @@ const Set<String> allowedLiterals = <String>{
   // there are seven of them and no two are built from the same loop.
   'completion-time',
   'completion-previous',
-  'completion-solved',
+  'completion-streak',
   'completion-personal-best',
   'completion-another',
   'completion-home',
@@ -52,6 +52,7 @@ const Set<String> allowedLiterals = <String>{
   'discard-confirm',
   'discard-keep',
   'daily-card',
+  'daily-streak',
 
   // ---- Identifiers that outlive a language ---------------------------------
   // Variant ids reach saved games and statistics: a save written on an English
@@ -82,6 +83,8 @@ const Set<String> allowedLiterals = <String>{
   'nook.sqlite',
   'SavedGameRow',
   'GameStatsRow',
+  'DailySolveRow',
+  'DailyStreakRow',
   // The bundled-pack asset key, with the pack id interpolated into the middle.
   // A file path, never read by a player.
   'assets/packs/.pack.gz',
@@ -117,6 +120,7 @@ const Set<String> allowedLiterals = <String>{
   'gameId',
   'gameDifficulty',
   'saveSlot',
+  'onSolved',
   'completionAnother',
   'dailySudokuSource',
   'dailyStarsSource',
@@ -132,6 +136,8 @@ const Set<String> allowedLiterals = <String>{
   'solveOutcome',
   'packProgressStore',
   'packLibrary',
+  'dailyStore',
+  'dailyStreak',
 
   // ---- Messages for whoever is holding the debugger ------------------------
   // `toString` output.

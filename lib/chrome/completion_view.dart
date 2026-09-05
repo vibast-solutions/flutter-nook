@@ -5,6 +5,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../l10n/app_localizations.dart';
 import '../store/game_stats.dart';
+import '../store/nook_database.dart';
 import 'play_clock.dart';
 import 'solve_outcome.dart';
 
@@ -49,8 +50,8 @@ class GameCompletionView extends ConsumerWidget {
   /// The card showing the time the player had to beat.
   static const Key previousKey = ValueKey<String>('completion-previous');
 
-  /// The card counting the puzzles finished here.
-  static const Key solvedKey = ValueKey<String>('completion-solved');
+  /// The card showing the player's current daily streak.
+  static const Key streakKey = ValueKey<String>('completion-streak');
 
   /// The badge shown only for a time nobody has beaten.
   static const Key personalBestKey = ValueKey<String>(
@@ -76,6 +77,12 @@ class GameCompletionView extends ConsumerWidget {
     // the clock rather than waiting means the number the player cares about is
     // never the one that is missing.
     final Duration time = outcome?.time ?? ref.watch(playClockProvider);
+    // The daily streak sits in the third card on every game's completion, not
+    // only the daily's: after a daily solve it is the just-incremented run, and
+    // after an ordinary one it is the streak as it stands (zero included). It is
+    // read rather than derived from the result, because an ordinary solve does
+    // not carry it.
+    final int streak = ref.watch(dailyStreakProvider).value?.streak ?? 0;
 
     return SafeArea(
       child: Column(
@@ -116,7 +123,7 @@ class GameCompletionView extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 26),
-                  _Figures(time: time, outcome: outcome),
+                  _Figures(time: time, outcome: outcome, streak: streak),
                 ],
               ),
             ),
@@ -154,16 +161,22 @@ class GameCompletionView extends ConsumerWidget {
 
 /// The three numbers, side by side.
 class _Figures extends StatelessWidget {
-  const _Figures({required this.time, required this.outcome});
+  const _Figures({
+    required this.time,
+    required this.outcome,
+    required this.streak,
+  });
 
   final Duration time;
   final SolveOutcome? outcome;
+
+  /// The player's current daily streak, for the third card.
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final Duration? previous = outcome?.previousBest;
-    final int solved = outcome?.solved ?? 0;
     final String reading = clockReading(time);
     final String noTime = l10n.completionNoTime;
 
@@ -198,14 +211,15 @@ class _Figures extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: _StatCard(
-              cardKey: GameCompletionView.solvedKey,
-              // The designs put the daily streak here. There is no daily puzzle
-              // yet (VIB-67) and so no streak, and a made-up number in the one
-              // place the app is telling the player about themselves would be
-              // the worst possible place to make one up. The count is true.
-              heading: l10n.completionSolvedCount,
-              value: '$solved',
-              label: l10n.completionSolvedLabel(solved),
+              cardKey: GameCompletionView.streakKey,
+              // The daily streak, which the designs put here: how many days in a
+              // row the player has solved the daily. It is the current run for
+              // every game's completion, not the daily's alone — after a daily
+              // solve it reads the value that solve just set, and after an
+              // ordinary one it reads the run as it stands, zero and all.
+              heading: l10n.completionStreak,
+              value: '$streak',
+              label: l10n.dailyStreakLabel(streak),
             ),
           ),
         ],

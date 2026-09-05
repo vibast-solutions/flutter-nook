@@ -85,6 +85,9 @@ class StarsGamePage extends StatelessWidget {
           // keeps its save under its own id so the two can never discard each
           // other.
           final String slot = ref.watch(saveSlotProvider) ?? variant.id;
+          // Nothing for an ordinary game; the daily route supplies a hook that
+          // records the solve and advances the streak.
+          final Future<void> Function()? onSolved = ref.watch(onSolvedProvider);
           return GameSession<StarsGameState>(
             gameProvider: starsControllerProvider,
             isSolved: (StarsGameState game) => game.isSolved,
@@ -99,7 +102,10 @@ class StarsGamePage extends StatelessWidget {
                     slot: slot,
                   ),
                 ),
-            discardSave: (StarsGameState game) => store.discard(slot),
+            discardSave: (StarsGameState game) async {
+              await store.discard(slot);
+              await onSolved?.call();
+            },
             child: const _StarsScreen(),
           );
         },

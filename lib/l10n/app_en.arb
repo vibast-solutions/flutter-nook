@@ -66,23 +66,41 @@
       "percent": { "type": "int", "example": "45" }
     }
   },
-  "dailyLabel": "Today's puzzle: {game}, {date}, {difficulty}. Not started yet",
+  "dailyLabel": "Today's puzzle: {game}, {date}, {difficulty}. Not started yet. {streak, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {streak} days}}",
   "@dailyLabel": {
-    "description": "Screen-reader label for the daily-puzzle card before it has been started. One sentence.",
+    "description": "Screen-reader label for the daily-puzzle card before it has been started. One sentence, ending with the daily streak the card also shows.",
     "placeholders": {
       "game": { "type": "String", "example": "Sudoku Classic" },
       "date": { "type": "DateTime", "format": "MMMEd" },
-      "difficulty": { "type": "String", "example": "Medium" }
+      "difficulty": { "type": "String", "example": "Medium" },
+      "streak": { "type": "int", "example": "5" }
     }
   },
-  "dailyLabelProgress": "Continue today's puzzle: {game}, {date}, {time} played, {percent}% filled in",
+  "dailyLabelProgress": "Continue today's puzzle: {game}, {date}, {time} played, {percent}% filled in. {streak, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {streak} days}}",
   "@dailyLabelProgress": {
-    "description": "Screen-reader label for the daily-puzzle card while today's puzzle is under way. One sentence.",
+    "description": "Screen-reader label for the daily-puzzle card while today's puzzle is under way. One sentence, ending with the daily streak the card also shows.",
     "placeholders": {
       "game": { "type": "String", "example": "Sudoku Classic" },
       "date": { "type": "DateTime", "format": "MMMEd" },
       "time": { "type": "String", "example": "07:42" },
-      "percent": { "type": "int", "example": "45" }
+      "percent": { "type": "int", "example": "45" },
+      "streak": { "type": "int", "example": "5" }
+    }
+  },
+  "dailySolvedDetails": "{date} · Solved",
+  "@dailySolvedDetails": {
+    "description": "The second line of the daily-puzzle card once today's puzzle has been solved: the day, and that it is done. The card is no longer tappable in this state.",
+    "placeholders": {
+      "date": { "type": "DateTime", "format": "MMMEd" }
+    }
+  },
+  "dailyLabelSolved": "Today's puzzle solved: {game}, {date}. {streak, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {streak} days}}",
+  "@dailyLabelSolved": {
+    "description": "Screen-reader label for the daily-puzzle card once today's puzzle is solved. One sentence, ending with the daily streak the card also shows.",
+    "placeholders": {
+      "game": { "type": "String", "example": "Sudoku Classic" },
+      "date": { "type": "DateTime", "format": "MMMEd" },
+      "streak": { "type": "int", "example": "5" }
     }
   },
   "gameRowLabel": "{title}. {subtitle}",
@@ -416,9 +434,9 @@
   "@completionPrevious": {
     "description": "Heading on the card showing the player's best time before this puzzle. Short because it sits in a narrow card between two others."
   },
-  "completionSolvedCount": "SOLVED",
-  "@completionSolvedCount": {
-    "description": "Heading on the card showing how many puzzles the player has finished at this game and difficulty."
+  "completionStreak": "STREAK",
+  "@completionStreak": {
+    "description": "Heading on the card showing the player's current daily-puzzle streak — how many days in a row they have solved the daily. Upper case in English by design; use whatever the language's convention for a small caption is."
   },
   "completionNoTime": "—",
   "@completionNoTime": {
@@ -442,11 +460,11 @@
   "@completionNoPreviousLabel": {
     "description": "Screen-reader label for the previous-best card when there is no best time yet — either the first solve here, or every one of them was helped by a hint."
   },
-  "completionSolvedLabel": "{count, plural, =1{1 puzzle solved at this difficulty} other{{count} puzzles solved at this difficulty}}",
-  "@completionSolvedLabel": {
-    "description": "Screen-reader label for the card counting finished puzzles.",
+  "dailyStreakLabel": "{count, plural, =0{No daily streak yet} =1{Daily streak, 1 day} other{Daily streak, {count} days}}",
+  "@dailyStreakLabel": {
+    "description": "Screen-reader label for the daily-streak figure, shown both on the home screen's daily card and on the finished-puzzle screen's third card. Reads as one phrase. Zero is a real value here — a player who has not started, or who let a day pass, has no streak.",
     "placeholders": {
-      "count": { "type": "int", "example": "6" }
+      "count": { "type": "int", "example": "5" }
     }
   },
   "completionAnother": "Another {tier} puzzle",

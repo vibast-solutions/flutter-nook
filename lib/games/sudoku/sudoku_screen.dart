@@ -88,6 +88,9 @@ class SudokuGamePage extends StatelessWidget {
           // keeps its save under its own id so the two can never discard each
           // other.
           final String slot = ref.watch(saveSlotProvider) ?? variant.id;
+          // Nothing for an ordinary game; the daily route supplies a hook that
+          // records the solve and advances the streak.
+          final Future<void> Function()? onSolved = ref.watch(onSolvedProvider);
           return GameSession<SudokuGameState>(
             gameProvider: sudokuControllerProvider,
             isSolved: (SudokuGameState game) => game.isSolved,
@@ -102,7 +105,10 @@ class SudokuGamePage extends StatelessWidget {
                     slot: slot,
                   ),
                 ),
-            discardSave: (SudokuGameState game) => store.discard(slot),
+            discardSave: (SudokuGameState game) async {
+              await store.discard(slot);
+              await onSolved?.call();
+            },
             child: const _SudokuScreen(),
           );
         },

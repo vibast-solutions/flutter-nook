@@ -43,6 +43,25 @@ List<int> freeCellsOf(DuoPuzzle puzzle) => <int>[
     if (!puzzle.isGiven(index)) index,
 ];
 
+/// The streak figure drawn on the daily card, or `null` if the card is absent.
+String? streakOnCard(WidgetTester tester) {
+  final Finder figure = find.byKey(dailyStreakKey);
+  if (figure.evaluate().isEmpty) {
+    return null;
+  }
+  return tester.widget<Text>(figure).data;
+}
+
+/// The figure printed on a completion card [key].
+String figureOn(WidgetTester tester, Key key) {
+  return tester
+      .widgetList<Text>(
+        find.descendant(of: find.byKey(key), matching: find.byType(Text)),
+      )
+      .last
+      .data!;
+}
+
 /// Pumps the home screen on the Duo daily's day, with both sources fixed.
 Future<void> pumpDailyHome(
   WidgetTester tester, {
@@ -295,6 +314,129 @@ void main() {
         isNotNull,
       );
       expect(await storedSave(tester, database, dailySlotId), isNull);
+    });
+  });
+
+  group('the streak', () {
+    /// A daily solved on its own day [d] in September 2026, to build up a run
+    /// before the card is pumped.
+    Future<void> solvedOn(NookDatabase database, int d) {
+      return DailyStore(database).recordSolve(
+        date: DateTime.utc(2026, 9, d),
+        today: DateTime.utc(2026, 9, d),
+        gameId: DuoVariant.duoId,
+        difficulty: PuzzleDifficulty.medium.name,
+      );
+    }
+
+    testWidgets('the daily\'s completion shows the streak it just set', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await pumpDailyHome(tester, database: database);
+      await tester.tap(find.byKey(dailyCardKey));
+      await tester.pumpAndSettle();
+
+      await solveDuo(tester, dailyDuoPuzzle());
+
+      // The finished-puzzle screen's third card is the streak, and solving
+      // today's daily has just made it one.
+      expect(figureOn(tester, GameCompletionView.streakKey), '1');
+    });
+
+    testWidgets('shows the running streak before today is played', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      // A two-day run ending yesterday; today is not started.
+      await solvedOn(database, 1);
+      await solvedOn(database, 2);
+
+      await pumpDailyHome(tester, database: database);
+
+      // The card reads unstarted, and the streak stands at two.
+      expect(
+        find.text(en.dailyDetails(duoDailyDate, en.difficultyMedium)),
+        findsOneWidget,
+      );
+      expect(streakOnCard(tester), '2');
+
+      // Yesterday's run does not lock today's puzzle: the card still opens it.
+      await tester.tap(find.byKey(dailyCardKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(DuoBoard), findsOneWidget);
+    });
+
+    testWidgets('stays on the card while today is under way', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await solvedOn(database, 2);
+      // Today's daily, left half-played.
+      final SavedGame saved = partPlayedDuoSave(
+        puzzle: dailyDuoPuzzle(),
+        slot: dailySlotId,
+      );
+      await SavedGameStore(database).save(saved);
+
+      await pumpDailyHome(tester, database: database);
+
+      final int percent = (saved.progress * 100).round();
+      expect(
+        find.text(en.dailyDetailsProgress(duoDailyDate, '01:15', percent)),
+        findsOneWidget,
+      );
+      expect(streakOnCard(tester), '1');
+    });
+
+    testWidgets('turns the card informational once today is solved', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await pumpDailyHome(tester, database: database);
+      await tester.tap(find.byKey(dailyCardKey));
+      await tester.pumpAndSettle();
+      await solveDuo(tester, dailyDuoPuzzle());
+
+      await tester.tap(find.byKey(GameCompletionView.homeKey));
+      await tester.pumpAndSettle();
+
+      // Back home, the card reads solved and carries the streak the solve set.
+      expect(find.text(en.dailySolvedDetails(duoDailyDate)), findsOneWidget);
+      expect(streakOnCard(tester), '1');
+
+      // It is no longer a button: there is nothing left to open, and tapping it
+      // opens nothing.
+      await tester.tap(find.byKey(dailyCardKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(DuoBoard), findsNothing);
+    });
+
+    testWidgets('reads out the solved card and its streak', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        final NookDatabase database = memoryDatabase();
+        await pumpDailyHome(tester, database: database);
+        await tester.tap(find.byKey(dailyCardKey));
+        await tester.pumpAndSettle();
+        await solveDuo(tester, dailyDuoPuzzle());
+
+        await tester.tap(find.byKey(GameCompletionView.homeKey));
+        await tester.pumpAndSettle();
+
+        // The card's label reads as one sentence and carries the streak the
+        // solve set.
+        expect(
+          find.bySemanticsLabel(
+            en.dailyLabelSolved(en.duoTitle, duoDailyDate, 1),
+          ),
+          findsOneWidget,
+        );
+      } finally {
+        handle.dispose();
+      }
     });
   });
 }

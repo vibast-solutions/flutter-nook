@@ -61,11 +61,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String dailyLabel(String game, DateTime date, String difficulty) {
+  String dailyLabel(String game, DateTime date, String difficulty, int streak) {
     final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
     final String dateString = dateDateFormat.format(date);
 
-    return 'Today\'s puzzle: $game, $dateString, $difficulty. Not started yet';
+    String _temp0 = intl.Intl.pluralLogic(
+      streak,
+      locale: localeName,
+      other: 'Daily streak, $streak days',
+      one: 'Daily streak, 1 day',
+      zero: 'No daily streak yet',
+    );
+    return 'Today\'s puzzle: $game, $dateString, $difficulty. Not started yet. $_temp0';
   }
 
   @override
@@ -74,11 +81,42 @@ class AppLocalizationsEn extends AppLocalizations {
     DateTime date,
     String time,
     int percent,
+    int streak,
   ) {
     final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
     final String dateString = dateDateFormat.format(date);
 
-    return 'Continue today\'s puzzle: $game, $dateString, $time played, $percent% filled in';
+    String _temp0 = intl.Intl.pluralLogic(
+      streak,
+      locale: localeName,
+      other: 'Daily streak, $streak days',
+      one: 'Daily streak, 1 day',
+      zero: 'No daily streak yet',
+    );
+    return 'Continue today\'s puzzle: $game, $dateString, $time played, $percent% filled in. $_temp0';
+  }
+
+  @override
+  String dailySolvedDetails(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString · Solved';
+  }
+
+  @override
+  String dailyLabelSolved(String game, DateTime date, int streak) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMEd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      streak,
+      locale: localeName,
+      other: 'Daily streak, $streak days',
+      one: 'Daily streak, 1 day',
+      zero: 'No daily streak yet',
+    );
+    return 'Today\'s puzzle solved: $game, $dateString. $_temp0';
   }
 
   @override
@@ -369,7 +407,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completionPrevious => 'PREVIOUS';
 
   @override
-  String get completionSolvedCount => 'SOLVED';
+  String get completionStreak => 'STREAK';
 
   @override
   String get completionNoTime => '—';
@@ -388,12 +426,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completionNoPreviousLabel => 'No previous best time';
 
   @override
-  String completionSolvedLabel(int count) {
+  String dailyStreakLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count puzzles solved at this difficulty',
-      one: '1 puzzle solved at this difficulty',
+      other: 'Daily streak, $count days',
+      one: 'Daily streak, 1 day',
+      zero: 'No daily streak yet',
     );
     return '$_temp0';
   }

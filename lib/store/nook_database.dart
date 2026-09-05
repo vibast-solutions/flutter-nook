@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../chrome/move_history.dart';
+import '../chrome/play_clock.dart';
+import 'daily_streak.dart';
 import 'game_stats.dart';
 import 'saved_game.dart';
 
@@ -141,12 +143,79 @@ class PackProgress extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{packId};
 }
 
+/// One row per solved daily puzzle, keyed on the date it was the daily for.
+///
+/// The daily is the same puzzle for everybody on a given calendar day, and this
+/// remembers the days a player has finished it. v1 only ever reads today's row —
+/// to know whether the streak counts today — but the whole history is kept, one
+/// row per solved date, so a future calendar screen can light up solved days
+/// without another migration (the 2026-09-03 planning decision: prepare for a
+/// calendar, not just the streak pair).
+///
+/// The generated row class is named `DailySolveRow` to leave the noun free.
+@DataClassName('DailySolveRow')
+class DailySolves extends Table {
+  /// The **local** calendar date this was the daily for, as `yyyy-MM-dd`. The
+  /// daily lives in the player's own day, so this is never a UTC date; it is
+  /// also the primary key, which is what makes solving one day's daily twice a
+  /// single row rather than two.
+  TextColumn get date => text()();
+
+  /// Which game the day landed on, as the same stable id a statistic uses.
+  TextColumn get gameId => text()();
+
+  /// The tier it was played at, as an identifier rather than a name a player
+  /// reads.
+  TextColumn get difficulty => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{date};
+}
+
+/// The daily streak: a single row holding the current run and the last day it
+/// counted.
+///
+/// Stored rather than derived from [DailySolves], per Business Logic: the streak
+/// must survive months of the app being closed, and reading it must not walk a
+/// year of solved-day rows. The reset — a date passing with the daily unsolved
+/// takes it to zero — happens at read time against the clock, so nothing has to
+/// run in the background to break a streak.
+///
+/// One row, enforced by a fixed key. The generated row class is named
+/// `DailyStreakRow` so the noun stays free for the value type the app passes
+/// around.
+@DataClassName('DailyStreakRow')
+class DailyStreak extends Table {
+  /// A fixed key: there is only ever one streak, so every write lands on the
+  /// same row.
+  IntColumn get id => integer().withDefault(const Constant(0))();
+
+  /// The current run of consecutive solved days.
+  IntColumn get count => integer().withDefault(const Constant(0))();
+
+  /// The last local date whose daily was solved, as `yyyy-MM-dd`, or null before
+  /// any daily has been solved. What the read rule measures "today or yesterday"
+  /// against.
+  TextColumn get lastSolvedDate => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
 /// Everything Nook keeps on the device.
 ///
 /// One database for saves and statistics: they are the same data seen twice —
 /// a puzzle in progress, and what was left of it once it was finished — and a
 /// result is only interesting next to the ones before it.
-@DriftDatabase(tables: <Type>[SavedGames, Statistics, PackProgress])
+@DriftDatabase(
+  tables: <Type>[
+    SavedGames,
+    Statistics,
+    PackProgress,
+    DailySolves,
+    DailyStreak,
+  ],
+)
 class NookDatabase extends _$NookDatabase {
   NookDatabase(super.e);
 
@@ -166,7 +235,7 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   /// Version 2 added the two hint columns (VIB-76); version 3 the statistics
   /// table (VIB-77); version 4 the nullable `regions` column, which is what
@@ -176,7 +245,10 @@ class NookDatabase extends _$NookDatabase {
   /// is exactly right — they have seen none of these puzzles. Version 6 added
   /// the nullable `badges` column, which is what lets a game whose puzzle
   /// carries constraint badges — Duo — be saved (VIB-96); every earlier row
-  /// has no badges and keeps none.
+  /// has no badges and keeps none. Version 7 added the two daily tables — the
+  /// per-date record of solved dailies and the single streak row (VIB-99); an
+  /// upgrading player has solved no dailies yet, so both start empty and the
+  /// streak reads as zero, which is exactly right.
   ///
   /// A save from version 1 is a puzzle nobody was helped with, which is
   /// exactly what the column defaults say. A player who arrives at version 3
@@ -206,6 +278,10 @@ class NookDatabase extends _$NookDatabase {
         }
         if (from < 6) {
           await m.addColumn(savedGames, savedGames.badges);
+        }
+        if (from < 7) {
+          await m.createTable(dailySolves);
+          await m.createTable(dailyStreak);
         }
       },
     );
@@ -441,6 +517,149 @@ class PackProgressStore {
   }
 }
 
+/// Recording solved dailies and reading the streak they add up to.
+///
+/// Separate from the other stores because the daily is its own thing: the same
+/// puzzle for every player on a given day, counted towards a streak that no
+/// ordinary solve ever touches. Written at one moment — when a daily is solved
+/// (VIB-98's page calls [recordSolve] on the discard-the-save seam) — and read
+/// wherever the streak shows, the home card and the finished-puzzle screen.
+///
+/// Every date it handles is a **local** calendar date: the daily's own date is
+/// which day it was the puzzle for, and `today` is the device's own day. Both
+/// are compared as `yyyy-MM-dd` text, so two dates meet by calendar day and
+/// never by clock.
+class DailyStore {
+  const DailyStore(this._db);
+
+  final NookDatabase _db;
+
+  /// The one row the streak ever occupies.
+  static const int _streakRowId = 0;
+
+  /// Records that the daily for [date] was solved, and advances the streak when
+  /// that date is [today].
+  ///
+  /// The row for [date] is written either way — a stale daily (opened before
+  /// midnight, finished after) is still a solved day the calendar will want.
+  /// The streak only moves for a daily finished on its own day: solving today's
+  /// takes the run to `count + 1` when yesterday was solved, or to 1 otherwise,
+  /// and solving it a second time does nothing because the last date is already
+  /// today. The row-write and the streak-write are one transaction, so a solve
+  /// can never leave a counted day without the streak that follows from it.
+  Future<void> recordSolve({
+    required DateTime date,
+    required DateTime today,
+    required String gameId,
+    required String difficulty,
+  }) {
+    final String dateKey = _dateKey(date);
+    final String todayKey = _dateKey(today);
+    return _db.transaction(() async {
+      await _db
+          .into(_db.dailySolves)
+          .insertOnConflictUpdate(
+            DailySolvesCompanion.insert(
+              date: dateKey,
+              gameId: gameId,
+              difficulty: difficulty,
+            ),
+          );
+      // A stale daily is recorded for the calendar but leaves the streak alone:
+      // the run is about the player's own days, and this puzzle was not today's.
+      if (dateKey != todayKey) {
+        return;
+      }
+      final DailyStreakRow? current = await _db
+          .select(_db.dailyStreak)
+          .getSingleOrNull();
+      final String? last = current?.lastSolvedDate;
+      // Already counted today. Solving the same daily again changes nothing.
+      if (last == todayKey) {
+        return;
+      }
+      final int nextCount = last == _dateKey(_dayBefore(today))
+          ? (current?.count ?? 0) + 1
+          : 1;
+      await _db
+          .into(_db.dailyStreak)
+          .insertOnConflictUpdate(
+            // The key is written explicitly, not left to default: an
+            // `INTEGER PRIMARY KEY` is SQLite's rowid, and an absent value makes
+            // it auto-increment rather than take the default — which would grow
+            // a second streak row instead of replacing the one there is.
+            DailyStreakCompanion.insert(
+              id: const Value<int>(_streakRowId),
+              count: Value<int>(nextCount),
+              lastSolvedDate: Value<String?>(todayKey),
+            ),
+          );
+    });
+  }
+
+  /// The streak as a screen needs it, recomputed against [now] on every change.
+  ///
+  /// [now] is a function so the value tracks the clock a test owns; it is read
+  /// at each emission, which is where the reset lives — a stored run whose last
+  /// day is neither today nor yesterday reads as zero, with nothing having run
+  /// in the background to zero it.
+  Stream<DailyStreakStatus> watch(DateTime Function() now) {
+    return _db
+        .select(_db.dailyStreak)
+        .watchSingleOrNull()
+        .map((DailyStreakRow? row) => _statusOf(row, now()));
+  }
+
+  /// The stored run read against [now]: the number to show, and whether today's
+  /// daily is among the solved days.
+  ///
+  /// The streak keeps its full count while its last day is today **or**
+  /// yesterday — yesterday still counts because today is not over, and a day
+  /// only breaks a streak once it has passed unsolved. `solvedToday` is exactly
+  /// "today's daily has been solved": the only way the last day becomes today
+  /// is [recordSolve] finishing today's daily, which writes today's row in the
+  /// same transaction, so the two never disagree.
+  DailyStreakStatus _statusOf(DailyStreakRow? row, DateTime now) {
+    final String? last = row?.lastSolvedDate;
+    if (row == null || last == null) {
+      return const DailyStreakStatus(streak: 0, solvedToday: false);
+    }
+    final String todayKey = _dateKey(now);
+    final bool solvedToday = last == todayKey;
+    final bool current = solvedToday || last == _dateKey(_dayBefore(now));
+    return DailyStreakStatus(
+      streak: current ? row.count : 0,
+      solvedToday: solvedToday,
+    );
+  }
+}
+
+/// A calendar date as `yyyy-MM-dd`, from its day fields alone.
+///
+/// Only the year, month and day are read, so the same key comes out whether the
+/// instant is held in the device's zone or in UTC — which is what lets the
+/// daily's UTC-midnight date and a local `now` be compared as the same kind of
+/// thing.
+String _dateKey(DateTime date) {
+  final String year = date.year.toString().padLeft(4, '0');
+  final String month = date.month.toString().padLeft(2, '0');
+  final String day = date.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+
+/// The calendar day before [date].
+///
+/// Rebuilt in UTC before subtracting a day so the arithmetic is exact: taking a
+/// day off a local midnight would come up a daylight-saving hour short twice a
+/// year and could land on the wrong calendar date.
+DateTime _dayBefore(DateTime date) {
+  return DateTime.utc(
+    date.year,
+    date.month,
+    date.day,
+  ).subtract(const Duration(days: 1));
+}
+
 /// The database itself. Overridden in tests with an in-memory one.
 final Provider<NookDatabase> nookDatabaseProvider = Provider<NookDatabase>((
   Ref ref,
@@ -479,6 +698,23 @@ final Provider<PackProgressStore> packProgressStoreProvider =
     Provider<PackProgressStore>(
       (Ref ref) => PackProgressStore(ref.watch(nookDatabaseProvider)),
       name: 'packProgressStore',
+    );
+
+/// Solved dailies and the streak, read and written.
+final Provider<DailyStore> dailyStoreProvider = Provider<DailyStore>(
+  (Ref ref) => DailyStore(ref.watch(nookDatabaseProvider)),
+  name: 'dailyStore',
+);
+
+/// The daily streak as the screens show it, recomputed against the clock.
+///
+/// The home card and the finished-puzzle screen both read this: the number is
+/// the same in both places, and the reset is evaluated here rather than by
+/// anything running in the background.
+final StreamProvider<DailyStreakStatus> dailyStreakProvider =
+    StreamProvider<DailyStreakStatus>(
+      (Ref ref) => ref.watch(dailyStoreProvider).watch(ref.watch(nowProvider)),
+      name: 'dailyStreak',
     );
 
 /// What has been solved, for every game and tier.
