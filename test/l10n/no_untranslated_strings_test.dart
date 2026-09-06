@@ -36,11 +36,14 @@ const Set<String> allowedLiterals = <String>{
   'duo-badge-',
   'duo-breach-',
   'duo-removal-',
-  // Snake keys the head, the food and its game-over card; the field itself has
-  // no per-cell keys (its cells have no identity to a test).
+  // Snake keys the head, the food, its game-over card and its pause/countdown
+  // panels; the field itself has no per-cell keys (its cells have no identity to
+  // a test).
   'snake-head',
   'snake-food',
   'snake-game-over',
+  'snake-paused',
+  'snake-countdown',
   'snake-speed-',
   'board-action-',
   'board-pace-',

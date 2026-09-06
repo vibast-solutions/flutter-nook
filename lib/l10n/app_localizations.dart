@@ -1250,6 +1250,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New best!'**
   String get snakeNewBest;
+
+  /// Screen-reader label for the control that pauses a Snake run.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get snakePause;
+
+  /// Title on the panel shown while a Snake run is paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get snakePaused;
+
+  /// Button on the paused panel that starts the snake moving again, after a short countdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get snakeResume;
+
+  /// Screen-reader label for the resume countdown shown before play starts again; the number counts down to the run resuming.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{Resuming in {count}}}'**
+  String snakeResumeCountdown(int count);
 }
 
 class _AppLocalizationsDelegate

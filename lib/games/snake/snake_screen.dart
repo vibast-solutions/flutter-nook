@@ -71,7 +71,8 @@ class _SnakeScreen extends ConsumerStatefulWidget {
   ConsumerState<_SnakeScreen> createState() => _SnakeScreenState();
 }
 
-class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
+class _SnakeScreenState extends ConsumerState<_SnakeScreen>
+    with WidgetsBindingObserver {
   /// The current frame. Built lazily on the first start, so before then the
   /// board shows a still snake behind the "tap to start" invitation.
   late SnakeGame _game = SnakeGame.start(
@@ -94,6 +95,29 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
   /// can name the best as it was the moment before this run.
   SnakeScoreOutcome? _outcome;
 
+  /// Whether the run is paused: the loop is stopped and the paused panel is up,
+  /// waiting for the player to resume. A run is paused by the pause control or by
+  /// the app leaving the foreground; either way the snake cannot die while it is.
+  bool _paused = false;
+
+  /// The number showing on the resume countdown, or `null` when no countdown is
+  /// running. While it is counting the loop is stopped, so a returning player is
+  /// never dropped straight back into a moving snake.
+  int? _countdown;
+
+  /// The countdown's own timer, separate from the game loop and cancelled with
+  /// it. Ticks the [_countdown] down a second at a time until play resumes.
+  Timer? _countdownTimer;
+
+  /// Whether the app was sent to the background mid-run. Set when the loop is
+  /// stopped by [didChangeAppLifecycleState] so that returning knows to resume
+  /// with a countdown — a run the player paused by hand stays paused instead,
+  /// because that pause was a choice, not an interruption.
+  bool _interrupted = false;
+
+  /// How many seconds the resume countdown starts from.
+  static const int _countdownFrom = 3;
+
   /// Turns the player has asked for but that have not been taken yet.
   ///
   /// At most two are held, and each tick takes the first one that is a legal
@@ -113,14 +137,42 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
   int _clockSeed() => DateTime.now().microsecondsSinceEpoch & 0xFFFFFFFF;
 
   @override
+  void initState() {
+    super.initState();
+    // Watch the app's lifecycle so a run can be stopped the moment it leaves the
+    // foreground — the same thing PlayClock does for the timed games.
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
+    _countdownTimer?.cancel();
     _focus.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Back in the foreground: a run interrupted by backgrounding resumes with a
+      // countdown; a run the player paused by hand is left as they left it.
+      if (_interrupted) {
+        _interrupted = false;
+        _beginResume();
+      }
+      return;
+    }
+    // Leaving the foreground stops a live run so the snake cannot die while the
+    // player is away, and remembers to pick it back up on return.
+    _interruptForBackground();
+  }
+
   /// Starts, or restarts, a run: a fresh snake and a running loop.
   void _start() {
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
     setState(() {
       _game = SnakeGame.start(
         widget.variant.spec,
@@ -128,11 +180,78 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
       );
       _started = true;
       _outcome = null;
+      _paused = false;
+      _countdown = null;
+      _interrupted = false;
       _inputs.clear();
     });
     _ticker?.cancel();
     _ticker = Timer.periodic(widget.speed.tick, _onTick);
     _focus.requestFocus();
+  }
+
+  /// Whether the run is live: started, not over, and neither paused nor mid
+  /// resume countdown. This is the only state a pause control belongs in and the
+  /// only one steering is taken in.
+  bool get _isPlaying =>
+      _started && !_game.isDead && !_paused && _countdown == null;
+
+  /// Pauses a live run: the loop stops and the paused panel comes up. Harmless if
+  /// there is nothing to pause.
+  void _pause() {
+    if (!_isPlaying) {
+      return;
+    }
+    _ticker?.cancel();
+    _ticker = null;
+    setState(() => _paused = true);
+  }
+
+  /// Stops a live or counting-down run because the app is leaving the foreground,
+  /// remembering to resume it when the app comes back. A run already paused by
+  /// hand, or not in play, is left untouched.
+  void _interruptForBackground() {
+    final bool active =
+        _started && !_game.isDead && (_ticker != null || _countdown != null);
+    if (!active) {
+      return;
+    }
+    _ticker?.cancel();
+    _ticker = null;
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+    _interrupted = true;
+    setState(() {
+      _paused = true;
+      _countdown = null;
+    });
+  }
+
+  /// Begins the resume countdown: the paused panel gives way to a number counting
+  /// down, and the loop starts again only when it reaches zero.
+  void _beginResume() {
+    if (!_started || _game.isDead) {
+      return;
+    }
+    _ticker?.cancel();
+    _ticker = null;
+    _countdownTimer?.cancel();
+    setState(() {
+      _paused = false;
+      _countdown = _countdownFrom;
+    });
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (Timer _) {
+      final int next = (_countdown ?? 1) - 1;
+      if (next > 0) {
+        setState(() => _countdown = next);
+        return;
+      }
+      _countdownTimer?.cancel();
+      _countdownTimer = null;
+      setState(() => _countdown = null);
+      _ticker = Timer.periodic(widget.speed.tick, _onTick);
+      _focus.requestFocus();
+    });
   }
 
   void _onTick(Timer _) {
@@ -178,7 +297,7 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
 
   /// Records a direction the player asked for, to be taken on a coming tick.
   void _steer(SnakeDirection direction) {
-    if (!_started || _game.isDead) {
+    if (!_isPlaying) {
       return;
     }
     // Keep the queue short and free of immediate repeats, so a mash of the same
@@ -259,6 +378,7 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
                   : variant.subtitle(l10n),
               onHowToPlay: () =>
                   showHowToPlay(context, content: snakeRules(l10n, variant)),
+              onPause: _isPlaying ? _pause : null,
             ),
             Expanded(
               child: Focus(
@@ -276,9 +396,12 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
                     child: _BoardArea(
                       game: _game,
                       started: _started,
+                      paused: _paused,
+                      countdown: _countdown,
                       outcome: _outcome,
                       onStart: _start,
                       onRestart: _start,
+                      onResume: _beginResume,
                     ),
                   ),
                 ),
@@ -297,13 +420,22 @@ class _BoardArea extends StatelessWidget {
   const _BoardArea({
     required this.game,
     required this.started,
+    required this.paused,
+    required this.countdown,
     required this.outcome,
     required this.onStart,
     required this.onRestart,
+    required this.onResume,
   });
 
   final SnakeGame game;
   final bool started;
+
+  /// Whether the run is paused, so the paused panel is shown over a still board.
+  final bool paused;
+
+  /// The resume countdown's current number, or `null` when no countdown is up.
+  final int? countdown;
 
   /// What the finished run did to the best score, or `null` if the run is still
   /// in play or the score has not landed yet.
@@ -311,6 +443,7 @@ class _BoardArea extends StatelessWidget {
 
   final VoidCallback onStart;
   final VoidCallback onRestart;
+  final VoidCallback onResume;
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +470,11 @@ class _BoardArea extends StatelessWidget {
                   score: game.score,
                   outcome: outcome,
                   onRestart: onRestart,
-                ),
+                )
+              else if (countdown != null)
+                _ResumeCountdown(count: countdown!)
+              else if (paused)
+                _PausedPanel(onResume: onResume),
             ],
           ),
         );
@@ -424,6 +561,80 @@ class _GameOverCard extends StatelessWidget {
   }
 }
 
+/// The panel shown over a still board while a run is paused: a way to pick it
+/// back up. Resuming runs a short countdown, so the button does not drop the
+/// player straight back into motion.
+class _PausedPanel extends StatelessWidget {
+  const _PausedPanel({required this.onResume});
+
+  /// The key of the paused panel, so a test can find it without its words.
+  static const Key panelKey = ValueKey<String>('snake-paused');
+
+  final VoidCallback onResume;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    return _Panel(
+      key: panelKey,
+      children: <Widget>[
+        Text(l10n.snakePaused, style: NookType.title(colors.ink)),
+        const SizedBox(height: 16),
+        _PrimaryButton(label: l10n.snakeResume, onTap: onResume),
+      ],
+    );
+  }
+}
+
+/// The resume countdown: a number ticking down to the run starting again.
+///
+/// The number changing is the message and is always shown; the little pop it
+/// makes as it changes is decoration, so it is dropped when the player has asked
+/// for reduced motion — the count still counts, it just does not bounce.
+class _ResumeCountdown extends StatelessWidget {
+  const _ResumeCountdown({required this.count});
+
+  /// The key of the countdown panel, so a test can find it without its words.
+  static const Key countdownKey = ValueKey<String>('snake-countdown');
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final bool reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final Widget number = Text(
+      '$count',
+      key: ValueKey<int>(count),
+      style: NookType.celebration(colors.clay),
+    );
+    return Semantics(
+      liveRegion: true,
+      label: l10n.snakeResumeCountdown(count),
+      excludeSemantics: true,
+      child: _Panel(
+        key: countdownKey,
+        children: <Widget>[
+          if (reduceMotion)
+            number
+          else
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 240),
+              transitionBuilder: (Widget child, Animation<double> anim) =>
+                  ScaleTransition(
+                    scale: anim,
+                    child: FadeTransition(opacity: anim, child: child),
+                  ),
+              child: number,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// The soft card both overlays sit in.
 class _Panel extends StatelessWidget {
   const _Panel({required this.children, super.key});
@@ -458,11 +669,19 @@ class _SnakeHeader extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onHowToPlay,
+    required this.onPause,
   });
 
   final String title;
   final String subtitle;
   final VoidCallback onHowToPlay;
+
+  /// Pauses the run, or `null` when there is nothing to pause (before the first
+  /// move, while already paused, or once the run is over). The pause tile takes a
+  /// trailing slot beside the help tile that is always reserved, so the title
+  /// stays centred and nothing shifts as the tile comes and goes — a leading
+  /// slot of the same width mirrors it on the other side.
+  final VoidCallback? onPause;
 
   @override
   Widget build(BuildContext context) {
@@ -477,6 +696,8 @@ class _SnakeHeader extends StatelessWidget {
             icon: Icons.arrow_back_ios_new_rounded,
             onTap: () => Navigator.of(context).maybePop(),
           ),
+          // Mirrors the trailing pause slot so the title is centred either way.
+          const SizedBox(width: kMinTapTarget),
           Expanded(
             child: Column(
               children: <Widget>[
@@ -486,6 +707,14 @@ class _SnakeHeader extends StatelessWidget {
               ],
             ),
           ),
+          if (onPause != null)
+            _HeaderTile(
+              semanticLabel: l10n.snakePause,
+              icon: Icons.pause_rounded,
+              onTap: onPause!,
+            )
+          else
+            const SizedBox(width: kMinTapTarget),
           _HeaderTile(
             semanticLabel: l10n.howToPlayOpen(title),
             icon: Icons.help_outline_rounded,
