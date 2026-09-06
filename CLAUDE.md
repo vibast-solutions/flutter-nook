@@ -233,7 +233,12 @@ assets/packs/             generated starter packs (regenerated, never hand-edite
   reads the `cmap` of each one and checks it against the characters the `.arb`
   actually ships. Fredoka has no Latin Extended-A and so cannot set Czech or
   Romanian; that is recorded as an equality in the same test, so swapping a
-  font is loud in either direction. What to do about it is VIB-82.
+  font is loud in either direction. This blocks neither planned language:
+  Czech was dropped and Romanian ships **without diacritics** (`ăâîșț` →
+  `aaist`, which is idiomatic Romanian and universally read that way), so
+  Fredoka is kept unchanged (VIB-82 closed Won't Do, 2026-09-06). Reviving
+  Czech would mean a per-glyph fallback to a Latin-Extended face for the
+  display font — Czech, unlike Romanian, cannot lose its diacritics.
 - **Every word a player can read lives in `lib/l10n/app_en.arb`**, including
   the `Semantics` labels — those are player-facing even though they never
   appear on screen. Screens resolve them through
