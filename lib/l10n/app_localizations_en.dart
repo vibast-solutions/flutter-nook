@@ -724,4 +724,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get techniqueSimpleColouring => 'Simple colouring';
+
+  @override
+  String get snakeTitle => 'Snake';
+
+  @override
+  String get snakeSubtitle => 'Eat, grow, and don\'t bite yourself';
+
+  @override
+  String get snakeBoardLabel => 'Snake board';
+
+  @override
+  String get snakeStartCta => 'Tap to start';
+
+  @override
+  String get snakeStartHint => 'Swipe or use the arrow keys to steer';
+
+  @override
+  String snakeScore(int score) {
+    return 'Score $score';
+  }
+
+  @override
+  String get snakeGameOver => 'Game over';
+
+  @override
+  String get snakeRestart => 'Play again';
+
+  @override
+  String get snakeRulesObjective =>
+      'Steer the snake to eat the food. Each piece it eats makes it one longer and adds to your score. The run ends if the snake hits a wall or runs into its own body, so the longer it grows the more careful you have to be.';
+
+  @override
+  String get snakeRulesInteraction =>
+      'Swipe in the direction you want to go, or use the arrow keys or W, A, S and D. The snake cannot turn straight back on itself.';
 }

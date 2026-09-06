@@ -19,6 +19,8 @@ export 'src/pack/pack.dart';
 export 'src/pack/stars_pack.dart';
 export 'src/pack/sudoku_pack.dart';
 export 'src/random.dart';
+export 'src/snake/game.dart';
+export 'src/snake/spec.dart';
 export 'src/stars/difficulty.dart';
 export 'src/stars/generator.dart';
 export 'src/stars/hint.dart';
