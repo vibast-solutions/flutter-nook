@@ -798,5 +798,31 @@
   "techniqueXyWing": "XY-wing",
   "@techniqueXyWing": { "description": "Sudoku technique: a two-candidate cell whose candidates each pair with a third digit in a cell it can see." },
   "techniqueSimpleColouring": "Simple colouring",
-  "@techniqueSimpleColouring": { "description": "Sudoku technique: following a chain of either-or links for one digit until it contradicts itself." }
+  "@techniqueSimpleColouring": { "description": "Sudoku technique: following a chain of either-or links for one digit until it contradicts itself." },
+
+  "snakeTitle": "Snake",
+  "@snakeTitle": { "description": "Name of the Snake game, in the game list and its header." },
+  "snakeSubtitle": "Eat, grow, and don't bite yourself",
+  "@snakeSubtitle": { "description": "The one-line description of Snake in the home game list." },
+  "snakeBoardLabel": "Snake board",
+  "@snakeBoardLabel": { "description": "Screen-reader label for the Snake playing field as a whole. Fuller spoken commentary is added later." },
+  "snakeStartCta": "Tap to start",
+  "@snakeStartCta": { "description": "The button and heading on the start overlay, inviting the player to begin a run." },
+  "snakeStartHint": "Swipe or use the arrow keys to steer",
+  "@snakeStartHint": { "description": "The line under the start invitation, saying how to control the snake." },
+  "snakeScore": "Score {score}",
+  "@snakeScore": {
+    "description": "The player's score — how many pieces of food the snake has eaten — shown in the header during play and on the game-over card.",
+    "placeholders": {
+      "score": { "type": "int", "example": "7" }
+    }
+  },
+  "snakeGameOver": "Game over",
+  "@snakeGameOver": { "description": "Shown on the card when the snake has died and the run is over." },
+  "snakeRestart": "Play again",
+  "@snakeRestart": { "description": "Button on the game-over card that starts a fresh run." },
+  "snakeRulesObjective": "Steer the snake to eat the food. Each piece it eats makes it one longer and adds to your score. The run ends if the snake hits a wall or runs into its own body, so the longer it grows the more careful you have to be.",
+  "@snakeRulesObjective": { "description": "The aim of Snake, in the rules sheet." },
+  "snakeRulesInteraction": "Swipe in the direction you want to go, or use the arrow keys or W, A, S and D. The snake cannot turn straight back on itself.",
+  "@snakeRulesInteraction": { "description": "How a player steers the snake, in the rules sheet." }
 }

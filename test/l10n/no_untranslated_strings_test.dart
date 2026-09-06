@@ -36,6 +36,11 @@ const Set<String> allowedLiterals = <String>{
   'duo-badge-',
   'duo-breach-',
   'duo-removal-',
+  // Snake keys the head, the food and its game-over card; the field itself has
+  // no per-cell keys (its cells have no identity to a test).
+  'snake-head',
+  'snake-food',
+  'snake-game-over',
   'board-action-',
   'board-pace-',
   'difficulty-',
@@ -62,6 +67,7 @@ const Set<String> allowedLiterals = <String>{
   'sudoku-classic',
   'stars',
   'duo',
+  'snake',
   // The saved-game slot the daily puzzle lives in, beside the variant ids.
   'daily',
   // Board-control ids, which key their tiles.
@@ -151,6 +157,7 @@ const Set<String> allowedLiterals = <String>{
   'SudokuVariant()',
   'StarsVariant()',
   'DuoVariant()',
+  'SnakeVariant()',
   // Assertions. These fire during development and never reach a player.
   'sudokuVariantProvider must be overridden by the game screen.',
   'sudokuDifficultyProvider must be overridden by the game screen.',

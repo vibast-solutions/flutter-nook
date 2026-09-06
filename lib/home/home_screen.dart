@@ -15,6 +15,9 @@ import '../games/duo/duo_rules.dart';
 import '../games/duo/duo_save.dart';
 import '../games/duo/duo_screen.dart';
 import '../games/duo/duo_variant.dart';
+import '../games/snake/snake_rules.dart';
+import '../games/snake/snake_screen.dart';
+import '../games/snake/snake_variant.dart';
 import '../games/stars/stars_difficulty.dart';
 import '../games/stars/stars_naming.dart';
 import '../games/stars/stars_rules.dart';
@@ -97,6 +100,16 @@ class HomeScreen extends ConsumerWidget {
           Navigator.of(context)
               .push(DuoDifficultyPage.route(DuoVariant.standard)),
       rules: (AppLocalizations l10n) => duoRules(l10n, DuoVariant.standard),
+    ),
+    _GameEntry(
+      title: l10n.snakeTitle,
+      subtitle: l10n.snakeSubtitle,
+      icon: snakeIcon,
+      accent: true,
+      open: (BuildContext context) =>
+          Navigator.of(context)
+              .push(SnakeGamePage.route(SnakeVariant.standard)),
+      rules: (AppLocalizations l10n) => snakeRules(l10n, SnakeVariant.standard),
     ),
   ];
 
@@ -276,6 +289,12 @@ const IconData starsIcon = Icons.star_outline_rounded;
 /// card and the row must never disagree about which game the player is looking
 /// at.
 const IconData duoIcon = Icons.contrast_rounded;
+
+/// The glyph Snake is drawn with on its game row.
+///
+/// A winding trail: the game is a line that grows as it goes, and this reads as
+/// that rather than as a puzzle grid.
+const IconData snakeIcon = Icons.route_rounded;
 
 /// The puzzle waiting to be carried on with, at the top of the home screen.
 ///

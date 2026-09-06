@@ -1088,6 +1088,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Simple colouring'**
   String get techniqueSimpleColouring;
+
+  /// Name of the Snake game, in the game list and its header.
+  ///
+  /// In en, this message translates to:
+  /// **'Snake'**
+  String get snakeTitle;
+
+  /// The one-line description of Snake in the home game list.
+  ///
+  /// In en, this message translates to:
+  /// **'Eat, grow, and don\'t bite yourself'**
+  String get snakeSubtitle;
+
+  /// Screen-reader label for the Snake playing field as a whole. Fuller spoken commentary is added later.
+  ///
+  /// In en, this message translates to:
+  /// **'Snake board'**
+  String get snakeBoardLabel;
+
+  /// The button and heading on the start overlay, inviting the player to begin a run.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to start'**
+  String get snakeStartCta;
+
+  /// The line under the start invitation, saying how to control the snake.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe or use the arrow keys to steer'**
+  String get snakeStartHint;
+
+  /// The player's score — how many pieces of food the snake has eaten — shown in the header during play and on the game-over card.
+  ///
+  /// In en, this message translates to:
+  /// **'Score {score}'**
+  String snakeScore(int score);
+
+  /// Shown on the card when the snake has died and the run is over.
+  ///
+  /// In en, this message translates to:
+  /// **'Game over'**
+  String get snakeGameOver;
+
+  /// Button on the game-over card that starts a fresh run.
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get snakeRestart;
+
+  /// The aim of Snake, in the rules sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Steer the snake to eat the food. Each piece it eats makes it one longer and adds to your score. The run ends if the snake hits a wall or runs into its own body, so the longer it grows the more careful you have to be.'**
+  String get snakeRulesObjective;
+
+  /// How a player steers the snake, in the rules sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe in the direction you want to go, or use the arrow keys or W, A, S and D. The snake cannot turn straight back on itself.'**
+  String get snakeRulesInteraction;
 }
 
 class _AppLocalizationsDelegate
