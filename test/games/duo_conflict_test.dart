@@ -218,35 +218,63 @@ void main() {
   });
 
   group('the board shows a breach', () {
-    testWidgets('with a texture as well as a colour', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('with a ring as well as a colour', (WidgetTester tester) async {
       // Colour alone would be silent for the players most likely to need it, so
-      // the hatch is a widget of its own — found here with the wash's colour
-      // ignored entirely.
+      // a breach also rings the cell — a shape read without the hue — found here
+      // as a keyed widget of its own, the wash's colour ignored entirely. The
+      // board is built with the run already on it, so the ring is shown at once
+      // rather than waiting out the delay.
       await pumpBoard(tester, board(circles: <int>{0, 1, 2}));
 
       for (final int index in <int>[0, 1, 2]) {
         expect(
           find.byKey(DuoBoard.breachKey(index)),
           findsOneWidget,
-          reason: 'cell $index of the run should be hatched',
+          reason: 'cell $index of the run should be ringed',
         );
       }
       expect(find.byKey(DuoBoard.breachKey(3)), findsNothing);
+    });
+
+    testWidgets('a breach the board opens with is marked on the first frame', (
+      WidgetTester tester,
+    ) async {
+      // A resumed game is not mid-toggle, so the breaches it opens with are not
+      // delayed. Built with the run in place and pumped a single frame with no
+      // time advanced: the ring is already there.
+      await setPhoneSurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: buildNookTheme(NookColors.softClay),
+          home: Scaffold(
+            body: DuoBoard(
+              game: board(circles: <int>{0, 1, 2}),
+              onTap: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(DuoBoard.breachKey(0)), findsOneWidget);
     });
 
     testWidgets('until the offending symbol is erased', (
       WidgetTester tester,
     ) async {
       await pumpDuoGame(tester, puzzle: _runPuzzle());
-      // Circles into the first three cells of row 0: a run of three.
+      // Circles into the first three cells of row 0: a run of three. Freshly
+      // made, so it waits out the delay before its ring is drawn.
       await tapDuoCell(tester, 0);
       await tapDuoCell(tester, 1);
       await tapDuoCell(tester, 2);
+      await tester.pump(DuoBoard.breachDelay);
       expect(find.byKey(DuoBoard.breachKey(0)), findsOneWidget);
 
-      // Cell 2 is selected after its tap; erasing it breaks the run.
+      // Cell 2 is selected after its tap; erasing it breaks the run, and the
+      // marking goes in the same frame — nothing waits to stop being wrong.
       await tapAction(tester, 'erase');
 
       for (final int index in <int>[0, 1, 2]) {
@@ -261,12 +289,72 @@ void main() {
       await tapDuoCell(tester, 0);
       await tapDuoCell(tester, 1);
       await tapDuoCell(tester, 2);
+      await tester.pump(DuoBoard.breachDelay);
       expect(find.byKey(DuoBoard.breachKey(0)), findsOneWidget);
 
       // The last move put a circle in cell 2; undo takes it back to empty, and
-      // the breach it made goes with it.
+      // the breach it made goes with it, immediately.
       await tapAction(tester, 'undo');
 
+      for (final int index in <int>[0, 1, 2]) {
+        expect(find.byKey(DuoBoard.breachKey(index)), findsNothing);
+      }
+    });
+
+    testWidgets('draws the ring over a selected breaching cell', (
+      WidgetTester tester,
+    ) async {
+      await pumpDuoGame(tester, puzzle: _runPuzzle());
+      await tapDuoCell(tester, 0);
+      await tapDuoCell(tester, 1);
+      // Cell 2's tap both completes the run and leaves cell 2 the selected cell.
+      await tapDuoCell(tester, 2);
+      await tester.pump(DuoBoard.breachDelay);
+
+      // The ring is drawn on the selected cell too: a breach the player is
+      // standing on is never hidden by the selection lift.
+      expect(find.byKey(DuoBoard.breachKey(2)), findsOneWidget);
+    });
+  });
+
+  group('a Duo breach waits out its delay', () {
+    testWidgets('a tapped breach is unmarked until the delay elapses', (
+      WidgetTester tester,
+    ) async {
+      await pumpDuoGame(tester, puzzle: _runPuzzle());
+      await tapDuoCell(tester, 0);
+      await tapDuoCell(tester, 1);
+      await tapDuoCell(tester, 2);
+
+      // A hair before the wait is over the board still says nothing.
+      await tester.pump(DuoBoard.breachDelay - const Duration(milliseconds: 1));
+      for (final int index in <int>[0, 1, 2]) {
+        expect(find.byKey(DuoBoard.breachKey(index)), findsNothing);
+      }
+
+      // The moment it elapses, every cell of the run is ringed.
+      await tester.pump(const Duration(milliseconds: 1));
+      for (final int index in <int>[0, 1, 2]) {
+        expect(find.byKey(DuoBoard.breachKey(index)), findsOneWidget);
+      }
+    });
+
+    testWidgets('a breach passed through mid-cycle is never marked', (
+      WidgetTester tester,
+    ) async {
+      await pumpDuoGame(tester, puzzle: _runPuzzle());
+      await tapDuoCell(tester, 0);
+      await tapDuoCell(tester, 1);
+      // A circle in cell 2 makes the run — but the player is only passing
+      // through it on the way to a square.
+      await tapDuoCell(tester, 2);
+      await tester.pump(const Duration(seconds: 1));
+      // Cycle cell 2 on to a square before the wait is over: the run is gone.
+      await tapDuoCell(tester, 2);
+
+      // Let the original wait's full length pass: no ring ever appears, because
+      // the pending mark was cancelled the moment the run broke.
+      await tester.pump(DuoBoard.breachDelay);
       for (final int index in <int>[0, 1, 2]) {
         expect(find.byKey(DuoBoard.breachKey(index)), findsNothing);
       }
@@ -323,6 +411,39 @@ void main() {
         // The other cell of the badge is a square, named as one.
         expect(
           find.bySemanticsLabel(en.cellDuoSquareBreachBadge(1, 2)),
+          findsOneWidget,
+        );
+      } finally {
+        handle.dispose();
+      }
+    });
+
+    testWidgets('the breach sentence waits with the ring and arrives with it', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      try {
+        await pumpDuoGame(tester, puzzle: _runPuzzle());
+        await tapDuoCell(tester, 0);
+        await tapDuoCell(tester, 1);
+        await tapDuoCell(tester, 2);
+
+        // A hair before the wait is over, cell 0 (row 1, column 1) reads as an
+        // ordinary circle — the board says one thing in both languages, and the
+        // ring is not there yet.
+        await tester.pump(
+          DuoBoard.breachDelay - const Duration(milliseconds: 1),
+        );
+        expect(
+          find.bySemanticsLabel(en.cellDuoCircleBreachTriple(1, 1)),
+          findsNothing,
+        );
+        expect(find.bySemanticsLabel(en.cellDuoCircle(1, 1)), findsOneWidget);
+
+        // With the ring, the sentence names the rule that broke.
+        await tester.pump(const Duration(milliseconds: 1));
+        expect(
+          find.bySemanticsLabel(en.cellDuoCircleBreachTriple(1, 1)),
           findsOneWidget,
         );
       } finally {
