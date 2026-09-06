@@ -78,11 +78,32 @@ assets/packs/             generated starter packs (regenerated, never hand-edite
   board changes — which is the guard that no solution reading ever creeps in.
 - **Colour never carries a meaning by itself.** A conflicting cell is marked
   by shape as well as by colour, so the board is readable without reading
-  colour: Sudoku and Duo hatch the cell (`ConflictHatch`) as well as washing it,
-  and Stars — where a hatch bled into the coloured cell next door and looked
-  broken (polish, 2026-09) — turns the cell pale red (`cellConflict`) and rings
-  it in the `conflictLine`, the ring being the shape a player reads without the
-  hue. Either way a screen reader still names the rule that broke.
+  colour: Sudoku hatches the cell (`ConflictHatch`) as well as washing it, and
+  Stars and Duo turn the cell pale red (`cellConflict`) and ring it in the
+  `conflictLine`, the ring being the shape a player reads without the hue —
+  Stars because a hatch bled into the coloured cell next door and looked broken,
+  Duo because a cell already carrying a circle or a square, a badge on its edges
+  and sometimes a hint's ink had no room for a texture on top (both polish,
+  2026-09; the ring stays inside the cell's own bounds either way). Either way a
+  screen reader still names the rule that broke.
+- **A Duo breach waits two seconds before it is shown — Duo alone.** A Duo cell
+  cycles empty → circle → square → empty, so the only way to a square is through
+  a circle; a circle that lives for a moment where it would complete a run would
+  flash the whole run red and then unflash — the board shouting about a state the
+  player never chose. So a breach that *newly appears* is marked only once it has
+  stood for `DuoBoard.breachDelay` (two seconds); a breach the board *opens* with
+  is shown at once (a resumed game is not mid-toggle), and a breach that goes
+  away is unmarked immediately. The wait lives in the board widget
+  (`_DuoBoardState`, already stateful for the hint's removal cross), never in
+  `DuoGameState` or the controller, so the state stays a pure derivation of the
+  grid that reads no clock and is tested without pumping a frame; its timers are
+  cancelled in `dispose` and whenever a cell leaves breach. The screen-reader
+  sentence follows the same marked set, so the board says one thing in both
+  languages. It is **not motion** — the same wait whether or not
+  `MediaQuery.disableAnimations` is set — and not a setting, a difficulty knob or
+  a grace period: it is the board declining to react to a value the player is
+  still passing through. Sudoku and Stars place a value in one tap, pass through
+  nothing, and have no such delay.
 - **Motion is optional and the words are not.** Anything that moves — the
   completed-unit pulse, the cross a hint draws over a wrong digit, the hint
   control's colour wiping back in — checks `MediaQuery.disableAnimations` and

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
@@ -6,7 +8,6 @@ import '../design/typography.dart';
 import '../games/duo/duo_state.dart';
 import '../l10n/app_localizations.dart';
 import 'board_frame.dart';
-import 'conflict_hatch.dart';
 
 /// The Duo grid.
 ///
@@ -24,12 +25,17 @@ import 'conflict_hatch.dart';
 /// **constraint badges**: a small `=` or `x` centred on the edge between the two
 /// cells it constrains, on both horizontal and vertical edges.
 ///
-/// Stateful for the one thing the board says by moving: a symbol being crossed
-/// out as a hint takes it away. A completed-line pulse is explicitly not wanted
-/// here — a line completes the moment its last symbol lands — so the removal is
-/// the whole of the board's motion. It is a transition rather than a state, so
-/// it is found by comparing the game that arrives with the one before it; the
-/// state itself only ever describes the board as it stands.
+/// Stateful for the two things the board decides against the clock rather than
+/// reads off the grid. One is motion: a symbol being crossed out as a hint takes
+/// it away (a completed-line pulse is explicitly not wanted here — a line
+/// completes the moment its last symbol lands — so the removal is the whole of
+/// the board's motion). The other is not motion at all: a breach that has just
+/// appeared waits [DuoBoard.breachDelay] before its ring is drawn, because a Duo
+/// cell cycles through a circle on its way to a square and a value the player is
+/// passing through is not a claim to mark. Both are transitions found by
+/// comparing the game that arrives with the one before it; [DuoGameState] itself
+/// only ever describes the board as it stands, reads no clock, and is tested
+/// without pumping a frame.
 class DuoBoard extends StatefulWidget {
   const DuoBoard({
     required this.game,
@@ -67,6 +73,22 @@ class DuoBoard extends StatefulWidget {
   /// How long the cross a hint draws over a symbol it takes away stays up for.
   static const Duration removalDuration = Duration(milliseconds: 300);
 
+  /// How long a breach that has just appeared waits before it is shown — Duo's
+  /// alone, and not a fudge factor.
+  ///
+  /// A Duo cell cycles empty → circle → square → empty, so the only way to a
+  /// square is through a circle. A circle that exists for a fraction of a second
+  /// in a cell where it would complete a run would flash the whole run red and
+  /// then unflash — the board shouting about a state the player never chose. So a
+  /// breach that *newly appears* is marked only once it has stood this long; a
+  /// breach the board *opens* with is shown at once (a resumed game is not
+  /// mid-toggle), and a breach that goes away is unmarked immediately. It is not
+  /// motion, not a setting, not a difficulty knob and not a grace period for the
+  /// player — it is the board declining to react to a value the player is still
+  /// passing through. Two seconds, every tier, for ever. Sudoku and Stars place a
+  /// value in one tap, pass through nothing, and have no such delay.
+  static const Duration breachDelay = Duration(seconds: 2);
+
   /// The key of the cell at [index], so a test can reach a known cell without
   /// depending on how it happens to look.
   static Key cellKey(int index) => ValueKey<String>('duo-cell-$index');
@@ -74,8 +96,8 @@ class DuoBoard extends StatefulWidget {
   /// The key of the symbol drawn in the cell at [index], if it holds one.
   static Key markKey(int index) => ValueKey<String>('duo-mark-$index');
 
-  /// The key of the hatch across the cell at [index], drawn when the symbol it
-  /// holds breaks a rule.
+  /// The key of the ring around the cell at [index], drawn when the symbol it
+  /// holds breaks a rule and the breach has waited out [breachDelay].
   static Key breachKey(int index) => ValueKey<String>('duo-breach-$index');
 
   /// The key of the cross drawn over the cell at [index] as a hint takes a
@@ -108,16 +130,81 @@ class _DuoBoardState extends State<DuoBoard>
   /// The symbol a hint is in the middle of taking off the board.
   DuoRemoval? _removing;
 
+  /// The cells whose breach ring is currently drawn.
+  ///
+  /// A subset of `widget.game.breaches`: a breach that has only just appeared is
+  /// not in here until it has waited out [DuoBoard.breachDelay]. The board's
+  /// marking, and the sentence a screen reader is given, both read from this set
+  /// rather than from the breaches directly, so the two say one thing.
+  final Set<int> _marked = <int>{};
+
+  /// Cells in breach that are still waiting out [DuoBoard.breachDelay], each with
+  /// the timer that will move it into [_marked]. A timer here is cancelled the
+  /// moment its cell leaves breach, and in [dispose], so none outlives the board.
+  final Map<int, Timer> _pending = <int, Timer>{};
+
+  @override
+  void initState() {
+    super.initState();
+    // The first frame shows whatever breaches the board opens with at once: a
+    // resumed game is not mid-toggle, and a player coming back should see where
+    // the board stands. Only breaches that appear *after* this wait out the delay.
+    _marked.addAll(widget.game.breaches);
+  }
+
   @override
   void didUpdateWidget(DuoBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
     _startRemoval(oldWidget.game);
+    _syncBreaches();
   }
 
   @override
   void dispose() {
+    for (final Timer timer in _pending.values) {
+      timer.cancel();
+    }
     _removal.dispose();
     super.dispose();
+  }
+
+  /// Brings the marked and waiting sets into line with the board as it now
+  /// stands, honouring [DuoBoard.breachDelay].
+  ///
+  /// A cell that has *left* breach is unmarked in the same frame — nothing waits
+  /// to stop being wrong, and its pending wait, if any, is cancelled. A cell
+  /// *newly* in breach starts its wait and is marked only when the wait is over.
+  /// A cell already marked or already waiting is left alone, so a breach never
+  /// restarts its clock and nothing flickers as the player works elsewhere — even
+  /// if the rule the cell most saliently breaks changes underneath it.
+  void _syncBreaches() {
+    final Set<int> breaches = widget.game.breaches;
+
+    // Left breach: the mark and any pending wait both go, at once.
+    _marked.removeWhere((int index) => !breaches.contains(index));
+    for (final int index in _pending.keys.toList()) {
+      if (!breaches.contains(index)) {
+        _pending.remove(index)!.cancel();
+      }
+    }
+
+    // Newly in breach: neither already shown nor already waiting. Marked once it
+    // has stood in breach for the delay. Not motion — the mark simply appears
+    // when the wait is over, the same whether or not animations are turned down.
+    for (final int index in breaches) {
+      if (_marked.contains(index) || _pending.containsKey(index)) {
+        continue;
+      }
+      _pending[index] = Timer(DuoBoard.breachDelay, () {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _pending.remove(index);
+          _marked.add(index);
+        });
+      });
+    }
   }
 
   /// Crosses out a symbol a hint has just taken away.
@@ -223,6 +310,10 @@ class _DuoBoardState extends State<DuoBoard>
       index: index,
       extent: extent,
       onTap: widget.onTap,
+      // The ring is drawn only once the breach has waited out the delay; until
+      // then the cell reads as an ordinary circle or square, to eye and screen
+      // reader alike.
+      showBreach: _marked.contains(index),
       removing: removing != null && removing.index == index ? removing : null,
       removalProgress: _removal.value,
     );
@@ -269,6 +360,7 @@ class _DuoCellTile extends StatelessWidget {
     required this.index,
     required this.extent,
     required this.onTap,
+    required this.showBreach,
     required this.removing,
     required this.removalProgress,
   });
@@ -277,6 +369,10 @@ class _DuoCellTile extends StatelessWidget {
   final int index;
   final double extent;
   final ValueChanged<int> onTap;
+
+  /// Whether this cell's breach has waited out [DuoBoard.breachDelay] and should
+  /// now be shown. A cell not in breach at all is never asked to show one.
+  final bool showBreach;
 
   /// The symbol a hint is taking out of this cell, or `null` if it is not this
   /// cell's turn to be crossed out.
@@ -294,23 +390,22 @@ class _DuoCellTile extends StatelessWidget {
     final DuoCell cell = game.cellAt(index);
     final bool given = game.isGiven(index);
     final bool selected = game.selectedIndex == index && !given;
-    // Null unless this cell holds a symbol that breaks a rule. An empty cell has
-    // nothing to break.
-    final DuoBreach? breach = game.breachAt(index);
+    // Null unless this cell holds a symbol that breaks a rule *and* the breach
+    // has waited out the delay. An empty cell has nothing to break, and a breach
+    // still inside its wait reads as an ordinary cell.
+    final DuoBreach? breach = showBreach ? game.breachAt(index) : null;
 
     final BorderSide hairline = BorderSide(
       color: colors.boardHairline,
       width: DuoBoard.hairlineWidth,
     );
     // A given sits in a recess so it reads as part of the puzzle rather than the
-    // player's own; a breach washes the cell; the selected cell lifts; the rest
-    // is plain surface. Selection wins over the breach wash — a player who has
-    // lost the cursor has a worse problem than a breach they can still see
-    // hatched — but the hatch still draws, so the marking never vanishes.
+    // player's own; the selected cell lifts; the rest is plain surface. The
+    // breach wash is no longer chosen here — the ring below carries the marking
+    // and draws over the selection lift too, so a breach the player is standing
+    // on can never vanish under the cursor.
     final Color background = selected
         ? colors.cellSelected
-        : breach != null
-        ? colors.cellConflict
         : given
         ? colors.sunk
         : colors.surface;
@@ -344,17 +439,25 @@ class _DuoCellTile extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
-              // Colour never carries a meaning by itself on a Nook board, so the
-              // wash comes with a hatch a player can read without it — the same
-              // hatch Sudoku and Stars draw, so the marking is one language
-              // across the app. It sits under the symbol, which stays legible on
-              // top.
+              // Colour never carries a meaning by itself on a Nook board. A
+              // breach turns the cell pale red and rings it in the conflict line
+              // — the ring being the shape a player reads without the hue — the
+              // same treatment Stars draws, so the marking is one language across
+              // the app. A hatch was too busy over Duo's circles, squares and
+              // badges, and (the reason Stars dropped it) bled into the cell next
+              // door; the ring stays inside the cell's own bounds. It draws over
+              // the selection lift as well, so the marking is never hidden by the
+              // cursor, and the symbol stays legible on top.
               if (breach != null)
                 Positioned.fill(
-                  child: CustomPaint(
+                  child: DecoratedBox(
                     key: DuoBoard.breachKey(index),
-                    painter: ConflictHatch(
-                      colour: colors.conflictLine.withValues(alpha: 0.30),
+                    decoration: BoxDecoration(
+                      color: colors.cellConflict,
+                      border: Border.all(
+                        color: colors.conflictLine,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -406,9 +509,11 @@ class _DuoCellTile extends StatelessWidget {
   /// from one, the way a person describes a grid.
   ///
   /// A cell in breach says *which* rule it breaks, not merely that something is
-  /// wrong — the same fact a sighted player reads from the hatch, spelled out.
-  /// The breach naming is by symbol, not by given-ness: the group is what is
-  /// broken, and whether this particular member came with the puzzle is not.
+  /// wrong — the same fact a sighted player reads from the ring, spelled out —
+  /// and it says it on the same beat: the sentence arrives with the ring, and a
+  /// breach still inside its wait reads as an ordinary circle or square. The
+  /// breach naming is by symbol, not by given-ness: the group is what is broken,
+  /// and whether this particular member came with the puzzle is not.
   String _describe(
     AppLocalizations l10n,
     int row,
