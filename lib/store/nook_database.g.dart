@@ -1975,6 +1975,262 @@ class DailyStreakCompanion extends UpdateCompanion<DailyStreakRow> {
   }
 }
 
+class $SnakeScoresTable extends SnakeScores
+    with TableInfo<$SnakeScoresTable, SnakeScoreRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SnakeScoresTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<int> level = GeneratedColumn<int>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bestMeta = const VerificationMeta('best');
+  @override
+  late final GeneratedColumn<int> best = GeneratedColumn<int>(
+    'best',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [level, best, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'snake_scores';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SnakeScoreRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    }
+    if (data.containsKey('best')) {
+      context.handle(
+        _bestMeta,
+        best.isAcceptableOrUnknown(data['best']!, _bestMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bestMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {level};
+  @override
+  SnakeScoreRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SnakeScoreRow(
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}level'],
+      )!,
+      best: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}best'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SnakeScoresTable createAlias(String alias) {
+    return $SnakeScoresTable(attachedDatabase, alias);
+  }
+}
+
+class SnakeScoreRow extends DataClass implements Insertable<SnakeScoreRow> {
+  /// The speed level, `1` upward, as the engine's `SnakeSpeed.level` numbers
+  /// them. An integer rather than a name because a Snake speed *is* an ordinal —
+  /// the store stays game-agnostic and holds no word a player reads.
+  final int level;
+
+  /// The highest score reached at this level.
+  final int best;
+
+  /// When this best was last set; kept for a future "recently beaten" cue and to
+  /// mirror the other rows, never read by v1.
+  final DateTime updatedAt;
+  const SnakeScoreRow({
+    required this.level,
+    required this.best,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['level'] = Variable<int>(level);
+    map['best'] = Variable<int>(best);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SnakeScoresCompanion toCompanion(bool nullToAbsent) {
+    return SnakeScoresCompanion(
+      level: Value(level),
+      best: Value(best),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory SnakeScoreRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SnakeScoreRow(
+      level: serializer.fromJson<int>(json['level']),
+      best: serializer.fromJson<int>(json['best']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'level': serializer.toJson<int>(level),
+      'best': serializer.toJson<int>(best),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  SnakeScoreRow copyWith({int? level, int? best, DateTime? updatedAt}) =>
+      SnakeScoreRow(
+        level: level ?? this.level,
+        best: best ?? this.best,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  SnakeScoreRow copyWithCompanion(SnakeScoresCompanion data) {
+    return SnakeScoreRow(
+      level: data.level.present ? data.level.value : this.level,
+      best: data.best.present ? data.best.value : this.best,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SnakeScoreRow(')
+          ..write('level: $level, ')
+          ..write('best: $best, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(level, best, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SnakeScoreRow &&
+          other.level == this.level &&
+          other.best == this.best &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SnakeScoresCompanion extends UpdateCompanion<SnakeScoreRow> {
+  final Value<int> level;
+  final Value<int> best;
+  final Value<DateTime> updatedAt;
+  const SnakeScoresCompanion({
+    this.level = const Value.absent(),
+    this.best = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  SnakeScoresCompanion.insert({
+    this.level = const Value.absent(),
+    required int best,
+    required DateTime updatedAt,
+  }) : best = Value(best),
+       updatedAt = Value(updatedAt);
+  static Insertable<SnakeScoreRow> custom({
+    Expression<int>? level,
+    Expression<int>? best,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (level != null) 'level': level,
+      if (best != null) 'best': best,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  SnakeScoresCompanion copyWith({
+    Value<int>? level,
+    Value<int>? best,
+    Value<DateTime>? updatedAt,
+  }) {
+    return SnakeScoresCompanion(
+      level: level ?? this.level,
+      best: best ?? this.best,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (level.present) {
+      map['level'] = Variable<int>(level.value);
+    }
+    if (best.present) {
+      map['best'] = Variable<int>(best.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SnakeScoresCompanion(')
+          ..write('level: $level, ')
+          ..write('best: $best, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$NookDatabase extends GeneratedDatabase {
   _$NookDatabase(QueryExecutor e) : super(e);
   $NookDatabaseManager get managers => $NookDatabaseManager(this);
@@ -1983,6 +2239,7 @@ abstract class _$NookDatabase extends GeneratedDatabase {
   late final $PackProgressTable packProgress = $PackProgressTable(this);
   late final $DailySolvesTable dailySolves = $DailySolvesTable(this);
   late final $DailyStreakTable dailyStreak = $DailyStreakTable(this);
+  late final $SnakeScoresTable snakeScores = $SnakeScoresTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1993,6 +2250,7 @@ abstract class _$NookDatabase extends GeneratedDatabase {
     packProgress,
     dailySolves,
     dailyStreak,
+    snakeScores,
   ];
 }
 
@@ -3046,6 +3304,162 @@ typedef $$DailyStreakTableProcessedTableManager =
       DailyStreakRow,
       PrefetchHooks Function()
     >;
+typedef $$SnakeScoresTableCreateCompanionBuilder =
+    SnakeScoresCompanion Function({
+      Value<int> level,
+      required int best,
+      required DateTime updatedAt,
+    });
+typedef $$SnakeScoresTableUpdateCompanionBuilder =
+    SnakeScoresCompanion Function({
+      Value<int> level,
+      Value<int> best,
+      Value<DateTime> updatedAt,
+    });
+
+class $$SnakeScoresTableFilterComposer
+    extends Composer<_$NookDatabase, $SnakeScoresTable> {
+  $$SnakeScoresTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get best => $composableBuilder(
+    column: $table.best,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SnakeScoresTableOrderingComposer
+    extends Composer<_$NookDatabase, $SnakeScoresTable> {
+  $$SnakeScoresTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get best => $composableBuilder(
+    column: $table.best,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SnakeScoresTableAnnotationComposer
+    extends Composer<_$NookDatabase, $SnakeScoresTable> {
+  $$SnakeScoresTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<int> get best =>
+      $composableBuilder(column: $table.best, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SnakeScoresTableTableManager
+    extends
+        RootTableManager<
+          _$NookDatabase,
+          $SnakeScoresTable,
+          SnakeScoreRow,
+          $$SnakeScoresTableFilterComposer,
+          $$SnakeScoresTableOrderingComposer,
+          $$SnakeScoresTableAnnotationComposer,
+          $$SnakeScoresTableCreateCompanionBuilder,
+          $$SnakeScoresTableUpdateCompanionBuilder,
+          (
+            SnakeScoreRow,
+            BaseReferences<_$NookDatabase, $SnakeScoresTable, SnakeScoreRow>,
+          ),
+          SnakeScoreRow,
+          PrefetchHooks Function()
+        > {
+  $$SnakeScoresTableTableManager(_$NookDatabase db, $SnakeScoresTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SnakeScoresTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SnakeScoresTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SnakeScoresTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> level = const Value.absent(),
+                Value<int> best = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => SnakeScoresCompanion(
+                level: level,
+                best: best,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> level = const Value.absent(),
+                required int best,
+                required DateTime updatedAt,
+              }) => SnakeScoresCompanion.insert(
+                level: level,
+                best: best,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SnakeScoresTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NookDatabase,
+      $SnakeScoresTable,
+      SnakeScoreRow,
+      $$SnakeScoresTableFilterComposer,
+      $$SnakeScoresTableOrderingComposer,
+      $$SnakeScoresTableAnnotationComposer,
+      $$SnakeScoresTableCreateCompanionBuilder,
+      $$SnakeScoresTableUpdateCompanionBuilder,
+      (
+        SnakeScoreRow,
+        BaseReferences<_$NookDatabase, $SnakeScoresTable, SnakeScoreRow>,
+      ),
+      SnakeScoreRow,
+      PrefetchHooks Function()
+    >;
 
 class $NookDatabaseManager {
   final _$NookDatabase _db;
@@ -3060,4 +3474,6 @@ class $NookDatabaseManager {
       $$DailySolvesTableTableManager(_db, _db.dailySolves);
   $$DailyStreakTableTableManager get dailyStreak =>
       $$DailyStreakTableTableManager(_db, _db.dailyStreak);
+  $$SnakeScoresTableTableManager get snakeScores =>
+      $$SnakeScoresTableTableManager(_db, _db.snakeScores);
 }

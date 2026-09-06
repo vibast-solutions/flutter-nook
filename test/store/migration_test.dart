@@ -6,6 +6,7 @@ import 'package:nook/store/daily_streak.dart';
 import 'package:nook/store/game_stats.dart';
 import 'package:nook/store/nook_database.dart';
 import 'package:nook/store/saved_game.dart';
+import 'package:nook/store/snake_score.dart';
 
 /// The saved-games table exactly as schema version 1 created it, before hints
 /// (VIB-76) added two columns to it.
@@ -464,6 +465,114 @@ NookDatabase databaseFromVersion6() {
   );
 }
 
+/// The tables exactly as schema version 7 created them: version 6 plus the two
+/// daily tables, and still no `snake_scores` table — that is what version 8
+/// added for the best Snake score (VIB-110).
+///
+/// A seventh record beside the six above. A player upgrading to version 8 with a
+/// puzzle in progress, figures to their name and a daily streak going is coming
+/// from here, and this is the schema all three are sitting in.
+const String version7Tables = '''
+CREATE TABLE saved_games (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  givens TEXT NOT NULL,
+  solution TEXT NOT NULL,
+  cells TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  regions TEXT,
+  badges TEXT,
+  history TEXT NOT NULL,
+  hints TEXT NOT NULL DEFAULT '[]',
+  was_hinted INTEGER NOT NULL DEFAULT 0 CHECK (was_hinted IN (0, 1)),
+  notes_mode INTEGER NOT NULL DEFAULT 0 CHECK (notes_mode IN (0, 1)),
+  elapsed INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (game_id)
+);
+CREATE TABLE statistics (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  solved INTEGER NOT NULL DEFAULT 0,
+  best_time INTEGER,
+  PRIMARY KEY (game_id, difficulty)
+);
+CREATE TABLE pack_progress (
+  pack_id TEXT NOT NULL,
+  served INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (pack_id)
+);
+CREATE TABLE daily_solves (
+  date TEXT NOT NULL,
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  PRIMARY KEY (date)
+);
+CREATE TABLE daily_streak (
+  id INTEGER NOT NULL DEFAULT 0,
+  count INTEGER NOT NULL DEFAULT 0,
+  last_solved_date TEXT,
+  PRIMARY KEY (id)
+);
+''';
+
+/// The same unfinished 4x4, saved by a build that had every table but the Snake
+/// scores.
+const String version7SudokuRow = '''
+INSERT INTO saved_games (
+  game_id, difficulty, seed, givens, solution, cells, notes, history,
+  hints, was_hinted, notes_mode, elapsed, updated_at
+) VALUES (
+  'sudoku-mini',
+  'gentle',
+  4242,
+  '[1,0,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1]',
+  '[1,2,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]',
+  '[]',
+  '[7]',
+  1,
+  0,
+  187000,
+  '2026-09-02T10:30:00.000Z'
+);
+''';
+
+/// A figure the player has already earned, so the upgrade has statistics to
+/// carry.
+const String version7StatsRow = '''
+INSERT INTO statistics (game_id, difficulty, solved, best_time)
+VALUES ('sudoku-mini', 'gentle', 3, 120000);
+''';
+
+/// A daily streak already going, so the upgrade has one to carry across too.
+const String version7StreakRow = '''
+INSERT INTO daily_streak (id, count, last_solved_date)
+VALUES (0, 4, '2026-09-03');
+''';
+
+/// A database holding a save, statistics and a streak under the version 7
+/// schema, opened through the current app code — so the version 8 migration runs
+/// on the way in.
+NookDatabase databaseFromVersion7() {
+  return NookDatabase(
+    DatabaseConnection(
+      NativeDatabase.memory(
+        setup: (dynamic raw) {
+          raw.execute(version7Tables);
+          raw.execute(version7SudokuRow);
+          raw.execute(version7StatsRow);
+          raw.execute(version7StreakRow);
+          raw.execute('PRAGMA user_version = 7;');
+        },
+      ),
+      closeStreamsSynchronously: true,
+    ),
+  );
+}
+
 void main() {
   test('a save from before hints survives the upgrade', () async {
     final NookDatabase database = databaseFromVersion1();
@@ -821,4 +930,61 @@ void main() {
     expect(status.streak, 1);
     expect(status.solvedToday, isTrue);
   });
+
+  test('a save, its statistics and the streak survive the Snake-scores upgrade', () async {
+    // The version that added the Snake scores table (VIB-110) touches nothing a
+    // player already has: a puzzle in progress, the figures they earned and a
+    // streak they are keeping must all come through the upgrade untouched.
+    final NookDatabase database = databaseFromVersion7();
+    addTearDown(database.close);
+
+    final SavedGame save = (await SavedGameStore(
+      database,
+    ).watchAll().first).single;
+    expect(save.gameId, 'sudoku-mini');
+    expect(save.cells[1], 2);
+    expect(save.hints, <int>[7]);
+    expect(save.wasHinted, isTrue);
+    expect(save.elapsed, const Duration(minutes: 3, seconds: 7));
+
+    final GameStats stats = (await GameStatsStore(
+      database,
+    ).watchAll().first).single;
+    expect(stats.solved, 3, reason: 'the figures a player earned came through');
+    expect(stats.bestTime, const Duration(minutes: 2));
+
+    final DailyStreakStatus streak = await DailyStore(database)
+        .watch(() => DateTime.utc(2026, 9, 3, 12))
+        .first;
+    expect(
+      streak.streak,
+      4,
+      reason: 'the streak a player was keeping came through',
+    );
+  });
+
+  test(
+    'and the new Snake-scores table is there, empty, to be recorded into',
+    () async {
+      // The point of the migration: after it runs, the best-score store exists and
+      // starts at nothing. An upgrading player has played no Snake, so every level
+      // reads as none, and the first run at a level sets the best.
+      final NookDatabase database = databaseFromVersion7();
+      addTearDown(database.close);
+      final SnakeScoreStore store = SnakeScoreStore(database);
+
+      expect(await store.bestFor(3), null);
+      expect(await store.watchBests().first, isEmpty);
+
+      final SnakeScoreOutcome outcome = await store.record(
+        level: 3,
+        score: 12,
+        at: DateTime.utc(2026, 9, 6, 12),
+      );
+
+      expect(outcome.isNewBest, isTrue);
+      expect(outcome.best, 12);
+      expect(await store.bestFor(3), 12);
+    },
+  );
 }
