@@ -209,6 +209,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get duoBadgeUnequal => 'Different-symbol badge';
 
   @override
+  String get howToPlayHeading => 'HOW IT\'S PLAYED';
+
+  @override
+  String howToPlayOpen(String game) {
+    return 'How $game is played';
+  }
+
+  @override
+  String get howToPlayClose => 'Close how it\'s played';
+
+  @override
+  String get howToPlayAimLabel => 'THE AIM';
+
+  @override
+  String get howToPlayHowLabel => 'HOW TO PLAY';
+
+  @override
+  String get howToPlayKeyLabel => 'THE KEY';
+
+  @override
+  String sudokuRulesObjective(int size) {
+    return 'Fill the grid so that every row, every column and every box holds each number from 1 to $size, once.';
+  }
+
+  @override
+  String get sudokuRulesInteraction =>
+      'Tap an empty cell, then tap a number to place it. Tap that number again, or use Erase, to take it back. Turn on Notes to pencil in the numbers a cell could still be.';
+
+  @override
+  String get starsRulesObjective =>
+      'Place one star in every row, every column and every coloured region. Stars may never touch — not side by side, and not even at a corner.';
+
+  @override
+  String get starsRulesInteraction =>
+      'Tap a cell once to rule it out with a dot, and again to place a star; tap once more to clear it. The dots are only your own working — a finished board is judged on its stars alone.';
+
+  @override
+  String get duoRulesObjective =>
+      'Fill every cell with a circle or a square so that each row and each column has as many circles as squares, and the same symbol never sits three in a row. A badge between two cells shows when they must be the same, or must be different.';
+
+  @override
+  String get duoRulesInteraction =>
+      'Tap a cell for a circle, tap again for a square, and once more to empty it. The cells the puzzle starts with are fixed.';
+
+  @override
   String cellDuoEmpty(int row, int column) {
     return 'Row $row, column $column, empty';
   }

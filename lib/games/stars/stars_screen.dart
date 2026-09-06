@@ -10,6 +10,7 @@ import '../../chrome/difficulty_naming.dart';
 import '../../chrome/game_header.dart';
 import '../../chrome/game_providers.dart';
 import '../../chrome/game_session.dart';
+import '../../chrome/how_to_play.dart';
 import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
@@ -17,6 +18,7 @@ import '../../l10n/app_localizations.dart';
 import '../../store/nook_database.dart';
 import 'stars_controller.dart';
 import 'stars_naming.dart';
+import 'stars_rules.dart';
 import 'stars_save.dart';
 import 'stars_state.dart';
 import 'stars_variant.dart';
@@ -149,6 +151,8 @@ class _StarsScreen extends ConsumerWidget {
                   variant.sizeLabel(l10n),
                   difficulty.label(l10n),
                 ),
+                onHowToPlay: () =>
+                    showHowToPlay(context, content: starsRules(l10n, variant)),
               ),
               Expanded(
                 child: game.when(

@@ -14,7 +14,12 @@ import 'play_clock.dart';
 /// Only the two words differ, so they are passed in and everything else is one
 /// widget rather than one per game.
 class GameHeader extends StatelessWidget {
-  const GameHeader({required this.title, required this.subtitle, super.key});
+  const GameHeader({
+    required this.title,
+    required this.subtitle,
+    this.onHowToPlay,
+    super.key,
+  });
 
   /// The game's name.
   final String title;
@@ -22,15 +27,20 @@ class GameHeader extends StatelessWidget {
   /// The line under it: which grid, and how hard the player asked for it.
   final String subtitle;
 
+  /// Opens the "How it's played" sheet, or `null` on a screen that has no
+  /// rules to show. A quiet help tile appears beside the clock when it is set.
+  final VoidCallback? onHowToPlay;
+
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 10),
       child: Row(
         children: <Widget>[
           _IconButtonTile(
-            semanticLabel: AppLocalizations.of(context).backToGameList,
+            semanticLabel: l10n.backToGameList,
             icon: Icons.arrow_back_ios_new_rounded,
             onTap: () => Navigator.of(context).maybePop(),
           ),
@@ -43,6 +53,18 @@ class GameHeader extends StatelessWidget {
               ],
             ),
           ),
+          // Sits between the title and the clock, so help and elapsed time read
+          // as the one group of furniture on the right. It keeps a full tap
+          // target at the narrowest width — the title wraps rather than the row
+          // overflowing — and is simply absent when a screen has no rules.
+          if (onHowToPlay != null) ...<Widget>[
+            _IconButtonTile(
+              semanticLabel: l10n.howToPlayOpen(title),
+              icon: Icons.help_outline_rounded,
+              onTap: onHowToPlay!,
+            ),
+            const SizedBox(width: 6),
+          ],
           const _Clock(),
         ],
       ),

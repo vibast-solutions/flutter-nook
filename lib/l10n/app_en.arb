@@ -193,6 +193,37 @@
   "@duoBadgeEqual": { "description": "Screen-reader label for an '=' badge on the Duo board: the two cells it joins must hold the same symbol." },
   "duoBadgeUnequal": "Different-symbol badge",
   "@duoBadgeUnequal": { "description": "Screen-reader label for an 'x' badge on the Duo board: the two cells it joins must hold different symbols." },
+
+  "howToPlayHeading": "HOW IT'S PLAYED",
+  "@howToPlayHeading": { "description": "The small heading at the top of the 'How it's played' sheet, above the game's name, and what a screen reader announces as the sheet opens. Upper case in English by design; use the language's convention for a small heading." },
+  "howToPlayOpen": "How {game} is played",
+  "@howToPlayOpen": {
+    "description": "Screen-reader label for the help control that opens the rules sheet: the tile in a game's header, and the long-press on a game's row in the menu.",
+    "placeholders": { "game": { "type": "String", "example": "Sudoku Classic" } }
+  },
+  "howToPlayClose": "Close how it's played",
+  "@howToPlayClose": { "description": "Screen-reader label for the button that closes the rules sheet, and for tapping the dimmed area behind it." },
+  "howToPlayAimLabel": "THE AIM",
+  "@howToPlayAimLabel": { "description": "Heading of the section of the rules sheet that says what the player is trying to do. Upper case in English by design; use the language's convention for a small heading." },
+  "howToPlayHowLabel": "HOW TO PLAY",
+  "@howToPlayHowLabel": { "description": "Heading of the section of the rules sheet that says how the player works the board. Upper case in English by design; use the language's convention for a small heading." },
+  "howToPlayKeyLabel": "THE KEY",
+  "@howToPlayKeyLabel": { "description": "Heading above the legend in the rules sheet, where the symbols or colours are named. Upper case in English by design; use the language's convention for a small heading." },
+  "sudokuRulesObjective": "Fill the grid so that every row, every column and every box holds each number from 1 to {size}, once.",
+  "@sudokuRulesObjective": {
+    "description": "The aim of Sudoku, in the rules sheet. {size} is the grid's width (4, 6 or 9), which is also the largest number used; a 'box' is one of the grid's outlined blocks.",
+    "placeholders": { "size": { "type": "int", "example": "9" } }
+  },
+  "sudokuRulesInteraction": "Tap an empty cell, then tap a number to place it. Tap that number again, or use Erase, to take it back. Turn on Notes to pencil in the numbers a cell could still be.",
+  "@sudokuRulesInteraction": { "description": "How a player fills in a Sudoku, in the rules sheet. 'Erase' and 'Notes' are the names of two of the controls under the board." },
+  "starsRulesObjective": "Place one star in every row, every column and every coloured region. Stars may never touch — not side by side, and not even at a corner.",
+  "@starsRulesObjective": { "description": "The aim of Stars, in the rules sheet." },
+  "starsRulesInteraction": "Tap a cell once to rule it out with a dot, and again to place a star; tap once more to clear it. The dots are only your own working — a finished board is judged on its stars alone.",
+  "@starsRulesInteraction": { "description": "How a player marks a Stars board, in the rules sheet." },
+  "duoRulesObjective": "Fill every cell with a circle or a square so that each row and each column has as many circles as squares, and the same symbol never sits three in a row. A badge between two cells shows when they must be the same, or must be different.",
+  "@duoRulesObjective": { "description": "The aim of Duo, in the rules sheet. A 'badge' is the small = or x mark between two cells." },
+  "duoRulesInteraction": "Tap a cell for a circle, tap again for a square, and once more to empty it. The cells the puzzle starts with are fixed.",
+  "@duoRulesInteraction": { "description": "How a player fills in a Duo board, in the rules sheet." },
   "cellDuoEmpty": "Row {row}, column {column}, empty",
   "@cellDuoEmpty": {
     "description": "Screen-reader label for an empty Duo cell. Rows and columns are counted from one.",
@@ -557,7 +588,7 @@
   },
   "cellGivenConflict": "Row {row}, column {column}, {value}, given, repeated in its row, column or box",
   "@cellGivenConflict": {
-    "description": "Screen-reader label for a given cell whose digit appears again in the same row, column or box. Marking a repeat is a rule being broken, not an answer being judged \u2014 a digit that merely disagrees with the solution is never marked.",
+    "description": "Screen-reader label for a given cell whose digit appears again in the same row, column or box. Marking a repeat is a rule being broken, not an answer being judged — a digit that merely disagrees with the solution is never marked.",
     "placeholders": {
       "row": { "type": "int", "example": "2" },
       "column": { "type": "int", "example": "3" },
@@ -575,7 +606,7 @@
   },
   "cellHintConflict": "Row {row}, column {column}, {value}, from a hint, repeated in its row, column or box",
   "@cellHintConflict": {
-    "description": "Screen-reader label for a hinted cell whose digit appears again in the same row, column or box \u2014 which can happen when the player has entered the same digit wrongly somewhere it can see.",
+    "description": "Screen-reader label for a hinted cell whose digit appears again in the same row, column or box — which can happen when the player has entered the same digit wrongly somewhere it can see.",
     "placeholders": {
       "row": { "type": "int", "example": "2" },
       "column": { "type": "int", "example": "3" },
@@ -712,7 +743,7 @@
   "reasonNoMarks": "no marks to clear",
   "@reasonNoMarks": { "description": "Why the Stars 'clear marks' control is unavailable: there are no ruled-out dots on the board to wipe. Reads as the end of a sentence, so lower case." },
   "reasonHintJustGiven": "just given, back in a moment",
-  "@reasonHintJustGiven": { "description": "Why the hint control is unavailable: one was given a few seconds ago and the control waits before offering another. This is pacing, not rationing \u2014 hints are unlimited and free, and nothing is being counted or spent. Reads as the end of a sentence, so lower case." },
+  "@reasonHintJustGiven": { "description": "Why the hint control is unavailable: one was given a few seconds ago and the control waits before offering another. This is pacing, not rationing — hints are unlimited and free, and nothing is being counted or spent. Reads as the end of a sentence, so lower case." },
 
   "padCaption": "{count, plural, =0{done} =1{1 left} other{{count} left}}",
   "@padCaption": {

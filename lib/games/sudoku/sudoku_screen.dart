@@ -11,6 +11,7 @@ import '../../chrome/difficulty_naming.dart';
 import '../../chrome/game_providers.dart';
 import '../../chrome/game_header.dart';
 import '../../chrome/game_session.dart';
+import '../../chrome/how_to_play.dart';
 import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
@@ -18,6 +19,7 @@ import '../../l10n/app_localizations.dart';
 import '../../store/nook_database.dart';
 import 'sudoku_controller.dart';
 import 'sudoku_naming.dart';
+import 'sudoku_rules.dart';
 import 'sudoku_save.dart';
 import 'sudoku_state.dart';
 import 'sudoku_variant.dart';
@@ -162,6 +164,8 @@ class _SudokuScreen extends ConsumerWidget {
                   variant.sizeLabel(l10n),
                   difficulty.label(l10n),
                 ),
+                onHowToPlay: () =>
+                    showHowToPlay(context, content: sudokuRules(l10n, variant)),
               ),
               Expanded(
                 child: game.when(
