@@ -889,5 +889,30 @@
     "placeholders": {
       "count": { "type": "int", "example": "3" }
     }
-  }
+  },
+  "snakeProgressAnnouncement": "{length, plural, one{Score {score}, length 1} other{Score {score}, length {length}}}",
+  "@snakeProgressAnnouncement": {
+    "description": "Screen-reader running commentary on the Snake board, spoken as the score changes — how far the run has got and how long the snake now is. The board is one live region rather than a per-cell tree, so this sentence is the whole of what a screen reader hears about the field.",
+    "placeholders": {
+      "score": { "type": "int", "example": "5" },
+      "length": { "type": "int", "example": "8" }
+    }
+  },
+  "snakeGameOverAnnouncement": "Game over. Final score {score}.",
+  "@snakeGameOverAnnouncement": {
+    "description": "Screen-reader announcement made when the snake dies, giving the run's final score. Spoken through the board's live region, not shown on screen (the game-over card shows the score in its own words).",
+    "placeholders": {
+      "score": { "type": "int", "example": "12" }
+    }
+  },
+  "snakeSteerUp": "Steer up",
+  "@snakeSteerUp": { "description": "Screen-reader label for the on-screen d-pad button that turns the snake up." },
+  "snakeSteerDown": "Steer down",
+  "@snakeSteerDown": { "description": "Screen-reader label for the on-screen d-pad button that turns the snake down." },
+  "snakeSteerLeft": "Steer left",
+  "@snakeSteerLeft": { "description": "Screen-reader label for the on-screen d-pad button that turns the snake left." },
+  "snakeSteerRight": "Steer right",
+  "@snakeSteerRight": { "description": "Screen-reader label for the on-screen d-pad button that turns the snake right." },
+  "snakeSpeedLastPlayed": "Last played",
+  "@snakeSpeedLastPlayed": { "description": "A small marker on the speed the player last started a run at, which the picker pre-selects when it opens." }
 }

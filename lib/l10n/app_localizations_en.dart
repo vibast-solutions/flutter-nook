@@ -837,4 +837,35 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String snakeProgressAnnouncement(int score, int length) {
+    String _temp0 = intl.Intl.pluralLogic(
+      length,
+      locale: localeName,
+      other: 'Score $score, length $length',
+      one: 'Score $score, length 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String snakeGameOverAnnouncement(int score) {
+    return 'Game over. Final score $score.';
+  }
+
+  @override
+  String get snakeSteerUp => 'Steer up';
+
+  @override
+  String get snakeSteerDown => 'Steer down';
+
+  @override
+  String get snakeSteerLeft => 'Steer left';
+
+  @override
+  String get snakeSteerRight => 'Steer right';
+
+  @override
+  String get snakeSpeedLastPlayed => 'Last played';
 }

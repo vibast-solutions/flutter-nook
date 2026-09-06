@@ -1274,6 +1274,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, other{Resuming in {count}}}'**
   String snakeResumeCountdown(int count);
+
+  /// Screen-reader running commentary on the Snake board, spoken as the score changes — how far the run has got and how long the snake now is. The board is one live region rather than a per-cell tree, so this sentence is the whole of what a screen reader hears about the field.
+  ///
+  /// In en, this message translates to:
+  /// **'{length, plural, one{Score {score}, length 1} other{Score {score}, length {length}}}'**
+  String snakeProgressAnnouncement(int score, int length);
+
+  /// Screen-reader announcement made when the snake dies, giving the run's final score. Spoken through the board's live region, not shown on screen (the game-over card shows the score in its own words).
+  ///
+  /// In en, this message translates to:
+  /// **'Game over. Final score {score}.'**
+  String snakeGameOverAnnouncement(int score);
+
+  /// Screen-reader label for the on-screen d-pad button that turns the snake up.
+  ///
+  /// In en, this message translates to:
+  /// **'Steer up'**
+  String get snakeSteerUp;
+
+  /// Screen-reader label for the on-screen d-pad button that turns the snake down.
+  ///
+  /// In en, this message translates to:
+  /// **'Steer down'**
+  String get snakeSteerDown;
+
+  /// Screen-reader label for the on-screen d-pad button that turns the snake left.
+  ///
+  /// In en, this message translates to:
+  /// **'Steer left'**
+  String get snakeSteerLeft;
+
+  /// Screen-reader label for the on-screen d-pad button that turns the snake right.
+  ///
+  /// In en, this message translates to:
+  /// **'Steer right'**
+  String get snakeSteerRight;
+
+  /// A small marker on the speed the player last started a run at, which the picker pre-selects when it opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Last played'**
+  String get snakeSpeedLastPlayed;
 }
 
 class _AppLocalizationsDelegate
