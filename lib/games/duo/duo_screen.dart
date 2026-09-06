@@ -10,6 +10,7 @@ import '../../chrome/difficulty_naming.dart';
 import '../../chrome/game_header.dart';
 import '../../chrome/game_providers.dart';
 import '../../chrome/game_session.dart';
+import '../../chrome/how_to_play.dart';
 import '../../chrome/play_clock.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
@@ -17,6 +18,7 @@ import '../../l10n/app_localizations.dart';
 import '../../store/nook_database.dart';
 import 'duo_controller.dart';
 import 'duo_naming.dart';
+import 'duo_rules.dart';
 import 'duo_save.dart';
 import 'duo_state.dart';
 import 'duo_variant.dart';
@@ -150,6 +152,8 @@ class _DuoScreen extends ConsumerWidget {
                   variant.sizeLabel(l10n),
                   difficulty.label(l10n),
                 ),
+                onHowToPlay: () =>
+                    showHowToPlay(context, content: duoRules(l10n, variant)),
               ),
               Expanded(
                 child: game.when(

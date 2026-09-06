@@ -4,22 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../chrome/continue_card.dart';
 import '../chrome/difficulty_naming.dart';
 import '../daily/daily_card.dart';
+import '../chrome/how_to_play.dart';
 import '../chrome/play_clock.dart';
 import '../chrome/resume.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../games/duo/duo_difficulty.dart';
 import '../games/duo/duo_naming.dart';
+import '../games/duo/duo_rules.dart';
 import '../games/duo/duo_save.dart';
 import '../games/duo/duo_screen.dart';
 import '../games/duo/duo_variant.dart';
 import '../games/stars/stars_difficulty.dart';
 import '../games/stars/stars_naming.dart';
+import '../games/stars/stars_rules.dart';
 import '../games/stars/stars_save.dart';
 import '../games/stars/stars_screen.dart';
 import '../games/stars/stars_variant.dart';
 import '../games/sudoku/difficulty_screen.dart';
 import '../games/sudoku/sudoku_naming.dart';
+import '../games/sudoku/sudoku_rules.dart';
 import '../games/sudoku/sudoku_save.dart';
 import '../games/sudoku/sudoku_screen.dart';
 import '../games/sudoku/sudoku_variant.dart';
@@ -36,6 +40,7 @@ class _GameEntry {
     required this.icon,
     required this.accent,
     this.open,
+    this.rules,
   });
 
   final String title;
@@ -47,6 +52,11 @@ class _GameEntry {
 
   /// How to start the game, or `null` while it is still being built.
   final void Function(BuildContext context)? open;
+
+  /// This game's rules, for the "How it's played" sheet a long press opens —
+  /// so a player can read what a game is before starting it. Built per locale,
+  /// like the title, and `null` for a game with no rules to show yet.
+  final RulesSheetContent Function(AppLocalizations l10n)? rules;
 
   bool get isPlayable => open != null;
 }
@@ -76,6 +86,7 @@ class HomeScreen extends ConsumerWidget {
       open: (BuildContext context) =>
           Navigator.of(context)
               .push(StarsDifficultyPage.route(StarsVariant.standard)),
+      rules: (AppLocalizations l10n) => starsRules(l10n, StarsVariant.standard),
     ),
     _GameEntry(
       title: l10n.duoTitle,
@@ -85,6 +96,7 @@ class HomeScreen extends ConsumerWidget {
       open: (BuildContext context) =>
           Navigator.of(context)
               .push(DuoDifficultyPage.route(DuoVariant.standard)),
+      rules: (AppLocalizations l10n) => duoRules(l10n, DuoVariant.standard),
     ),
   ];
 
@@ -106,6 +118,7 @@ class HomeScreen extends ConsumerWidget {
       accent: true,
       open: (BuildContext context) =>
           Navigator.of(context).push(SudokuDifficultyPage.route(variant)),
+      rules: (AppLocalizations l10n) => sudokuRules(l10n, variant),
     );
   }
 
@@ -298,6 +311,15 @@ class _GameRow extends StatelessWidget {
     final Color tile = entry.accent ? colors.claySoft : colors.sageSoft;
     final Color glyph = entry.accent ? colors.clay : colors.sage;
 
+    // Holding the row opens its rules — a way to read what a game is before
+    // starting it, the menu counterpart of the help tile in the game header.
+    // The screen reader reaches the same sheet through the row's long-press
+    // action, so the affordance is not a sighted-only one.
+    final RulesSheetContent? rules = entry.rules?.call(l10n);
+    final VoidCallback? openRules = rules == null
+        ? null
+        : () => showHowToPlay(context, content: rules);
+
     return Opacity(
       opacity: playable ? 1 : 0.55,
       child: Semantics(
@@ -306,6 +328,7 @@ class _GameRow extends StatelessWidget {
             : l10n.gameRowUnavailableLabel(entry.title),
         button: true,
         enabled: playable,
+        onLongPress: openRules,
         excludeSemantics: true,
         child: Material(
           color: colors.surface,
@@ -316,6 +339,7 @@ class _GameRow extends StatelessWidget {
           child: InkWell(
             borderRadius: const BorderRadius.all(NookRadius.row),
             onTap: playable ? () => entry.open!(context) : null,
+            onLongPress: openRules,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               child: Row(

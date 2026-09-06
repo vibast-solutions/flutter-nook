@@ -345,6 +345,78 @@ abstract class AppLocalizations {
   /// **'Different-symbol badge'**
   String get duoBadgeUnequal;
 
+  /// The small heading at the top of the 'How it's played' sheet, above the game's name, and what a screen reader announces as the sheet opens. Upper case in English by design; use the language's convention for a small heading.
+  ///
+  /// In en, this message translates to:
+  /// **'HOW IT\'S PLAYED'**
+  String get howToPlayHeading;
+
+  /// Screen-reader label for the help control that opens the rules sheet: the tile in a game's header, and the long-press on a game's row in the menu.
+  ///
+  /// In en, this message translates to:
+  /// **'How {game} is played'**
+  String howToPlayOpen(String game);
+
+  /// Screen-reader label for the button that closes the rules sheet, and for tapping the dimmed area behind it.
+  ///
+  /// In en, this message translates to:
+  /// **'Close how it\'s played'**
+  String get howToPlayClose;
+
+  /// Heading of the section of the rules sheet that says what the player is trying to do. Upper case in English by design; use the language's convention for a small heading.
+  ///
+  /// In en, this message translates to:
+  /// **'THE AIM'**
+  String get howToPlayAimLabel;
+
+  /// Heading of the section of the rules sheet that says how the player works the board. Upper case in English by design; use the language's convention for a small heading.
+  ///
+  /// In en, this message translates to:
+  /// **'HOW TO PLAY'**
+  String get howToPlayHowLabel;
+
+  /// Heading above the legend in the rules sheet, where the symbols or colours are named. Upper case in English by design; use the language's convention for a small heading.
+  ///
+  /// In en, this message translates to:
+  /// **'THE KEY'**
+  String get howToPlayKeyLabel;
+
+  /// The aim of Sudoku, in the rules sheet. {size} is the grid's width (4, 6 or 9), which is also the largest number used; a 'box' is one of the grid's outlined blocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill the grid so that every row, every column and every box holds each number from 1 to {size}, once.'**
+  String sudokuRulesObjective(int size);
+
+  /// How a player fills in a Sudoku, in the rules sheet. 'Erase' and 'Notes' are the names of two of the controls under the board.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap an empty cell, then tap a number to place it. Tap that number again, or use Erase, to take it back. Turn on Notes to pencil in the numbers a cell could still be.'**
+  String get sudokuRulesInteraction;
+
+  /// The aim of Stars, in the rules sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Place one star in every row, every column and every coloured region. Stars may never touch — not side by side, and not even at a corner.'**
+  String get starsRulesObjective;
+
+  /// How a player marks a Stars board, in the rules sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a cell once to rule it out with a dot, and again to place a star; tap once more to clear it. The dots are only your own working — a finished board is judged on its stars alone.'**
+  String get starsRulesInteraction;
+
+  /// The aim of Duo, in the rules sheet. A 'badge' is the small = or x mark between two cells.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill every cell with a circle or a square so that each row and each column has as many circles as squares, and the same symbol never sits three in a row. A badge between two cells shows when they must be the same, or must be different.'**
+  String get duoRulesObjective;
+
+  /// How a player fills in a Duo board, in the rules sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a cell for a circle, tap again for a square, and once more to empty it. The cells the puzzle starts with are fixed.'**
+  String get duoRulesInteraction;
+
   /// Screen-reader label for an empty Duo cell. Rows and columns are counted from one.
   ///
   /// In en, this message translates to:
