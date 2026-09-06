@@ -858,5 +858,23 @@
       "name": { "type": "String", "example": "Brisk" },
       "description": { "type": "String", "example": "Lively, with room to react" }
     }
-  }
+  },
+  "snakeSpeedRowLabelBest": "{name}. {description}. Best score {best}.",
+  "@snakeSpeedRowLabelBest": {
+    "description": "Screen-reader label for a speed row on the picker once it has a best score: the speed's name, what it feels like, and the best score reached at it.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Brisk" },
+      "description": { "type": "String", "example": "Lively, with room to react" },
+      "best": { "type": "int", "example": "18" }
+    }
+  },
+  "snakeBest": "Best {score}",
+  "@snakeBest": {
+    "description": "The best score reached at a speed — shown on the picker rows and on the game-over card. A scoreboard label, like snakeScore.",
+    "placeholders": {
+      "score": { "type": "int", "example": "18" }
+    }
+  },
+  "snakeNewBest": "New best!",
+  "@snakeNewBest": { "description": "Announced on the game-over card when a run beats the best score kept for its speed." }
 }

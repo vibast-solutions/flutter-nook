@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../board/snake_board.dart';
@@ -9,6 +10,8 @@ import '../../chrome/how_to_play.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
+import '../../store/nook_database.dart';
+import '../../store/snake_score.dart';
 import 'snake_naming.dart';
 import 'snake_rules.dart';
 import 'snake_variant.dart';
@@ -57,7 +60,7 @@ class SnakeGamePage extends StatelessWidget {
   }
 }
 
-class _SnakeScreen extends StatefulWidget {
+class _SnakeScreen extends ConsumerStatefulWidget {
   const _SnakeScreen({required this.variant, required this.speed, this.seed});
 
   final SnakeVariant variant;
@@ -65,10 +68,10 @@ class _SnakeScreen extends StatefulWidget {
   final int? seed;
 
   @override
-  State<_SnakeScreen> createState() => _SnakeScreenState();
+  ConsumerState<_SnakeScreen> createState() => _SnakeScreenState();
 }
 
-class _SnakeScreenState extends State<_SnakeScreen> {
+class _SnakeScreenState extends ConsumerState<_SnakeScreen> {
   /// The current frame. Built lazily on the first start, so before then the
   /// board shows a still snake behind the "tap to start" invitation.
   late SnakeGame _game = SnakeGame.start(
@@ -84,6 +87,12 @@ class _SnakeScreenState extends State<_SnakeScreen> {
   /// Whether the player has started the run. Before this the snake is drawn but
   /// still; after it the loop is running or the game is over.
   bool _started = false;
+
+  /// What the finished run did to the best score at this speed, or `null` while a
+  /// run is in play or its score has not been recorded yet. Set once, just after
+  /// the snake dies, by the write that stores the score — so the game-over card
+  /// can name the best as it was the moment before this run.
+  SnakeScoreOutcome? _outcome;
 
   /// Turns the player has asked for but that have not been taken yet.
   ///
@@ -118,6 +127,7 @@ class _SnakeScreenState extends State<_SnakeScreen> {
         seed: widget.seed ?? _clockSeed(),
       );
       _started = true;
+      _outcome = null;
       _inputs.clear();
     });
     _ticker?.cancel();
@@ -141,7 +151,29 @@ class _SnakeScreenState extends State<_SnakeScreen> {
     if (_game.isDead) {
       _ticker?.cancel();
       _ticker = null;
+      _recordScore(_game.score);
     }
+  }
+
+  /// Stores the finished run's score against its speed, and — if it beat the best
+  /// kept there — says so in words and a haptic.
+  ///
+  /// A new best is announced by both, never by colour or motion alone (the
+  /// board's doctrine): the game-over card grows a "New best!" line, and the
+  /// phone gives a single medium tap. The record is one transaction that hands
+  /// back what the run beat, which is the only moment the previous best is still
+  /// known.
+  Future<void> _recordScore(int score) async {
+    final SnakeScoreOutcome outcome = await ref
+        .read(snakeScoreStoreProvider)
+        .record(level: widget.speed.level, score: score, at: DateTime.now());
+    if (!mounted) {
+      return;
+    }
+    if (outcome.isNewBest) {
+      HapticFeedback.mediumImpact();
+    }
+    setState(() => _outcome = outcome);
   }
 
   /// Records a direction the player asked for, to be taken on a coming tick.
@@ -244,6 +276,7 @@ class _SnakeScreenState extends State<_SnakeScreen> {
                     child: _BoardArea(
                       game: _game,
                       started: _started,
+                      outcome: _outcome,
                       onStart: _start,
                       onRestart: _start,
                     ),
@@ -264,12 +297,18 @@ class _BoardArea extends StatelessWidget {
   const _BoardArea({
     required this.game,
     required this.started,
+    required this.outcome,
     required this.onStart,
     required this.onRestart,
   });
 
   final SnakeGame game;
   final bool started;
+
+  /// What the finished run did to the best score, or `null` if the run is still
+  /// in play or the score has not landed yet.
+  final SnakeScoreOutcome? outcome;
+
   final VoidCallback onStart;
   final VoidCallback onRestart;
 
@@ -294,7 +333,11 @@ class _BoardArea extends StatelessWidget {
               if (!started)
                 _StartOverlay(onStart: onStart)
               else if (game.isDead)
-                _GameOverCard(score: game.score, onRestart: onRestart),
+                _GameOverCard(
+                  score: game.score,
+                  outcome: outcome,
+                  onRestart: onRestart,
+                ),
             ],
           ),
         );
@@ -332,24 +375,48 @@ class _StartOverlay extends StatelessWidget {
 /// The card shown when the snake has died: how far it got, and a way to go
 /// again.
 class _GameOverCard extends StatelessWidget {
-  const _GameOverCard({required this.score, required this.onRestart});
+  const _GameOverCard({
+    required this.score,
+    required this.outcome,
+    required this.onRestart,
+  });
 
   /// The key of the game-over card, so a test can find it without its words.
   static const Key cardKey = ValueKey<String>('snake-game-over');
 
   final int score;
+
+  /// What this run did to the best score, or `null` until the score is stored —
+  /// the card shows the run's own score at once and grows its best line the
+  /// instant the record write returns.
+  final SnakeScoreOutcome? outcome;
+
   final VoidCallback onRestart;
 
   @override
   Widget build(BuildContext context) {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
+    final SnakeScoreOutcome? result = outcome;
     return _Panel(
       key: cardKey,
       children: <Widget>[
         Text(l10n.snakeGameOver, style: NookType.celebration(colors.ink)),
         const SizedBox(height: 6),
         Text(l10n.snakeScore(score), style: NookType.statValue(colors.clay)),
+        // The best line, once the score is in: a new best is named in words —
+        // the run's score already shows the number — and a run that fell short
+        // shows the best it was chasing.
+        if (result != null) ...<Widget>[
+          const SizedBox(height: 4),
+          if (result.isNewBest)
+            Text(l10n.snakeNewBest, style: NookType.rowTitle(colors.ink))
+          else
+            Text(
+              l10n.snakeBest(result.best),
+              style: NookType.rowSubtitle(colors.inkMuted),
+            ),
+        ],
         const SizedBox(height: 16),
         _PrimaryButton(label: l10n.snakeRestart, onTap: onRestart),
       ],

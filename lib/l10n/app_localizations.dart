@@ -1232,6 +1232,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name}. {description}'**
   String snakeSpeedRowLabel(String name, String description);
+
+  /// Screen-reader label for a speed row on the picker once it has a best score: the speed's name, what it feels like, and the best score reached at it.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}. {description}. Best score {best}.'**
+  String snakeSpeedRowLabelBest(String name, String description, int best);
+
+  /// The best score reached at a speed — shown on the picker rows and on the game-over card. A scoreboard label, like snakeScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Best {score}'**
+  String snakeBest(int score);
+
+  /// Announced on the game-over card when a run beats the best score kept for its speed.
+  ///
+  /// In en, this message translates to:
+  /// **'New best!'**
+  String get snakeNewBest;
 }
 
 class _AppLocalizationsDelegate

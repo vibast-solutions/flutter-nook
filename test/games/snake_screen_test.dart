@@ -156,20 +156,152 @@ void main() {
       await _teardown(tester);
     });
   });
+
+  group('the best score', () {
+    testWidgets(
+      'a first run sets the best and is announced in words and a haptic',
+      (WidgetTester tester) async {
+        final List<MethodCall> haptics = _captureHaptics(tester);
+        final NookDatabase database = memoryDatabase();
+        await _pumpSnake(tester, database: database);
+        await _start(tester);
+
+        await _crashIntoWall(tester);
+
+        // The card is up, and the run's own score is on it.
+        final Finder card = find.byKey(gameOverKey);
+        expect(card, findsOneWidget);
+        expect(
+          find.descendant(of: card, matching: find.textContaining('Score')),
+          findsOneWidget,
+        );
+        // First run at this speed, so any score is a new best — said in words...
+        expect(
+          find.descendant(of: card, matching: find.text(en.snakeNewBest)),
+          findsOneWidget,
+        );
+        // ...and felt as a single tap.
+        expect(haptics, isNotEmpty, reason: 'a new best should buzz');
+
+        // And it is on disk: the level's best is this run's score.
+        final int? stored = await tester.runAsync<int?>(
+          () => SnakeScoreStore(database).bestFor(testSpeed.level),
+        );
+        expect(
+          stored,
+          0,
+          reason: 'a run into the wall scores nothing, but it is a best',
+        );
+
+        await _teardown(tester);
+      },
+    );
+
+    testWidgets(
+      'a run that falls short shows the standing best, and no new best',
+      (WidgetTester tester) async {
+        // A best already stands at this speed, higher than a run into the wall.
+        final NookDatabase database = memoryDatabase();
+        await tester.runAsync(
+          () => SnakeScoreStore(database).record(
+            level: testSpeed.level,
+            score: 6,
+            at: DateTime.utc(2026, 9, 6),
+          ),
+        );
+        final List<MethodCall> haptics = _captureHaptics(tester);
+        await _pumpSnake(tester, database: database);
+        await _start(tester);
+
+        await _crashIntoWall(tester);
+
+        final Finder card = find.byKey(gameOverKey);
+        expect(card, findsOneWidget);
+        // The best it was chasing is shown; no "New best!" and no buzz.
+        expect(
+          find.descendant(of: card, matching: find.text(en.snakeBest(6))),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.text(en.snakeNewBest)),
+          findsNothing,
+        );
+        expect(
+          haptics,
+          isEmpty,
+          reason: 'a run that fell short should not buzz',
+        );
+
+        // The stored best is untouched.
+        final int? stored = await tester.runAsync<int?>(
+          () => SnakeScoreStore(database).bestFor(testSpeed.level),
+        );
+        expect(stored, 6);
+
+        await _teardown(tester);
+      },
+    );
+  });
+}
+
+/// Captures the platform haptic calls the screen makes, so a test can say
+/// whether a new best buzzed.
+List<MethodCall> _captureHaptics(WidgetTester tester) {
+  final List<MethodCall> calls = <MethodCall>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    SystemChannels.platform,
+    (MethodCall call) async {
+      if (call.method == 'HapticFeedback.vibrate') {
+        calls.add(call);
+      }
+      return null;
+    },
+  );
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
+    ),
+  );
+  return calls;
+}
+
+/// Turns the snake into the top wall and runs the loop until it dies, so the
+/// game-over card and the recorded score are there to inspect.
+Future<void> _crashIntoWall(WidgetTester tester) async {
+  await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+  for (int i = 0; i < 40 && !tester.any(find.byKey(gameOverKey)); i++) {
+    await tester.pump(testSpeed.tick);
+  }
+  // Let the score write land, so the card's best line and the store are settled.
+  await tester.pumpAndSettle();
 }
 
 /// Pumps the Snake screen with a fixed seed, so a run is reproducible.
-Future<void> _pumpSnake(WidgetTester tester, {int seed = 123}) async {
+///
+/// Wired to a database in memory, because the screen records its score against
+/// one when a run ends; a test that cares about the score passes its own so it
+/// can read the best back.
+Future<void> _pumpSnake(
+  WidgetTester tester, {
+  int seed = 123,
+  NookDatabase? database,
+}) async {
   await setPhoneSurface(tester);
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      theme: buildNookTheme(NookColors.softClay),
-      home: SnakeGamePage(
-        variant: SnakeVariant.standard,
-        speed: testSpeed,
-        seed: seed,
+    ProviderScope(
+      overrides: [
+        nookDatabaseProvider.overrideWithValue(database ?? memoryDatabase()),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: buildNookTheme(NookColors.softClay),
+        home: SnakeGamePage(
+          variant: SnakeVariant.standard,
+          speed: testSpeed,
+          seed: seed,
+        ),
       ),
     ),
   );

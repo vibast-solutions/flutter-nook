@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nook/design/theme.dart';
 import 'package:nook/design/tokens.dart';
@@ -6,19 +7,29 @@ import 'package:nook/games/snake/snake_screen.dart';
 import 'package:nook/games/snake/snake_speed.dart';
 import 'package:nook/games/snake/snake_variant.dart';
 import 'package:nook/l10n/app_localizations.dart';
+import 'package:nook/store/nook_database.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/duo_fixture.dart';
 
 /// Pumps the speed picker straight onto its own page.
-Future<void> _pumpPicker(WidgetTester tester) async {
+///
+/// Wired to a database in memory, because the picker reads each level's best
+/// score out of one; a test that wants a row to show a best passes its own with
+/// a score already recorded.
+Future<void> _pumpPicker(WidgetTester tester, {NookDatabase? database}) async {
   await setPhoneSurface(tester);
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      theme: buildNookTheme(NookColors.softClay),
-      home: const SnakeSpeedPage(variant: SnakeVariant.standard),
+    ProviderScope(
+      overrides: [
+        nookDatabaseProvider.overrideWithValue(database ?? memoryDatabase()),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: buildNookTheme(NookColors.softClay),
+        home: const SnakeSpeedPage(variant: SnakeVariant.standard),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -84,6 +95,35 @@ void main() {
       // The pace the loop will run at is the slower one — the mapping the engine
       // test proves monotonic, tied here to the row that was tapped.
       expect(opened!.tick, greaterThan(SnakeSpeed.frantic.tick));
+    });
+
+    testWidgets('a played speed shows its best score on the row', (
+      WidgetTester tester,
+    ) async {
+      // A best already recorded at the swift level; the other levels have none.
+      final NookDatabase database = memoryDatabase();
+      await tester.runAsync(
+        () => SnakeScoreStore(database).record(
+          level: SnakeSpeed.swift.level,
+          score: 14,
+          at: DateTime.utc(2026, 9, 6),
+        ),
+      );
+
+      await _pumpPicker(tester, database: database);
+
+      // The swift row shows its best...
+      final Finder swiftRow = find.byKey(
+        SnakeSpeedPage.speedKey(SnakeSpeed.swift),
+      );
+      expect(
+        find.descendant(of: swiftRow, matching: find.text(en.snakeBest(14))),
+        findsOneWidget,
+      );
+      // ...and only one row does, because only one speed has been played.
+      expect(find.text(en.snakeBest(14)), findsOneWidget);
+      // A never-played level shows no best line at all.
+      expect(find.textContaining('Best'), findsOneWidget);
     });
   });
 }

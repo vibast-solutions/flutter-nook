@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../l10n/app_localizations.dart';
+import '../../store/nook_database.dart';
 import 'snake_naming.dart';
 import 'snake_screen.dart';
 import 'snake_variant.dart';
@@ -17,7 +19,7 @@ import 'snake_variant.dart';
 /// screen of its own over a Snake-native [SnakeSpeed]. There is no guarantee card
 /// and no in-progress card: Snake keeps no save and makes no promise about the
 /// board it will hand back.
-class SnakeSpeedPage extends StatelessWidget {
+class SnakeSpeedPage extends ConsumerWidget {
   const SnakeSpeedPage({required this.variant, super.key});
 
   /// The Snake variant a speed is being chosen for.
@@ -44,9 +46,13 @@ class SnakeSpeedPage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final NookColors colors = Theme.of(context).nook;
     final AppLocalizations l10n = AppLocalizations.of(context);
+    // The best score at each level, keyed by level. Absent until a run sets one,
+    // so a level with no best simply has no entry.
+    final Map<int, int> bests =
+        ref.watch(snakeScoresProvider).value ?? const <int, int>{};
 
     return Scaffold(
       backgroundColor: colors.sand,
@@ -71,6 +77,7 @@ class SnakeSpeedPage extends StatelessWidget {
                   for (final SnakeSpeed speed in SnakeSpeed.values) ...<Widget>[
                     _SpeedRow(
                       speed: speed,
+                      best: bests[speed.level],
                       onTap: () => _start(context, speed),
                     ),
                     const SizedBox(height: 9),
@@ -135,9 +142,17 @@ class _Header extends StatelessWidget {
 
 /// One speed, and the way into a run at it.
 class _SpeedRow extends StatelessWidget {
-  const _SpeedRow({required this.speed, required this.onTap});
+  const _SpeedRow({
+    required this.speed,
+    required this.best,
+    required this.onTap,
+  });
 
   final SnakeSpeed speed;
+
+  /// The best score reached at this speed, or `null` if it has never been played.
+  final int? best;
+
   final VoidCallback onTap;
 
   @override
@@ -146,9 +161,14 @@ class _SpeedRow extends StatelessWidget {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final String name = speed.label(l10n);
     final String description = speed.blurb(l10n);
+    final int? bestScore = best;
 
     return Semantics(
-      label: l10n.snakeSpeedRowLabel(name, description),
+      // The best rides in the same spoken sentence once there is one, so a
+      // screen reader hears the row's whole story rather than a stray number.
+      label: bestScore == null
+          ? l10n.snakeSpeedRowLabel(name, description)
+          : l10n.snakeSpeedRowLabelBest(name, description, bestScore),
       button: true,
       excludeSemantics: true,
       child: Material(
@@ -177,6 +197,16 @@ class _SpeedRow extends StatelessWidget {
                           description,
                           style: NookType.rowSubtitle(colors.inkMuted),
                         ),
+                        // A speed that has been played talks about the player's
+                        // best there too; one that has not stays silent, the way
+                        // a difficulty row does before its first solve.
+                        if (bestScore != null) ...<Widget>[
+                          const SizedBox(height: 3),
+                          Text(
+                            l10n.snakeBest(bestScore),
+                            style: NookType.rowSubtitle(colors.clay),
+                          ),
+                        ],
                       ],
                     ),
                   ),
