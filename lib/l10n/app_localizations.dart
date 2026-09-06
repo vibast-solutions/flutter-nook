@@ -1148,6 +1148,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Swipe in the direction you want to go, or use the arrow keys or W, A, S and D. The snake cannot turn straight back on itself.'**
   String get snakeRulesInteraction;
+
+  /// Header of the speed picker shown before a Snake run. The game's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Snake'**
+  String get snakeSpeedTitle;
+
+  /// Heading above the list of speeds on the picker. Upper case in English by design.
+  ///
+  /// In en, this message translates to:
+  /// **'CHOOSE A SPEED'**
+  String get snakeSpeedHeading;
+
+  /// The line under the picker heading, explaining that speed sets a constant pace and is a preference, not a difficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'The snake keeps this pace for the whole run — it never speeds up as it grows. Faster is a shorter fuse, not a harder puzzle.'**
+  String get snakeSpeedBlurb;
+
+  /// Name of the slowest Snake speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed'**
+  String get snakeSpeedRelaxed;
+
+  /// Name of the second-slowest Snake speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Steady'**
+  String get snakeSpeedSteady;
+
+  /// Name of the middle Snake speed, the default.
+  ///
+  /// In en, this message translates to:
+  /// **'Brisk'**
+  String get snakeSpeedBrisk;
+
+  /// Name of the second-fastest Snake speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Swift'**
+  String get snakeSpeedSwift;
+
+  /// Name of the fastest Snake speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Frantic'**
+  String get snakeSpeedFrantic;
+
+  /// What the slowest Snake speed feels like to play.
+  ///
+  /// In en, this message translates to:
+  /// **'An unhurried amble, with all the time in the world to think.'**
+  String get snakeSpeedRelaxedBlurb;
+
+  /// What the second-slowest Snake speed feels like to play.
+  ///
+  /// In en, this message translates to:
+  /// **'A gentle, even pace.'**
+  String get snakeSpeedSteadyBlurb;
+
+  /// What the middle Snake speed feels like to play.
+  ///
+  /// In en, this message translates to:
+  /// **'Lively, with room to react.'**
+  String get snakeSpeedBriskBlurb;
+
+  /// What the second-fastest Snake speed feels like to play.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast enough to keep you honest.'**
+  String get snakeSpeedSwiftBlurb;
+
+  /// What the fastest Snake speed feels like to play.
+  ///
+  /// In en, this message translates to:
+  /// **'All-out speed — blink and you\'ll meet a wall.'**
+  String get snakeSpeedFranticBlurb;
+
+  /// Screen-reader label for a speed row on the picker: the speed's name and what it feels like.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}. {description}'**
+  String snakeSpeedRowLabel(String name, String description);
 }
 
 class _AppLocalizationsDelegate
