@@ -309,6 +309,38 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen>
     _inputs.add(direction);
   }
 
+  /// Handles a press of the on-screen d-pad, the gesture-free way to steer. It
+  /// mirrors the keyboard: a press before the run has begun starts it, and every
+  /// press after that is a turn — so Snake is playable by tapping alone, with no
+  /// swipe (VIB-112).
+  void _onDpad(SnakeDirection direction) {
+    if (!_started) {
+      _start();
+      return;
+    }
+    _steer(direction);
+  }
+
+  /// What a screen reader should be told about the board right now, or `null`
+  /// before the run has begun.
+  ///
+  /// The Snake field is one live region rather than a per-cell tree (the board
+  /// rule this story documents as its intentional exception): the meaningful
+  /// events are spoken in words instead. While the snake is alive that is the
+  /// score and its length, which change together on each piece of food eaten; the
+  /// moment it dies it is the final score. A run in play but paused keeps its
+  /// last sentence — the score is not changing — so nothing is re-announced while
+  /// the player is away.
+  String? _spokenState(AppLocalizations l10n) {
+    if (!_started) {
+      return null;
+    }
+    if (_game.isDead) {
+      return l10n.snakeGameOverAnnouncement(_game.score);
+    }
+    return l10n.snakeProgressAnnouncement(_game.score, _game.length);
+  }
+
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
@@ -371,6 +403,10 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen>
       body: SafeArea(
         child: Column(
           children: <Widget>[
+            // The board's spoken commentary — the field as one live region, the
+            // board rule's documented exception — sits above everything so it is
+            // stable across the whole run.
+            _SpokenBoardState(label: _spokenState(l10n)),
             _SnakeHeader(
               title: variant.title(l10n),
               subtitle: _started
@@ -392,7 +428,7 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen>
                   onPanUpdate: _onPanUpdate,
                   onPanEnd: _onPanEnd,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
                     child: _BoardArea(
                       game: _game,
                       started: _started,
@@ -406,6 +442,12 @@ class _SnakeScreenState extends ConsumerState<_SnakeScreen>
                   ),
                 ),
               ),
+            ),
+            // The gesture-free way to steer, so the game is playable without a
+            // swipe. Swiping and the keyboard still work; this is the addition.
+            _SnakeDpad(
+              onDirection: _onDpad,
+              reduceMotion: MediaQuery.disableAnimationsOf(context),
             ),
           ],
         ),
@@ -788,4 +830,156 @@ class _PrimaryButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The board's running commentary for a screen reader, as one live region.
+///
+/// The Snake field is deliberately **not** a per-cell `Semantics` tree — a few
+/// hundred cells changing every tick would be noise rather than information, so
+/// the board carries a single container label ([SnakeBoard]) and the meaningful
+/// events are spoken here in words instead. This is the intentional exception to
+/// Nook's "one Semantics node per cell" board rule, and it is what makes an
+/// arcade field usable with a screen reader: the score and length as they change,
+/// the final score when the run is over.
+///
+/// A `liveRegion` re-announces only when its label changes, so this speaks on
+/// each piece of food eaten and once at game over, and stays silent while the
+/// score holds still — including all the while a run is paused.
+class _SpokenBoardState extends StatelessWidget {
+  const _SpokenBoardState({required this.label});
+
+  /// The sentence to speak, or `null` before the run has begun. The node is kept
+  /// in the tree either way, so its label goes empty → spoken → spoken, each
+  /// change an announcement, rather than appearing and disappearing.
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      label: label ?? '',
+      excludeSemantics: true,
+      child: const SizedBox.shrink(),
+    );
+  }
+}
+
+/// The on-screen direction pad: a full, gesture-free way to steer the snake.
+///
+/// Swiping and the hardware keyboard both still work; this is the alternative
+/// that needs neither, so Snake can be played by tapping alone (VIB-112). Its
+/// four buttons are laid out as a plus, each at least [kMinTapTarget] across,
+/// each labelled for a screen reader, and each coloured from tokens. It carries
+/// no decorative motion of its own — and under reduced motion even the tap
+/// ripple is dropped — so there is nothing here the player asked not to see.
+class _SnakeDpad extends StatelessWidget {
+  const _SnakeDpad({required this.onDirection, required this.reduceMotion});
+
+  /// Called with the direction of the button pressed.
+  final void Function(SnakeDirection direction) onDirection;
+
+  /// Whether the player has asked for reduced motion, in which case the buttons
+  /// give up their tap ripple.
+  final bool reduceMotion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _DpadButton(
+            direction: SnakeDirection.up,
+            icon: Icons.keyboard_arrow_up_rounded,
+            reduceMotion: reduceMotion,
+            onPressed: onDirection,
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _DpadButton(
+                direction: SnakeDirection.left,
+                icon: Icons.keyboard_arrow_left_rounded,
+                reduceMotion: reduceMotion,
+                onPressed: onDirection,
+              ),
+              const SizedBox(width: kMinTapTarget),
+              _DpadButton(
+                direction: SnakeDirection.right,
+                icon: Icons.keyboard_arrow_right_rounded,
+                reduceMotion: reduceMotion,
+                onPressed: onDirection,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          _DpadButton(
+            direction: SnakeDirection.down,
+            icon: Icons.keyboard_arrow_down_rounded,
+            reduceMotion: reduceMotion,
+            onPressed: onDirection,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One button of the [_SnakeDpad].
+class _DpadButton extends StatelessWidget {
+  const _DpadButton({
+    required this.direction,
+    required this.icon,
+    required this.reduceMotion,
+    required this.onPressed,
+  });
+
+  /// The side of the button, comfortably above the 44px floor.
+  static const double _size = kMinTapTarget + 12;
+
+  final SnakeDirection direction;
+  final IconData icon;
+  final bool reduceMotion;
+  final void Function(SnakeDirection direction) onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    return Semantics(
+      label: _label(l10n),
+      button: true,
+      excludeSemantics: true,
+      child: Material(
+        color: colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.all(NookRadius.tile),
+          side: BorderSide(color: colors.line),
+        ),
+        child: InkWell(
+          // Keyed by the direction's name, never a translated word, so a test can
+          // press a button without knowing the player's language.
+          key: ValueKey<String>('snake-dpad-${direction.name}'),
+          borderRadius: const BorderRadius.all(NookRadius.tile),
+          // The ripple is the only motion a button makes; reduced motion drops it.
+          splashFactory: reduceMotion ? NoSplash.splashFactory : null,
+          onTap: () => onPressed(direction),
+          child: SizedBox(
+            width: _size,
+            height: _size,
+            child: Icon(icon, size: 26, color: colors.inkMuted),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _label(AppLocalizations l10n) => switch (direction) {
+    SnakeDirection.up => l10n.snakeSteerUp,
+    SnakeDirection.down => l10n.snakeSteerDown,
+    SnakeDirection.left => l10n.snakeSteerLeft,
+    SnakeDirection.right => l10n.snakeSteerRight,
+  };
 }

@@ -126,4 +126,73 @@ void main() {
       expect(find.textContaining('Best'), findsOneWidget);
     });
   });
+
+  group('the last-used speed', () {
+    testWidgets(
+      'with nothing stored the picker pre-selects the standard speed',
+      (WidgetTester tester) async {
+        await _pumpPicker(tester);
+
+        // The "Last played" marker sits on exactly one row...
+        expect(find.text(en.snakeSpeedLastPlayed), findsOneWidget);
+        // ...and it is the standard (brisk) middle rung, the fallback when the
+        // player has run nothing yet.
+        expect(
+          find.descendant(
+            of: find.byKey(SnakeSpeedPage.speedKey(SnakeSpeed.standard)),
+            matching: find.text(en.snakeSpeedLastPlayed),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('the picker opens on the speed last run at', (
+      WidgetTester tester,
+    ) async {
+      // The player last ran the relaxed speed.
+      final NookDatabase database = memoryDatabase();
+      await tester.runAsync(
+        () =>
+            SnakeSpeedPrefStore(database)
+                .setLastLevel(SnakeSpeed.relaxed.level),
+      );
+
+      await _pumpPicker(tester, database: database);
+
+      // The marker moved to the relaxed row, not the middle.
+      expect(find.text(en.snakeSpeedLastPlayed), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(SnakeSpeedPage.speedKey(SnakeSpeed.relaxed)),
+          matching: find.text(en.snakeSpeedLastPlayed),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('starting a run records its speed as the last used', (
+      WidgetTester tester,
+    ) async {
+      final NookDatabase database = memoryDatabase();
+      await _pumpPicker(tester, database: database);
+
+      // Nothing run yet.
+      expect(
+        await tester.runAsync(() => SnakeSpeedPrefStore(database).lastLevel()),
+        isNull,
+      );
+
+      await tester.tap(find.byKey(SnakeSpeedPage.speedKey(SnakeSpeed.frantic)));
+      await tester.pumpAndSettle();
+
+      // The speed the run started at is remembered — written on run start, so a
+      // player who quits mid-run keeps the preference — and it survives to seed
+      // the next open of the picker.
+      expect(
+        await tester.runAsync(() => SnakeSpeedPrefStore(database).lastLevel()),
+        SnakeSpeed.frantic.level,
+      );
+    });
+  });
 }

@@ -233,6 +233,33 @@ class SnakeScores extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{level};
 }
 
+/// The Snake speed the player last started a run at: a single stored row.
+///
+/// Its own one-row table, keyed on a fixed id the way [DailyStreak] is, because
+/// it holds one durable fact and nothing else — the level of the last run, so
+/// the speed picker can open on it rather than nudging a returning player back
+/// to the middle every time (VIB-112). It is a *preference*, not a score, so it
+/// is kept apart from [SnakeScores]: that table's `updatedAt` only moves on a new
+/// best, which is not the same as "last played".
+///
+/// It speaks in a plain `int` level, not the engine's `SnakeSpeed`, so the store
+/// stays free of any one game's types — the app maps a speed to its level on the
+/// way in and back on the way out. The generated row class is named
+/// `SnakePrefsRow` to leave the noun free.
+@DataClassName('SnakePrefsRow')
+class SnakePrefs extends Table {
+  /// A fixed key: there is only ever one preference row, so every write lands on
+  /// the same one.
+  IntColumn get id => integer().withDefault(const Constant(0))();
+
+  /// The speed level of the most recent run, `1` upward as `SnakeSpeed.level`
+  /// numbers them.
+  IntColumn get lastLevel => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
 /// Everything Nook keeps on the device.
 ///
 /// One database for saves and statistics: they are the same data seen twice —
@@ -246,6 +273,7 @@ class SnakeScores extends Table {
     DailySolves,
     DailyStreak,
     SnakeScores,
+    SnakePrefs,
   ],
 )
 class NookDatabase extends _$NookDatabase {
@@ -267,7 +295,7 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   /// Version 2 added the two hint columns (VIB-76); version 3 the statistics
   /// table (VIB-77); version 4 the nullable `regions` column, which is what
@@ -283,7 +311,10 @@ class NookDatabase extends _$NookDatabase {
   /// streak reads as zero, which is exactly right. Version 8 added the
   /// `snake_scores` table — the best score reached at each Snake speed (VIB-110);
   /// an upgrading player has played no Snake yet, so it starts empty and every
-  /// level's best reads as none until a run sets one.
+  /// level's best reads as none until a run sets one. Version 9 added the
+  /// `snake_prefs` table — the single row remembering the speed of the last
+  /// Snake run (VIB-112); an upgrading player has started no run, so it stays
+  /// empty and the speed picker falls back to the standard speed.
   ///
   /// A save from version 1 is a puzzle nobody was helped with, which is
   /// exactly what the column defaults say. A player who arrives at version 3
@@ -320,6 +351,9 @@ class NookDatabase extends _$NookDatabase {
         }
         if (from < 8) {
           await m.createTable(snakeScores);
+        }
+        if (from < 9) {
+          await m.createTable(snakePrefs);
         }
       },
     );
@@ -752,6 +786,57 @@ class SnakeScoreStore {
   }
 }
 
+/// Reading and writing the Snake speed the player last ran at.
+///
+/// Its own tiny store over the one-row [SnakePrefs] table, the way [DailyStore]
+/// owns the streak: the picker reads the last level to open on it, and a run
+/// writes it as it starts. Like every other store here it speaks in a plain
+/// `int` level, never the engine's `SnakeSpeed`, so `lib/store/` stays free of
+/// any one game's types.
+class SnakeSpeedPrefStore {
+  const SnakeSpeedPrefStore(this._db);
+
+  final NookDatabase _db;
+
+  /// The fixed key the single preference row occupies.
+  static const int _rowId = 0;
+
+  /// The level of the last run, or `null` if no run has been started yet — the
+  /// picker's cue to fall back to the standard speed.
+  Future<int?> lastLevel() async {
+    final SnakePrefsRow? row = await _db
+        .select(_db.snakePrefs)
+        .getSingleOrNull();
+    return row?.lastLevel;
+  }
+
+  /// The last level, recomputed whenever it changes, so the picker opens on the
+  /// current preference and follows a change made while it is on screen.
+  Stream<int?> watchLastLevel() {
+    return _db
+        .select(_db.snakePrefs)
+        .watchSingleOrNull()
+        .map((SnakePrefsRow? row) => row?.lastLevel);
+  }
+
+  /// Records [level] as the speed of the most recent run, replacing whatever was
+  /// there. Written when a run starts, not when it ends: a player who quits
+  /// mid-run still expressed a preference by choosing that speed.
+  Future<void> setLastLevel(int level) {
+    return _db
+        .into(_db.snakePrefs)
+        .insertOnConflictUpdate(
+          // The key is written explicitly rather than left to default: an
+          // integer primary key is SQLite's rowid, and an absent value makes it
+          // auto-increment rather than replace the one row there is.
+          SnakePrefsCompanion.insert(
+            id: const Value<int>(_rowId),
+            lastLevel: level,
+          ),
+        );
+  }
+}
+
 /// A calendar date as `yyyy-MM-dd`, from its day fields alone.
 ///
 /// Only the year, month and day are read, so the same key comes out whether the
@@ -863,6 +948,22 @@ final StreamProvider<Map<int, int>> snakeScoresProvider =
       (Ref ref) => ref.watch(snakeScoreStoreProvider).watchBests(),
       name: 'snakeScores',
     );
+
+/// The Snake speed preference, read and written.
+final Provider<SnakeSpeedPrefStore> snakeSpeedPrefStoreProvider =
+    Provider<SnakeSpeedPrefStore>(
+      (Ref ref) => SnakeSpeedPrefStore(ref.watch(nookDatabaseProvider)),
+      name: 'snakeSpeedPrefStore',
+    );
+
+/// The level of the last Snake run, or `null` before any run has started.
+///
+/// The speed picker watches this to open on the speed the player last used; a
+/// run writes it as it begins. Null means fall back to the standard speed.
+final StreamProvider<int?> snakeLastLevelProvider = StreamProvider<int?>(
+  (Ref ref) => ref.watch(snakeSpeedPrefStoreProvider).watchLastLevel(),
+  name: 'snakeLastLevel',
+);
 
 /// A list of small integers, as one text column.
 class _DigitsConverter extends TypeConverter<List<int>, String> {

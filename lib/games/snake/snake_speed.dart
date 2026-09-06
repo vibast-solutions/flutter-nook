@@ -39,9 +39,14 @@ class SnakeSpeedPage extends ConsumerWidget {
   static Key speedKey(SnakeSpeed speed) =>
       ValueKey<String>('snake-speed-${speed.name}');
 
-  /// Opens a run at the chosen speed. The picker stays underneath, so leaving
-  /// the game returns here rather than all the way home.
-  void _start(BuildContext context, SnakeSpeed speed) {
+  /// Opens a run at the chosen speed, remembering it as the last-used speed so
+  /// the picker opens on it next time. The write happens as the run starts, not
+  /// when it ends: choosing a speed is the preference, whatever the run does.
+  ///
+  /// The picker stays underneath, so leaving the game returns here rather than
+  /// all the way home.
+  void _start(BuildContext context, WidgetRef ref, SnakeSpeed speed) {
+    ref.read(snakeSpeedPrefStoreProvider).setLastLevel(speed.level);
     Navigator.of(context).push(SnakeGamePage.route(variant, speed: speed));
   }
 
@@ -53,6 +58,10 @@ class SnakeSpeedPage extends ConsumerWidget {
     // so a level with no best simply has no entry.
     final Map<int, int> bests =
         ref.watch(snakeScoresProvider).value ?? const <int, int>{};
+    // The speed to open on: the one the player last ran at, or the standard
+    // middle rung when nothing has been played yet.
+    final int selectedLevel =
+        ref.watch(snakeLastLevelProvider).value ?? SnakeSpeed.standard.level;
 
     return Scaffold(
       backgroundColor: colors.sand,
@@ -78,7 +87,8 @@ class SnakeSpeedPage extends ConsumerWidget {
                     _SpeedRow(
                       speed: speed,
                       best: bests[speed.level],
-                      onTap: () => _start(context, speed),
+                      selected: speed.level == selectedLevel,
+                      onTap: () => _start(context, ref, speed),
                     ),
                     const SizedBox(height: 9),
                   ],
@@ -145,6 +155,7 @@ class _SpeedRow extends StatelessWidget {
   const _SpeedRow({
     required this.speed,
     required this.best,
+    required this.selected,
     required this.onTap,
   });
 
@@ -152,6 +163,12 @@ class _SpeedRow extends StatelessWidget {
 
   /// The best score reached at this speed, or `null` if it has never been played.
   final int? best;
+
+  /// Whether this is the speed the picker opens on — the one the player last ran
+  /// at, or the standard speed before any run. It carries a "Last played" marker
+  /// and a heavier border so the pre-selection reads without relying on colour,
+  /// takes the initial focus, and tells a screen reader it is selected.
+  final bool selected;
 
   final VoidCallback onTap;
 
@@ -170,17 +187,28 @@ class _SpeedRow extends StatelessWidget {
           ? l10n.snakeSpeedRowLabel(name, description)
           : l10n.snakeSpeedRowLabelBest(name, description, bestScore),
       button: true,
+      // The pre-selected row is spoken as selected — a screen reader's own copy
+      // of the marker and border a sighted player sees.
+      selected: selected,
       excludeSemantics: true,
       child: Material(
         key: SnakeSpeedPage.speedKey(speed),
         color: colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(NookRadius.row),
-          side: BorderSide(color: colors.line),
+          // The selected row is walled off by a heavier rule in the same colour
+          // the meter and best use, so the pre-selection is a shape (a thicker
+          // border plus the marker below), never a hue alone.
+          side: selected
+              ? BorderSide(color: colors.clay, width: 2)
+              : BorderSide(color: colors.line),
         ),
         child: InkWell(
           borderRadius: const BorderRadius.all(NookRadius.row),
           onTap: onTap,
+          // The pre-selected row takes focus as the picker opens, so a keyboard
+          // or switch lands on the speed the player last used.
+          autofocus: selected,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: kMinTapTarget + 10),
             child: Padding(
@@ -191,7 +219,22 @@ class _SpeedRow extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(name, style: NookType.rowTitle(colors.ink)),
+                        Row(
+                          children: <Widget>[
+                            Flexible(
+                              child: Text(
+                                name,
+                                style: NookType.rowTitle(colors.ink),
+                              ),
+                            ),
+                            // The word that carries the pre-selection to a
+                            // sighted player, so it never rides on colour alone.
+                            if (selected) ...<Widget>[
+                              const SizedBox(width: 8),
+                              _LastPlayedTag(label: l10n.snakeSpeedLastPlayed),
+                            ],
+                          ],
+                        ),
                         const SizedBox(height: 3),
                         Text(
                           description,
@@ -223,6 +266,32 @@ class _SpeedRow extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The small "Last played" marker on the pre-selected speed row.
+///
+/// A pill in the clay the row's border and best use, its text
+/// [ExcludeSemantics] because the row already tells a screen reader it is
+/// selected — the tag is the sighted player's copy of that.
+class _LastPlayedTag extends StatelessWidget {
+  const _LastPlayedTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final NookColors colors = Theme.of(context).nook;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.claySoft,
+        borderRadius: const BorderRadius.all(NookRadius.tile),
+      ),
+      child: ExcludeSemantics(
+        child: Text(label, style: NookType.sectionLabel(colors.clay)),
       ),
     );
   }

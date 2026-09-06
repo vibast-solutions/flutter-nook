@@ -264,6 +264,105 @@ void main() {
     );
   });
 
+  group('accessibility', () {
+    testWidgets('the board speaks its score and length, then the final score', (
+      WidgetTester tester,
+    ) async {
+      await _pumpSnake(tester);
+      await _start(tester);
+
+      // The field is one live region (the board rule's documented exception): as
+      // the run begins it speaks the score and the snake's length, in arb words.
+      expect(
+        find.bySemanticsLabel(en.snakeProgressAnnouncement(0, 3)),
+        findsOneWidget,
+      );
+
+      await _crashIntoWall(tester);
+
+      // On death the same region gives the run's final score in words — nothing
+      // rides on the game-over card's colour or motion alone.
+      expect(
+        find.bySemanticsLabel(en.snakeGameOverAnnouncement(0)),
+        findsOneWidget,
+      );
+
+      await _teardown(tester);
+    });
+
+    testWidgets('the d-pad plays a whole run, no swipe needed', (
+      WidgetTester tester,
+    ) async {
+      await _pumpSnake(tester);
+
+      // Starting the run by pressing the d-pad — no board tap, no swipe.
+      await tester.tap(find.bySemanticsLabel(en.snakeSteerUp));
+      await tester.pump();
+      expect(
+        find.text(en.snakeStartCta),
+        findsNothing,
+        reason: 'a d-pad press begins the run, like a key press',
+      );
+
+      // Steering up with the d-pad turns the snake up.
+      await tester.tap(find.bySemanticsLabel(en.snakeSteerUp));
+      final Offset before = _head(tester);
+      await tester.pump(testSpeed.tick);
+      expect(_head(tester).dy, lessThan(before.dy));
+
+      // And the run plays out to its end under the d-pad alone: heading up, it
+      // runs into the top wall and the game-over card appears.
+      for (int i = 0; i < 40 && !tester.any(find.byKey(gameOverKey)); i++) {
+        await tester.pump(testSpeed.tick);
+      }
+      expect(find.byKey(gameOverKey), findsOneWidget);
+      await tester.pumpAndSettle();
+
+      await _teardown(tester);
+    });
+
+    testWidgets('every d-pad button clears the minimum tap target', (
+      WidgetTester tester,
+    ) async {
+      await _pumpSnake(tester);
+
+      for (final String direction in <String>['up', 'down', 'left', 'right']) {
+        final Size size = tester.getSize(
+          find.byKey(ValueKey<String>('snake-dpad-$direction')),
+        );
+        expect(
+          size.width,
+          greaterThanOrEqualTo(kMinTapTarget),
+          reason: 'the $direction button is too narrow to hit',
+        );
+        expect(
+          size.height,
+          greaterThanOrEqualTo(kMinTapTarget),
+          reason: 'the $direction button is too short to hit',
+        );
+      }
+
+      await _teardown(tester);
+    });
+
+    testWidgets('with reduced motion the d-pad still plays', (
+      WidgetTester tester,
+    ) async {
+      await _pumpSnake(tester, reduceMotion: true);
+
+      // Start and steer with the d-pad — the game is fully playable with motion
+      // stripped; the buttons just give up their ripple.
+      await tester.tap(find.bySemanticsLabel(en.snakeSteerUp));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel(en.snakeSteerUp));
+      final Offset before = _head(tester);
+      await tester.pump(testSpeed.tick);
+      expect(_head(tester).dy, lessThan(before.dy));
+
+      await _teardown(tester);
+    });
+  });
+
   group('the best score', () {
     testWidgets(
       'a first run sets the best and is announced in words and a haptic',
