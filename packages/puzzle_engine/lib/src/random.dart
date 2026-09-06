@@ -18,6 +18,16 @@ class PuzzleRandom {
 
   int _state;
 
+  /// The generator's current internal state, a non-zero 32-bit value.
+  ///
+  /// It is exactly what a later `PuzzleRandom(state)` needs to carry on the
+  /// sequence from here: [_sanitise] only masks to 32 bits and lifts a zero to a
+  /// constant, and [_state] is already masked and never zero, so reconstructing
+  /// from it resumes the stream precisely. This is what lets an immutable game
+  /// (Snake) hold a seeded stream as a plain integer and place its next random
+  /// value reproducibly without keeping a mutable generator around.
+  int get state => _state;
+
   static const int _mask32 = 0xFFFFFFFF;
   static const int _range32 = 0x100000000;
 
