@@ -16,9 +16,10 @@ import 'board_frame.dart';
 /// field of a few hundred cells changing every tick is not — it is one live
 /// region, described as a whole. So this board carries a single container label
 /// and no per-cell semantics. The spoken running commentary a screen-reader
-/// player needs (score, length, game over) and an on-screen control that does
-/// not depend on a swipe are added wholesale in VIB-112; this story lays out the
-/// field.
+/// player needs (score, length, game over) is voiced from the screen as one live
+/// region (`_SpokenBoardState` in `snake_screen.dart`, VIB-112), and the on-screen
+/// d-pad that lets the game be played without a swipe lives there too; this file
+/// lays out the field.
 ///
 /// The snake is drawn in [NookColors.clay] and the food in [NookColors.sage] —
 /// two colours Nook already uses for "the player's own" and "something come out
