@@ -2231,6 +2231,202 @@ class SnakeScoresCompanion extends UpdateCompanion<SnakeScoreRow> {
   }
 }
 
+class $SnakePrefsTable extends SnakePrefs
+    with TableInfo<$SnakePrefsTable, SnakePrefsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SnakePrefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastLevelMeta = const VerificationMeta(
+    'lastLevel',
+  );
+  @override
+  late final GeneratedColumn<int> lastLevel = GeneratedColumn<int>(
+    'last_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, lastLevel];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'snake_prefs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SnakePrefsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('last_level')) {
+      context.handle(
+        _lastLevelMeta,
+        lastLevel.isAcceptableOrUnknown(data['last_level']!, _lastLevelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastLevelMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SnakePrefsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SnakePrefsRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      lastLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_level'],
+      )!,
+    );
+  }
+
+  @override
+  $SnakePrefsTable createAlias(String alias) {
+    return $SnakePrefsTable(attachedDatabase, alias);
+  }
+}
+
+class SnakePrefsRow extends DataClass implements Insertable<SnakePrefsRow> {
+  /// A fixed key: there is only ever one preference row, so every write lands on
+  /// the same one.
+  final int id;
+
+  /// The speed level of the most recent run, `1` upward as `SnakeSpeed.level`
+  /// numbers them.
+  final int lastLevel;
+  const SnakePrefsRow({required this.id, required this.lastLevel});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['last_level'] = Variable<int>(lastLevel);
+    return map;
+  }
+
+  SnakePrefsCompanion toCompanion(bool nullToAbsent) {
+    return SnakePrefsCompanion(id: Value(id), lastLevel: Value(lastLevel));
+  }
+
+  factory SnakePrefsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SnakePrefsRow(
+      id: serializer.fromJson<int>(json['id']),
+      lastLevel: serializer.fromJson<int>(json['lastLevel']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'lastLevel': serializer.toJson<int>(lastLevel),
+    };
+  }
+
+  SnakePrefsRow copyWith({int? id, int? lastLevel}) =>
+      SnakePrefsRow(id: id ?? this.id, lastLevel: lastLevel ?? this.lastLevel);
+  SnakePrefsRow copyWithCompanion(SnakePrefsCompanion data) {
+    return SnakePrefsRow(
+      id: data.id.present ? data.id.value : this.id,
+      lastLevel: data.lastLevel.present ? data.lastLevel.value : this.lastLevel,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SnakePrefsRow(')
+          ..write('id: $id, ')
+          ..write('lastLevel: $lastLevel')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, lastLevel);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SnakePrefsRow &&
+          other.id == this.id &&
+          other.lastLevel == this.lastLevel);
+}
+
+class SnakePrefsCompanion extends UpdateCompanion<SnakePrefsRow> {
+  final Value<int> id;
+  final Value<int> lastLevel;
+  const SnakePrefsCompanion({
+    this.id = const Value.absent(),
+    this.lastLevel = const Value.absent(),
+  });
+  SnakePrefsCompanion.insert({
+    this.id = const Value.absent(),
+    required int lastLevel,
+  }) : lastLevel = Value(lastLevel);
+  static Insertable<SnakePrefsRow> custom({
+    Expression<int>? id,
+    Expression<int>? lastLevel,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (lastLevel != null) 'last_level': lastLevel,
+    });
+  }
+
+  SnakePrefsCompanion copyWith({Value<int>? id, Value<int>? lastLevel}) {
+    return SnakePrefsCompanion(
+      id: id ?? this.id,
+      lastLevel: lastLevel ?? this.lastLevel,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (lastLevel.present) {
+      map['last_level'] = Variable<int>(lastLevel.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SnakePrefsCompanion(')
+          ..write('id: $id, ')
+          ..write('lastLevel: $lastLevel')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$NookDatabase extends GeneratedDatabase {
   _$NookDatabase(QueryExecutor e) : super(e);
   $NookDatabaseManager get managers => $NookDatabaseManager(this);
@@ -2240,6 +2436,7 @@ abstract class _$NookDatabase extends GeneratedDatabase {
   late final $DailySolvesTable dailySolves = $DailySolvesTable(this);
   late final $DailyStreakTable dailyStreak = $DailyStreakTable(this);
   late final $SnakeScoresTable snakeScores = $SnakeScoresTable(this);
+  late final $SnakePrefsTable snakePrefs = $SnakePrefsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2251,6 +2448,7 @@ abstract class _$NookDatabase extends GeneratedDatabase {
     dailySolves,
     dailyStreak,
     snakeScores,
+    snakePrefs,
   ];
 }
 
@@ -3460,6 +3658,133 @@ typedef $$SnakeScoresTableProcessedTableManager =
       SnakeScoreRow,
       PrefetchHooks Function()
     >;
+typedef $$SnakePrefsTableCreateCompanionBuilder = SnakePrefsCompanion Function({
+  Value<int> id,
+  required int lastLevel,
+});
+typedef $$SnakePrefsTableUpdateCompanionBuilder = SnakePrefsCompanion Function({
+  Value<int> id,
+  Value<int> lastLevel,
+});
+
+class $$SnakePrefsTableFilterComposer
+    extends Composer<_$NookDatabase, $SnakePrefsTable> {
+  $$SnakePrefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastLevel => $composableBuilder(
+    column: $table.lastLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SnakePrefsTableOrderingComposer
+    extends Composer<_$NookDatabase, $SnakePrefsTable> {
+  $$SnakePrefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastLevel => $composableBuilder(
+    column: $table.lastLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SnakePrefsTableAnnotationComposer
+    extends Composer<_$NookDatabase, $SnakePrefsTable> {
+  $$SnakePrefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get lastLevel =>
+      $composableBuilder(column: $table.lastLevel, builder: (column) => column);
+}
+
+class $$SnakePrefsTableTableManager
+    extends
+        RootTableManager<
+          _$NookDatabase,
+          $SnakePrefsTable,
+          SnakePrefsRow,
+          $$SnakePrefsTableFilterComposer,
+          $$SnakePrefsTableOrderingComposer,
+          $$SnakePrefsTableAnnotationComposer,
+          $$SnakePrefsTableCreateCompanionBuilder,
+          $$SnakePrefsTableUpdateCompanionBuilder,
+          (
+            SnakePrefsRow,
+            BaseReferences<_$NookDatabase, $SnakePrefsTable, SnakePrefsRow>,
+          ),
+          SnakePrefsRow,
+          PrefetchHooks Function()
+        > {
+  $$SnakePrefsTableTableManager(_$NookDatabase db, $SnakePrefsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SnakePrefsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SnakePrefsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SnakePrefsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> lastLevel = const Value.absent(),
+          }) => SnakePrefsCompanion(id: id, lastLevel: lastLevel),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int lastLevel,
+          }) => SnakePrefsCompanion.insert(id: id, lastLevel: lastLevel),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SnakePrefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NookDatabase,
+      $SnakePrefsTable,
+      SnakePrefsRow,
+      $$SnakePrefsTableFilterComposer,
+      $$SnakePrefsTableOrderingComposer,
+      $$SnakePrefsTableAnnotationComposer,
+      $$SnakePrefsTableCreateCompanionBuilder,
+      $$SnakePrefsTableUpdateCompanionBuilder,
+      (
+        SnakePrefsRow,
+        BaseReferences<_$NookDatabase, $SnakePrefsTable, SnakePrefsRow>,
+      ),
+      SnakePrefsRow,
+      PrefetchHooks Function()
+    >;
 
 class $NookDatabaseManager {
   final _$NookDatabase _db;
@@ -3476,4 +3801,6 @@ class $NookDatabaseManager {
       $$DailyStreakTableTableManager(_db, _db.dailyStreak);
   $$SnakeScoresTableTableManager get snakeScores =>
       $$SnakeScoresTableTableManager(_db, _db.snakeScores);
+  $$SnakePrefsTableTableManager get snakePrefs =>
+      $$SnakePrefsTableTableManager(_db, _db.snakePrefs);
 }

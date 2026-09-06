@@ -45,6 +45,8 @@ const Set<String> allowedLiterals = <String>{
   'snake-paused',
   'snake-countdown',
   'snake-speed-',
+  // The on-screen d-pad buttons, keyed by direction name (up/down/left/right).
+  'snake-dpad-',
   'board-action-',
   'board-pace-',
   'difficulty-',
@@ -96,6 +98,7 @@ const Set<String> allowedLiterals = <String>{
   'DailySolveRow',
   'DailyStreakRow',
   'SnakeScoreRow',
+  'SnakePrefsRow',
   // The bundled-pack asset key, with the pack id interpolated into the middle.
   // A file path, never read by a player.
   'assets/packs/.pack.gz',
@@ -151,6 +154,8 @@ const Set<String> allowedLiterals = <String>{
   'dailyStreak',
   'snakeScoreStore',
   'snakeScores',
+  'snakeSpeedPrefStore',
+  'snakeLastLevel',
 
   // ---- Messages for whoever is holding the debugger ------------------------
   // `toString` output.

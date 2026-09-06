@@ -573,6 +573,112 @@ NookDatabase databaseFromVersion7() {
   );
 }
 
+/// The tables exactly as schema version 8 created them: version 7 plus the
+/// `snake_scores` table, and still no `snake_prefs` table — that is what version
+/// 9 added to remember the last-used Snake speed (VIB-112).
+///
+/// An eighth record beside the seven above. A player upgrading to version 9 with
+/// a puzzle in progress, figures to their name, a daily streak going and a Snake
+/// best already set is coming from here, and this is the schema all of them are
+/// sitting in.
+const String version8Tables = '''
+CREATE TABLE saved_games (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  givens TEXT NOT NULL,
+  solution TEXT NOT NULL,
+  cells TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  regions TEXT,
+  badges TEXT,
+  history TEXT NOT NULL,
+  hints TEXT NOT NULL DEFAULT '[]',
+  was_hinted INTEGER NOT NULL DEFAULT 0 CHECK (was_hinted IN (0, 1)),
+  notes_mode INTEGER NOT NULL DEFAULT 0 CHECK (notes_mode IN (0, 1)),
+  elapsed INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (game_id)
+);
+CREATE TABLE statistics (
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  solved INTEGER NOT NULL DEFAULT 0,
+  best_time INTEGER,
+  PRIMARY KEY (game_id, difficulty)
+);
+CREATE TABLE pack_progress (
+  pack_id TEXT NOT NULL,
+  served INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (pack_id)
+);
+CREATE TABLE daily_solves (
+  date TEXT NOT NULL,
+  game_id TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  PRIMARY KEY (date)
+);
+CREATE TABLE daily_streak (
+  id INTEGER NOT NULL DEFAULT 0,
+  count INTEGER NOT NULL DEFAULT 0,
+  last_solved_date TEXT,
+  PRIMARY KEY (id)
+);
+CREATE TABLE snake_scores (
+  level INTEGER NOT NULL,
+  best INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (level)
+);
+''';
+
+/// The same unfinished 4x4, saved by a build that had every table but the Snake
+/// speed preference.
+const String version8SudokuRow = '''
+INSERT INTO saved_games (
+  game_id, difficulty, seed, givens, solution, cells, notes, history,
+  hints, was_hinted, notes_mode, elapsed, updated_at
+) VALUES (
+  'sudoku-mini',
+  'gentle',
+  4242,
+  '[1,0,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1]',
+  '[1,2,0,4,0,0,1,0,0,1,0,0,4,0,0,1]',
+  '[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]',
+  '[]',
+  '[7]',
+  1,
+  0,
+  187000,
+  '2026-09-02T10:30:00.000Z'
+);
+''';
+
+/// A Snake best already set, so the upgrade has one to carry across as well.
+const String version8SnakeScoreRow = '''
+INSERT INTO snake_scores (level, best, updated_at)
+VALUES (3, 15, '2026-09-06T12:00:00.000Z');
+''';
+
+/// A database holding a save and a Snake best under the version 8 schema, opened
+/// through the current app code — so the version 9 migration runs on the way in.
+NookDatabase databaseFromVersion8() {
+  return NookDatabase(
+    DatabaseConnection(
+      NativeDatabase.memory(
+        setup: (dynamic raw) {
+          raw.execute(version8Tables);
+          raw.execute(version8SudokuRow);
+          raw.execute(version8SnakeScoreRow);
+          raw.execute('PRAGMA user_version = 8;');
+        },
+      ),
+      closeStreamsSynchronously: true,
+    ),
+  );
+}
+
 void main() {
   test('a save from before hints survives the upgrade', () async {
     final NookDatabase database = databaseFromVersion1();
@@ -987,4 +1093,39 @@ void main() {
       expect(await store.bestFor(3), 12);
     },
   );
+
+  test('a save, its stats and a Snake best survive the speed-pref upgrade', () async {
+    // The version that added the Snake speed preference (VIB-112) touches nothing
+    // a player already has: a puzzle in progress and a Snake best they set must
+    // both come through the upgrade untouched.
+    final NookDatabase database = databaseFromVersion8();
+    addTearDown(database.close);
+
+    final SavedGame save = (await SavedGameStore(
+      database,
+    ).watchAll().first).single;
+    expect(save.gameId, 'sudoku-mini');
+    expect(save.cells[1], 2);
+    expect(save.hints, <int>[7]);
+    expect(save.wasHinted, isTrue);
+    expect(save.elapsed, const Duration(minutes: 3, seconds: 7));
+
+    // The Snake best the player set came through the upgrade.
+    expect(await SnakeScoreStore(database).bestFor(3), 15);
+  });
+
+  test('and the new snake-prefs row is there, empty, to be set', () async {
+    // The point of the migration: after it runs, the preference exists and starts
+    // at nothing. An upgrading player has started no run under the new build, so
+    // it reads as none — the picker's cue to open on the standard speed — and the
+    // first run sets it.
+    final NookDatabase database = databaseFromVersion8();
+    addTearDown(database.close);
+    final SnakeSpeedPrefStore store = SnakeSpeedPrefStore(database);
+
+    expect(await store.lastLevel(), null);
+
+    await store.setLastLevel(4);
+    expect(await store.lastLevel(), 4);
+  });
 }
