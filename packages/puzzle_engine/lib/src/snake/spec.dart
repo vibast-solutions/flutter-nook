@@ -51,6 +51,65 @@ enum SnakeDirection {
   bool isReverseOf(SnakeDirection other) => other == opposite;
 }
 
+/// How fast the snake travels — a free choice the player makes before a run.
+///
+/// Nameless like every other engine enum: the words a player reads are
+/// translated in the app. The levels are a fixed, ordered ladder from the
+/// slowest ([SnakeSpeed.level] 1) to the fastest ([values] last), and each maps
+/// to the constant interval between the snake's steps, [tick].
+///
+/// **This is not `PuzzleDifficulty`.** A puzzle's difficulty is *measured* — the
+/// solver decides what a grid can be, and a tier a grid cannot make is not
+/// offered. Snake speed is the opposite: a pure preference with nothing to
+/// measure, so it is its own small type rather than a reuse of that ladder.
+///
+/// **The pace is constant for a whole run.** A higher level is a shorter
+/// interval from the first step to the last; the snake does not quicken as it
+/// grows. That keeps the pure layer clock-free — [tick] is a property of the
+/// level alone, read once when the board's loop is set up — and leaves
+/// speed-up-as-you-grow as a later, opt-in idea rather than something baked in
+/// here. The ordering guarantees a higher level is never slower: [tick] is
+/// [_slowestMillis] minus a fixed [_stepMillis] per rung, so it falls with every
+/// step up the ladder and stays comfortably positive at the top.
+enum SnakeSpeed {
+  /// The slowest pace — an unhurried amble.
+  relaxed,
+
+  /// A gentle, even pace.
+  steady,
+
+  /// The middle of the ladder: lively, with room to react. The default.
+  brisk,
+
+  /// A fast pace that keeps the player honest.
+  swift,
+
+  /// The fastest pace on offer.
+  frantic;
+
+  /// The pace a run starts on when the player has expressed no preference — the
+  /// middle rung, neither a crawl nor a sprint.
+  static const SnakeSpeed standard = SnakeSpeed.brisk;
+
+  /// The interval between steps at the slowest level.
+  static const int _slowestMillis = 235;
+
+  /// How much shorter each rung's interval is than the one below it.
+  static const int _stepMillis = 32;
+
+  /// This speed's place on the ladder, `1` (slowest) upward.
+  int get level => index + 1;
+
+  /// The constant interval between the snake's steps at this speed.
+  ///
+  /// Shorter is faster, and it is strictly shorter at every higher level — the
+  /// property [SnakeGame]'s real-time loop reads to pace a run, and the whole of
+  /// the speed→pace mapping. The slowest level is [_slowestMillis]; the fastest
+  /// of five rungs lands at 235 − 4·32 = 107 ms, still a sane frame interval.
+  Duration get tick =>
+      Duration(milliseconds: _slowestMillis - index * _stepMillis);
+}
+
 /// The shape of a Snake board and how a game on it begins.
 ///
 /// A rectangular grid — taller than it is wide, to sit in a phone's portrait
