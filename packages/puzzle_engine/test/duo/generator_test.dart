@@ -130,6 +130,28 @@ void main() {
         );
       }
     });
+
+    test('never draws more signs than the ceiling allows, at every tier', () {
+      // A gentle board used to open with a wall of signs; the per-edge chance is
+      // now lower and capped, so however the rolls fall no board shows signs on
+      // more than a fixed share of its edges. On the 6x6 board (60 edges) that
+      // is 16. Reaching every tier here also proves the lower chances did not
+      // make a tier unreachable — generateAt would throw if they had.
+      final int edgeCount = spec.edges().length;
+      final int ceiling = edgeCount * 28 ~/ 100;
+      for (final PuzzleDifficulty tier in PuzzleDifficulty.values) {
+        for (int seed = 1; seed <= 20; seed++) {
+          final DuoPuzzle puzzle = generator.generateAt(tier, seed);
+          expect(
+            puzzle.badges.length,
+            lessThanOrEqualTo(ceiling),
+            reason:
+                '$tier seed $seed drew ${puzzle.badges.length} signs, '
+                'over the ceiling of $ceiling',
+          );
+        }
+      }
+    });
   });
 
   group('DuoGenerator (giving up)', () {

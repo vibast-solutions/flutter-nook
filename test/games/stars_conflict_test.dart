@@ -154,9 +154,11 @@ void main() {
   });
 
   group('the board shows a breach', () {
-    testWidgets('with a ring as well as a colour', (WidgetTester tester) async {
+    testWidgets('outlines the breaching cell, not only colours it', (
+      WidgetTester tester,
+    ) async {
       // Colour alone would be silent for the players most likely to need it, so
-      // a breach also rings the cell — a shape read without the hue — found
+      // a breach outlines the whole cell — a shape read without the hue — found
       // here as a keyed widget of its own.
       await pumpStarsGame(tester);
 
@@ -209,6 +211,35 @@ void main() {
 
       expect(find.byKey(StarsBoard.breachKey(0)), findsNothing);
       expect(find.byKey(StarsBoard.breachKey(1)), findsNothing);
+    });
+  });
+
+  group('the board names the broken rule under it', () {
+    testWidgets('no rule line when the board is clean', (
+      WidgetTester tester,
+    ) async {
+      await pumpBoard(tester, board(stars: <int>{0}));
+
+      expect(find.text(en.starsBreachRow), findsNothing);
+      expect(find.text(en.starsBreachRegion), findsNothing);
+      expect(find.text(en.starsBreachColumn), findsNothing);
+      expect(find.text(en.starsBreachAdjacent), findsNothing);
+    });
+
+    testWidgets('names the rule that broke, in the conflict colour', (
+      WidgetTester tester,
+    ) async {
+      // Two stars a row apart (cells 0 and 3): different regions and columns and
+      // not touching, so the row is the only rule broken, and the line names it
+      // in the colour the outline is drawn in.
+      await pumpBoard(tester, board(stars: <int>{0, 3}));
+
+      final Finder line = find.text(en.starsBreachRow);
+      expect(line, findsOneWidget);
+      expect(
+        tester.widget<Text>(line).style?.color,
+        NookColors.softClay.conflictLine,
+      );
     });
   });
 

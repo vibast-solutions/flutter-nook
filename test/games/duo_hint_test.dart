@@ -14,18 +14,18 @@ import '../support/duo_fixture.dart';
 
 /// The first symbol the fixture puzzle gives from an untouched board.
 ///
-/// Cell 15 takes a circle across a badge from a filled cell — the deduction the
+/// Cell 9 takes a circle across a badge from a filled cell — the deduction the
 /// technique solver reaches first — so it is the symbol a hint offers before
 /// the player has placed any of their own. It is written out rather than asked
 /// of the solver, so a change to which symbol a hint picks shows up here as a
 /// failing expectation instead of passing quietly.
-const int firstHintCell = 15;
+const int firstHintCell = 9;
 
 /// The symbol [firstHintCell] takes.
 const DuoCell firstHintSymbol = DuoCell.circle;
 
 /// The next cell the solver reaches, once [firstHintCell] is down.
-const int secondHintCell = 14;
+const int secondHintCell = 8;
 
 /// A free cell of the fixture puzzle whose solution is a circle, so a square
 /// there is a wrong entry — and its wrongness is invisible to the rules, which

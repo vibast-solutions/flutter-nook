@@ -261,6 +261,30 @@ abstract class AppLocalizations {
   /// **'Tap once to rule out, twice for a star'**
   String get starsInstruction;
 
+  /// The line shown under the Stars board when two stars sit in neighbouring cells, including diagonally. Names the rule for the eye; a screen reader hears it from the breaching star.
+  ///
+  /// In en, this message translates to:
+  /// **'Two stars are touching'**
+  String get starsBreachAdjacent;
+
+  /// The line shown under the Stars board when a region holds more than one star. Names the rule for the eye.
+  ///
+  /// In en, this message translates to:
+  /// **'Two stars share a region'**
+  String get starsBreachRegion;
+
+  /// The line shown under the Stars board when a row holds more than one star. Names the rule for the eye.
+  ///
+  /// In en, this message translates to:
+  /// **'Two stars share a row'**
+  String get starsBreachRow;
+
+  /// The line shown under the Stars board when a column holds more than one star. Names the rule for the eye.
+  ///
+  /// In en, this message translates to:
+  /// **'Two stars share a column'**
+  String get starsBreachColumn;
+
   /// The running count above the Stars board: how many stars are placed out of how many a finished board holds. A star icon sits before it.
   ///
   /// In en, this message translates to:
@@ -302,6 +326,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap a cell for a circle, again for a square'**
   String get duoInstruction;
+
+  /// The line shown under the Duo board when the board is breaking the no-three-in-a-row rule: three or more of the same symbol run together in a row or column. Names the rule for the eye; a screen reader hears it from the breaching cell.
+  ///
+  /// In en, this message translates to:
+  /// **'Three of the same symbol in a line'**
+  String get duoBreachTriple;
+
+  /// The line shown under the Duo board when a row or column already holds more of one symbol than a balanced line can — it can never reach an equal number of each. Names the rule for the eye.
+  ///
+  /// In en, this message translates to:
+  /// **'A line has too many of one symbol'**
+  String get duoBreachBalance;
+
+  /// The line shown under the Duo board when an =/x sign on the edge between two cells is contradicted — an = whose cells differ, or an x whose cells match. Names the rule for the eye.
+  ///
+  /// In en, this message translates to:
+  /// **'A sign between two cells is broken'**
+  String get duoBreachBadge;
 
   /// Screen-reader label for the legend below the Duo board, which explains the two symbols and the two badges.
   ///

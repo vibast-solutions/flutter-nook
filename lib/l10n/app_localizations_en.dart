@@ -162,6 +162,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get starsInstruction => 'Tap once to rule out, twice for a star';
 
   @override
+  String get starsBreachAdjacent => 'Two stars are touching';
+
+  @override
+  String get starsBreachRegion => 'Two stars share a region';
+
+  @override
+  String get starsBreachRow => 'Two stars share a row';
+
+  @override
+  String get starsBreachColumn => 'Two stars share a column';
+
+  @override
   String starsCounter(int placed, int target) {
     return '$placed of $target';
   }
@@ -185,6 +197,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get duoInstruction => 'Tap a cell for a circle, again for a square';
+
+  @override
+  String get duoBreachTriple => 'Three of the same symbol in a line';
+
+  @override
+  String get duoBreachBalance => 'A line has too many of one symbol';
+
+  @override
+  String get duoBreachBadge => 'A sign between two cells is broken';
 
   @override
   String get duoLegendLabel =>

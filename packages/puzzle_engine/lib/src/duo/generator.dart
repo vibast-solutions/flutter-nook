@@ -84,7 +84,21 @@ class DuoGenerator {
   ///
   /// Enough badges to give the simple techniques a foothold on most grids, few
   /// enough to leave a puzzle worth solving. [generateAt] varies this by tier.
-  static const int _badgePercent = 32;
+  static const int _badgePercent = 26;
+
+  /// The most signs a Duo board will ever show, as a percentage of its edges —
+  /// a hard ceiling on top of the per-tier chance below.
+  ///
+  /// The per-edge chance is a *bias*; on a lucky roll it can still crowd the
+  /// board. A wall of `=`/`x` signs reads as noise rather than as clues, and it
+  /// was worst at the gentle end, where the chance is highest. So however the
+  /// rolls fall, no board carries signs on more than this share of its edges —
+  /// on the 6x6 standard board (60 edges) that is at most 16 signs. When a roll
+  /// overshoots, a random subset is kept, so no corner of the board is favoured.
+  /// Fewer signs lean the solve onto givens, which is the intended trade: a
+  /// gentler board shows more symbols already placed and fewer signs between
+  /// them (VIB-105 board-feedback follow-up).
+  static const int _badgeCeilingPercent = 28;
 
   /// Generates the puzzle for [seed], as hard as it happens to fall, and labels
   /// it with the tier the technique solver measures.
@@ -242,13 +256,13 @@ class DuoGenerator {
   int _badgePercentFor(PuzzleDifficulty target) {
     switch (target) {
       case PuzzleDifficulty.gentle:
-        return 55;
+        return 26;
       case PuzzleDifficulty.easy:
-        return 42;
-      case PuzzleDifficulty.medium:
-        return 30;
-      case PuzzleDifficulty.hard:
         return 22;
+      case PuzzleDifficulty.medium:
+        return 20;
+      case PuzzleDifficulty.hard:
+        return 18;
       case PuzzleDifficulty.fiendish:
         return 14;
     }
@@ -323,23 +337,38 @@ class DuoGenerator {
 
   /// Places a badge on a random subset of edges — each edge taken with
   /// probability [percent] — reading the relation the finished grid already has
-  /// across it.
+  /// across it, and never more than [_badgeCeilingPercent] of the edges.
   List<DuoBadge> _scatterBadges(
     List<DuoSymbol> solution,
     PuzzleRandom random,
     int percent,
   ) {
-    final List<DuoBadge> badges = <DuoBadge>[];
-    for (final (int, int) edge in spec.edges()) {
+    final List<(int, int)> edges = spec.edges().toList();
+    final List<(int, int)> chosen = <(int, int)>[];
+    for (final (int, int) edge in edges) {
       if (random.nextInt(100) >= percent) {
         continue;
       }
-      final DuoRelation relation = solution[edge.$1] == solution[edge.$2]
-          ? DuoRelation.equal
-          : DuoRelation.unequal;
-      badges.add(DuoBadge(a: edge.$1, b: edge.$2, relation: relation));
+      chosen.add(edge);
     }
-    return badges;
+    // Hold the sign count under the ceiling however the rolls fell. Keeping a
+    // shuffled prefix trims to a random subset, so the ceiling never favours the
+    // edges the walk happens to reach first.
+    final int maxBadges = edges.length * _badgeCeilingPercent ~/ 100;
+    if (chosen.length > maxBadges) {
+      random.shuffle(chosen);
+      chosen.length = maxBadges;
+    }
+    return <DuoBadge>[
+      for (final (int, int) edge in chosen)
+        DuoBadge(
+          a: edge.$1,
+          b: edge.$2,
+          relation: solution[edge.$1] == solution[edge.$2]
+              ? DuoRelation.equal
+              : DuoRelation.unequal,
+        ),
+    ];
   }
 
   /// Empties as many cells as can be spared while [badges] and the givens still

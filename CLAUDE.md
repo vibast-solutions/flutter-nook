@@ -79,13 +79,27 @@ assets/packs/             generated starter packs (regenerated, never hand-edite
 - **Colour never carries a meaning by itself.** A conflicting cell is marked
   by shape as well as by colour, so the board is readable without reading
   colour: Sudoku hatches the cell (`ConflictHatch`) as well as washing it, and
-  Stars and Duo turn the cell pale red (`cellConflict`) and ring it in the
-  `conflictLine`, the ring being the shape a player reads without the hue —
-  Stars because a hatch bled into the coloured cell next door and looked broken,
-  Duo because a cell already carrying a circle or a square, a badge on its edges
-  and sometimes a hint's ink had no room for a texture on top (both polish,
-  2026-09; the ring stays inside the cell's own bounds either way). Either way a
-  screen reader still names the rule that broke.
+  Stars and Duo **outline the whole cell** in the `conflictLine` — the box itself
+  going red — with the shared `BreachOutline` widget (`lib/board/breach_mark.dart`).
+  It is a full four-sided border, heavier than the grid's hairlines, drawn over
+  a bare cell (no wash): so the outline is the shape read without the hue, a
+  Stars region colour or a selected Duo cell still shows through underneath, and
+  the mark stays inside the cell's own bounds rather than bleeding into the
+  neighbour the way a hatch did. This replaced an inset ring-with-wash that read
+  as a frame around the *symbol* rather than the cell going wrong (board-feedback
+  follow-up, 2026-09). Sudoku keeps its hatch — a hatch over a bare digit reads
+  cleanly where over Duo's circles, squares and badges it did not.
+- **The broken rule is named under the board, not only to a screen reader.**
+  Stars and Duo print a quiet line in the `conflictLine` colour under the board
+  (`BreachCaption`, `lib/board/breach_mark.dart`) naming the rule the board is
+  breaking — the sighted player's copy of the sentence the breaching cell already
+  gives a screen reader (so the caption is `ExcludeSemantics`, never voiced
+  twice). It reads from the same marked set the outlines do — so for Duo it waits
+  out `breachDelay` with them and clears the instant the board is clean — and it
+  keeps its line height when empty, so the controls below never jump as a breach
+  comes and goes. Sudoku has no such line: its conflicts (two of a digit in a
+  unit) are self-evident where Stars' and Duo's rules are not. The message is the
+  most specific breach among the marked cells.
 - **A Duo breach waits two seconds before it is shown — Duo alone.** A Duo cell
   cycles empty → circle → square → empty, so the only way to a square is through
   a circle; a circle that lives for a moment where it would complete a run would
@@ -104,6 +118,17 @@ assets/packs/             generated starter packs (regenerated, never hand-edite
   a grace period: it is the board declining to react to a value the player is
   still passing through. Sudoku and Stars place a value in one tap, pass through
   nothing, and have no such delay.
+- **A Duo board leans on placed symbols, not a field of signs.** The generator
+  scatters `=`/`x` signs per edge by a per-tier chance (`_badgePercentFor`), and
+  a harder tier uses fewer so the solve leans on deduction; but the count is now
+  held under a hard ceiling — `_badgeCeilingPercent` of the board's edges (28%,
+  ≤16 signs on the 6x6 standard), a random subset kept when a roll overshoots.
+  Fewer signs push the rating loop to keep more givens, so a gentler board shows
+  more symbols already placed and fewer signs between them, rather than the dense
+  wall of clues the gentle tier used to open with (board-feedback follow-up,
+  2026-09). The tier a puzzle is labelled is still *measured* off the solve, never
+  assumed from the counts, so lowering the chances only changes how the board
+  looks, never what "gentle" means.
 - **Motion is optional and the words are not.** Anything that moves — the
   completed-unit pulse, the cross a hint draws over a wrong digit, the hint
   control's colour wiping back in — checks `MediaQuery.disableAnimations` and
