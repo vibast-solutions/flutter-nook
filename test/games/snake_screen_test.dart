@@ -157,6 +157,113 @@ void main() {
     });
   });
 
+  group('pause and lifecycle', () {
+    testWidgets('the pause control stops the loop, and resuming restarts it', (
+      WidgetTester tester,
+    ) async {
+      await _pumpSnake(tester);
+      await _start(tester);
+      await tester.pump(testSpeed.tick);
+
+      // Pause: the panel comes up and the pause control gives way.
+      await tester.tap(find.bySemanticsLabel(en.snakePause));
+      await tester.pump();
+      expect(find.text(en.snakePaused), findsOneWidget);
+      expect(find.bySemanticsLabel(en.snakePause), findsNothing);
+
+      // The loop is verifiably stopped: many ticks pass and the head holds still.
+      final Offset held = _head(tester);
+      await tester.pump(testSpeed.tick * 10);
+      expect(_head(tester), held, reason: 'a paused snake does not move');
+
+      // Resume: a countdown runs, decorated on its way (motion is on here).
+      await tester.tap(find.text(en.snakeResume));
+      await tester.pump();
+      expect(find.text('3'), findsOneWidget);
+      expect(find.byType(AnimatedSwitcher), findsOneWidget);
+      await _runCountdown(tester);
+
+      // Live again: the next tick advances the snake.
+      expect(find.text(en.snakePaused), findsNothing);
+      final Offset before = _head(tester);
+      await tester.pump(testSpeed.tick);
+      expect(_head(tester).dx, greaterThan(before.dx));
+
+      await _teardown(tester);
+    });
+
+    testWidgets('backgrounding pauses with no death, foreground resumes', (
+      WidgetTester tester,
+    ) async {
+      await _pumpSnake(tester);
+      await _start(tester);
+
+      // Point the snake at the top wall and take one step toward it.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump(testSpeed.tick);
+
+      // Send the app away before it could reach the wall.
+      await _background(tester);
+      expect(find.text(en.snakePaused), findsOneWidget);
+
+      // Far longer than a run into the wall would take: still alive, still still.
+      final Offset whileAway = _head(tester);
+      await tester.pump(testSpeed.tick * 100);
+      expect(
+        find.byKey(gameOverKey),
+        findsNothing,
+        reason: 'the snake cannot die while the app is backgrounded',
+      );
+      expect(_head(tester), whileAway, reason: 'nothing moved while away');
+
+      // Returning resumes via a countdown, not straight back into motion.
+      await _foreground(tester);
+      expect(find.text('3'), findsOneWidget);
+      await _runCountdown(tester);
+
+      final Offset before = _head(tester);
+      await tester.pump(testSpeed.tick);
+      expect(
+        _head(tester).dy,
+        lessThan(before.dy),
+        reason: 'the run carries on where it left off, heading up',
+      );
+
+      await _teardown(tester);
+    });
+
+    testWidgets(
+      'with reduced motion the countdown flourish is gone but play is not',
+      (WidgetTester tester) async {
+        await _pumpSnake(tester, reduceMotion: true);
+        await _start(tester);
+        await tester.pump(testSpeed.tick);
+
+        await tester.tap(find.bySemanticsLabel(en.snakePause));
+        await tester.pump();
+        await tester.tap(find.text(en.snakeResume));
+        await tester.pump();
+
+        // The count is shown — it is the message — but it does not animate.
+        expect(find.text('3'), findsOneWidget);
+        expect(
+          find.byType(AnimatedSwitcher),
+          findsNothing,
+          reason: 'the countdown pop is decoration and is dropped',
+        );
+
+        // And the game is fully playable: it counts down and then steers.
+        await _runCountdown(tester);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        final Offset before = _head(tester);
+        await tester.pump(testSpeed.tick);
+        expect(_head(tester).dy, lessThan(before.dy));
+
+        await _teardown(tester);
+      },
+    );
+  });
+
   group('the best score', () {
     testWidgets(
       'a first run sets the best and is announced in words and a haptic',
@@ -244,6 +351,29 @@ void main() {
   });
 }
 
+/// Sends the app to the background, through the states the platform would.
+Future<void> _background(WidgetTester tester) async {
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+  await tester.pump();
+}
+
+/// Brings the app back to the foreground, through the states the platform would.
+Future<void> _foreground(WidgetTester tester) async {
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+  await tester.pump();
+}
+
+/// Runs the resume countdown to its end, so play is live again afterwards.
+Future<void> _runCountdown(WidgetTester tester) async {
+  for (int i = 0; i < 3; i++) {
+    await tester.pump(const Duration(seconds: 1));
+  }
+}
+
 /// Captures the platform haptic calls the screen makes, so a test can say
 /// whether a new best buzzed.
 List<MethodCall> _captureHaptics(WidgetTester tester) {
@@ -286,6 +416,7 @@ Future<void> _pumpSnake(
   WidgetTester tester, {
   int seed = 123,
   NookDatabase? database,
+  bool reduceMotion = false,
 }) async {
   await setPhoneSurface(tester);
   await tester.pumpWidget(
@@ -297,11 +428,25 @@ Future<void> _pumpSnake(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: buildNookTheme(NookColors.softClay),
-        home: SnakeGamePage(
-          variant: SnakeVariant.standard,
-          speed: testSpeed,
-          seed: seed,
-        ),
+        home: reduceMotion
+            ? Builder(
+                builder: (BuildContext context) => MediaQuery(
+                  // The player has asked for reduced motion: decoration must go,
+                  // the game must not.
+                  data: MediaQuery.of(context)
+                      .copyWith(disableAnimations: true),
+                  child: SnakeGamePage(
+                    variant: SnakeVariant.standard,
+                    speed: testSpeed,
+                    seed: seed,
+                  ),
+                ),
+              )
+            : SnakeGamePage(
+                variant: SnakeVariant.standard,
+                speed: testSpeed,
+                seed: seed,
+              ),
       ),
     ),
   );

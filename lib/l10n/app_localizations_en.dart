@@ -818,4 +818,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get snakeNewBest => 'New best!';
+
+  @override
+  String get snakePause => 'Pause';
+
+  @override
+  String get snakePaused => 'Paused';
+
+  @override
+  String get snakeResume => 'Resume';
+
+  @override
+  String snakeResumeCountdown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Resuming in $count',
+    );
+    return '$_temp0';
+  }
 }

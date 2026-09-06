@@ -876,5 +876,18 @@
     }
   },
   "snakeNewBest": "New best!",
-  "@snakeNewBest": { "description": "Announced on the game-over card when a run beats the best score kept for its speed." }
+  "@snakeNewBest": { "description": "Announced on the game-over card when a run beats the best score kept for its speed." },
+  "snakePause": "Pause",
+  "@snakePause": { "description": "Screen-reader label for the control that pauses a Snake run." },
+  "snakePaused": "Paused",
+  "@snakePaused": { "description": "Title on the panel shown while a Snake run is paused." },
+  "snakeResume": "Resume",
+  "@snakeResume": { "description": "Button on the paused panel that starts the snake moving again, after a short countdown." },
+  "snakeResumeCountdown": "{count, plural, other{Resuming in {count}}}",
+  "@snakeResumeCountdown": {
+    "description": "Screen-reader label for the resume countdown shown before play starts again; the number counts down to the run resuming.",
+    "placeholders": {
+      "count": { "type": "int", "example": "3" }
+    }
+  }
 }
