@@ -218,19 +218,21 @@ void main() {
   });
 
   group('the board shows a breach', () {
-    testWidgets('with a ring as well as a colour', (WidgetTester tester) async {
+    testWidgets('outlines the breaching cell, not only colours it', (
+      WidgetTester tester,
+    ) async {
       // Colour alone would be silent for the players most likely to need it, so
-      // a breach also rings the cell — a shape read without the hue — found here
-      // as a keyed widget of its own, the wash's colour ignored entirely. The
-      // board is built with the run already on it, so the ring is shown at once
-      // rather than waiting out the delay.
+      // a breach outlines the whole cell — a shape read without the hue — found
+      // here as a keyed widget of its own. The board is built with the run
+      // already on it, so the outline is shown at once rather than waiting out
+      // the delay.
       await pumpBoard(tester, board(circles: <int>{0, 1, 2}));
 
       for (final int index in <int>[0, 1, 2]) {
         expect(
           find.byKey(DuoBoard.breachKey(index)),
           findsOneWidget,
-          reason: 'cell $index of the run should be ringed',
+          reason: 'cell $index of the run should be outlined',
         );
       }
       expect(find.byKey(DuoBoard.breachKey(3)), findsNothing);
@@ -358,6 +360,52 @@ void main() {
       for (final int index in <int>[0, 1, 2]) {
         expect(find.byKey(DuoBoard.breachKey(index)), findsNothing);
       }
+    });
+  });
+
+  group('the board names the broken rule under it', () {
+    testWidgets('no rule line when the board is clean', (
+      WidgetTester tester,
+    ) async {
+      await pumpBoard(tester, board(circles: <int>{0}));
+
+      expect(find.text(en.duoBreachTriple), findsNothing);
+      expect(find.text(en.duoBreachBalance), findsNothing);
+      expect(find.text(en.duoBreachBadge), findsNothing);
+    });
+
+    testWidgets('names the rule that broke, in the conflict colour', (
+      WidgetTester tester,
+    ) async {
+      // A run of three, opened with, so the line is shown at once. It names the
+      // rule and is drawn in the same colour the outline is, so the two read as
+      // one mark.
+      await pumpBoard(tester, board(circles: <int>{0, 1, 2}));
+
+      final Finder line = find.text(en.duoBreachTriple);
+      expect(line, findsOneWidget);
+      expect(
+        tester.widget<Text>(line).style?.color,
+        NookColors.softClay.conflictLine,
+      );
+    });
+
+    testWidgets('the rule line waits out the delay with the outline', (
+      WidgetTester tester,
+    ) async {
+      await pumpDuoGame(tester, puzzle: _runPuzzle());
+      await tapDuoCell(tester, 0);
+      await tapDuoCell(tester, 1);
+      await tapDuoCell(tester, 2);
+
+      // A hair before the wait is over the line is not there — the eye is told
+      // nothing while the outline is still waiting.
+      await tester.pump(DuoBoard.breachDelay - const Duration(milliseconds: 1));
+      expect(find.text(en.duoBreachTriple), findsNothing);
+
+      // It arrives on the same beat as the outline.
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(find.text(en.duoBreachTriple), findsOneWidget);
     });
   });
 

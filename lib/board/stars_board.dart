@@ -7,6 +7,7 @@ import '../design/typography.dart';
 import '../games/stars/stars_state.dart';
 import '../l10n/app_localizations.dart';
 import 'board_frame.dart';
+import 'breach_mark.dart';
 
 /// The texture paired with region [region].
 ///
@@ -75,8 +76,8 @@ class StarsBoard extends StatefulWidget {
   /// The key of the star or dot drawn in the cell at [index], if it holds one.
   static Key markKey(int index) => ValueKey<String>('stars-mark-$index');
 
-  /// The key of the hatch across the cell at [index], drawn when the star it
-  /// holds breaks a rule.
+  /// The key of the red outline around the cell at [index], drawn when the star
+  /// it holds breaks a rule.
   static Key breachKey(int index) => ValueKey<String>('stars-breach-$index');
 
   /// The key of the cross drawn over the cell at [index] as a hint takes a
@@ -150,48 +151,88 @@ class _StarsBoardState extends State<StarsBoard>
     final StarsGameState game = widget.game;
     final int size = game.spec.size;
     final double cell = (edge - StarsBoard.frameWidth * 2) / size;
+    // The rule the breaches are breaking, named under the board — the sighted
+    // player's copy of what a screen reader hears from the breaching star.
+    final StarBreach? bannerBreach = _salientBreach();
 
-    return Semantics(
-      container: true,
-      label: l10n.boardLabel(l10n.starsTitle, size),
-      child: BoardFrameGlow(
-        solved: game.isSolved,
-        child: ClipRect(
-          child: AnimatedBuilder(
-            animation: _removal,
-            builder: (BuildContext context, Widget? child) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                for (int row = 0; row < size; row++)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      for (int column = 0; column < size; column++)
-                        _cellAt(row * size + column, cell),
-                    ],
-                  ),
-              ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Semantics(
+          container: true,
+          label: l10n.boardLabel(l10n.starsTitle, size),
+          child: BoardFrameGlow(
+            solved: game.isSolved,
+            child: ClipRect(
+              child: AnimatedBuilder(
+                animation: _removal,
+                builder: (BuildContext context, Widget? child) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    for (int row = 0; row < size; row++)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          for (int column = 0; column < size; column++)
+                            _cellAt(row * size + column, cell),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
             ),
+            // Square corners, not the rounded board of the other games: the region
+            // fills run right to the edge, so a rounded clip would shave their
+            // corners. A firmer, slightly darker frame gives the board a clear edge.
+            builder:
+                (BuildContext context, List<BoxShadow> shadows, Widget child) =>
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        border: Border.all(
+                          color: colors.inkFaint,
+                          width: StarsBoard.frameWidth,
+                        ),
+                        boxShadow: shadows,
+                      ),
+                      child: child,
+                    ),
           ),
         ),
-        // Square corners, not the rounded board of the other games: the region
-        // fills run right to the edge, so a rounded clip would shave their
-        // corners. A firmer, slightly darker frame gives the board a clear edge.
-        builder:
-            (BuildContext context, List<BoxShadow> shadows, Widget child) =>
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    border: Border.all(
-                      color: colors.inkFaint,
-                      width: StarsBoard.frameWidth,
-                    ),
-                    boxShadow: shadows,
-                  ),
-                  child: child,
-                ),
-      ),
+        BreachCaption(
+          message: bannerBreach == null
+              ? null
+              : _breachMessage(l10n, bannerBreach),
+        ),
+      ],
     );
+  }
+
+  /// The rule to name under the board: the most specific breach among the stars
+  /// currently in breach, or `null` when none are.
+  StarBreach? _salientBreach() {
+    StarBreach? salient;
+    for (final int index in widget.game.breaches) {
+      final StarBreach? breach = widget.game.breachAt(index);
+      if (breach == null) {
+        continue;
+      }
+      if (salient == null || breach.index < salient.index) {
+        salient = breach;
+      }
+    }
+    return salient;
+  }
+
+  /// The one-line rule message for [breach], the sighted player's copy of the
+  /// sentence a screen reader already hears from the breaching star.
+  String _breachMessage(AppLocalizations l10n, StarBreach breach) {
+    return switch (breach) {
+      StarBreach.adjacent => l10n.starsBreachAdjacent,
+      StarBreach.region => l10n.starsBreachRegion,
+      StarBreach.row => l10n.starsBreachRow,
+      StarBreach.column => l10n.starsBreachColumn,
+    };
   }
 
   Widget _cellAt(int index, double extent) {
@@ -278,24 +319,16 @@ class _StarsCell extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: <Widget>[
-              // A breach turns the cell pale red and rings it in the conflict
-              // line. The ring is a shape a player reads without the hue, and a
-              // screen reader still names the rule that broke, so the marking is
-              // never carried by colour alone. The fill covers the region rather
-              // than washing over it, and nothing is drawn past the cell, so a
-              // breach never bleeds into the cell next door.
+              // A breach outlines the cell itself in the conflict line — the box
+              // going red, not a ring around the star inside it. The outline is
+              // a shape a player reads without the hue, and a screen reader still
+              // names the rule that broke, so the marking is never carried by
+              // colour alone. There is no wash: the region fill shows through
+              // underneath, and nothing is drawn past the cell, so a breach never
+              // bleeds into the cell next door.
               if (breach != null)
                 Positioned.fill(
-                  child: DecoratedBox(
-                    key: StarsBoard.breachKey(index),
-                    decoration: BoxDecoration(
-                      color: colors.cellConflict,
-                      border: Border.all(
-                        color: colors.conflictLine,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
+                  child: BreachOutline(key: StarsBoard.breachKey(index)),
                 ),
               ?_content(colors),
             ],

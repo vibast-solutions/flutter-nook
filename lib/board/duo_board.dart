@@ -8,6 +8,7 @@ import '../design/typography.dart';
 import '../games/duo/duo_state.dart';
 import '../l10n/app_localizations.dart';
 import 'board_frame.dart';
+import 'breach_mark.dart';
 
 /// The Duo grid.
 ///
@@ -30,7 +31,7 @@ import 'board_frame.dart';
 /// it away (a completed-line pulse is explicitly not wanted here — a line
 /// completes the moment its last symbol lands — so the removal is the whole of
 /// the board's motion). The other is not motion at all: a breach that has just
-/// appeared waits [DuoBoard.breachDelay] before its ring is drawn, because a Duo
+/// appeared waits [DuoBoard.breachDelay] before its outline is drawn, because a Duo
 /// cell cycles through a circle on its way to a square and a value the player is
 /// passing through is not a claim to mark. Both are transitions found by
 /// comparing the game that arrives with the one before it; [DuoGameState] itself
@@ -96,8 +97,8 @@ class DuoBoard extends StatefulWidget {
   /// The key of the symbol drawn in the cell at [index], if it holds one.
   static Key markKey(int index) => ValueKey<String>('duo-mark-$index');
 
-  /// The key of the ring around the cell at [index], drawn when the symbol it
-  /// holds breaks a rule and the breach has waited out [breachDelay].
+  /// The key of the red outline around the cell at [index], drawn when the
+  /// symbol it holds breaks a rule and the breach has waited out [breachDelay].
   static Key breachKey(int index) => ValueKey<String>('duo-breach-$index');
 
   /// The key of the cross drawn over the cell at [index] as a hint takes a
@@ -250,57 +251,100 @@ class _DuoBoardState extends State<DuoBoard>
     // deliberately tiny so the `=`/`x` reads as a note on the boundary and a
     // player follows the grid past it rather than around it.
     final double badgeExtent = (cell * 0.20).clamp(9.0, 12.0);
+    // The rule the marked breaches are breaking, named under the board. It reads
+    // from the same marked set the rings do, so it waits out the delay with them
+    // and is gone the moment the board is clean again.
+    final DuoBreach? bannerBreach = _salientMarkedBreach();
 
-    return Semantics(
-      container: true,
-      label: l10n.boardLabel(l10n.duoTitle, size),
-      child: BoardFrameGlow(
-        solved: game.isSolved,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.all(NookRadius.board),
-          child: SizedBox(
-            width: inner,
-            height: inner,
-            child: AnimatedBuilder(
-              animation: _removal,
-              builder: (BuildContext context, Widget? child) => Stack(
-                children: <Widget>[
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Semantics(
+          container: true,
+          label: l10n.boardLabel(l10n.duoTitle, size),
+          child: BoardFrameGlow(
+            solved: game.isSolved,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(NookRadius.board),
+              child: SizedBox(
+                width: inner,
+                height: inner,
+                child: AnimatedBuilder(
+                  animation: _removal,
+                  builder: (BuildContext context, Widget? child) => Stack(
                     children: <Widget>[
-                      for (int row = 0; row < size; row++)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            for (int column = 0; column < size; column++)
-                              _cellAt(row * size + column, cell),
-                          ],
-                        ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          for (int row = 0; row < size; row++)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                for (int column = 0; column < size; column++)
+                                  _cellAt(row * size + column, cell),
+                              ],
+                            ),
+                        ],
+                      ),
+                      for (final DuoBadge badge in game.puzzle.badges)
+                        _positionBadge(badge, cell, badgeExtent),
                     ],
                   ),
-                  for (final DuoBadge badge in game.puzzle.badges)
-                    _positionBadge(badge, cell, badgeExtent),
-                ],
+                ),
               ),
             ),
+            builder:
+                (BuildContext context, List<BoxShadow> shadows, Widget child) =>
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        border: Border.all(
+                          color: colors.boardRule,
+                          width: DuoBoard.ruleWidth,
+                        ),
+                        borderRadius: const BorderRadius.all(NookRadius.board),
+                        boxShadow: shadows,
+                      ),
+                      child: child,
+                    ),
           ),
         ),
-        builder:
-            (BuildContext context, List<BoxShadow> shadows, Widget child) =>
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    border: Border.all(
-                      color: colors.boardRule,
-                      width: DuoBoard.ruleWidth,
-                    ),
-                    borderRadius: const BorderRadius.all(NookRadius.board),
-                    boxShadow: shadows,
-                  ),
-                  child: child,
-                ),
-      ),
+        BreachCaption(
+          message: bannerBreach == null
+              ? null
+              : _breachMessage(l10n, bannerBreach),
+        ),
+      ],
     );
+  }
+
+  /// The rule to name under the board: the most specific breach among the cells
+  /// currently marked, or `null` when none are. Reading from [_marked] rather
+  /// than the raw breaches keeps the caption in step with the rings — silent
+  /// while a just-tapped breach waits out its delay, and gone the instant the
+  /// board is clean.
+  DuoBreach? _salientMarkedBreach() {
+    DuoBreach? salient;
+    for (final int index in _marked) {
+      final DuoBreach? breach = widget.game.breachAt(index);
+      if (breach == null) {
+        continue;
+      }
+      if (salient == null || breach.index < salient.index) {
+        salient = breach;
+      }
+    }
+    return salient;
+  }
+
+  /// The one-line rule message for [breach], the sighted player's copy of the
+  /// sentence a screen reader already hears from the breaching cell.
+  String _breachMessage(AppLocalizations l10n, DuoBreach breach) {
+    return switch (breach) {
+      DuoBreach.badge => l10n.duoBreachBadge,
+      DuoBreach.triple => l10n.duoBreachTriple,
+      DuoBreach.balance => l10n.duoBreachBalance,
+    };
   }
 
   Widget _cellAt(int index, double extent) {
@@ -440,26 +484,17 @@ class _DuoCellTile extends StatelessWidget {
             alignment: Alignment.center,
             children: <Widget>[
               // Colour never carries a meaning by itself on a Nook board. A
-              // breach turns the cell pale red and rings it in the conflict line
-              // — the ring being the shape a player reads without the hue — the
+              // breach outlines the cell itself in the conflict line — the whole
+              // box going red, not a ring drawn around the symbol inside it — the
               // same treatment Stars draws, so the marking is one language across
-              // the app. A hatch was too busy over Duo's circles, squares and
-              // badges, and (the reason Stars dropped it) bled into the cell next
-              // door; the ring stays inside the cell's own bounds. It draws over
-              // the selection lift as well, so the marking is never hidden by the
-              // cursor, and the symbol stays legible on top.
+              // the app. There is no wash: the outline sits over the selection
+              // lift, so a breach the player is standing on is never hidden by
+              // the cursor, and the symbol stays legible on top. It stays inside
+              // the cell's own bounds, so it never bleeds into the cell next
+              // door the way a hatch did.
               if (breach != null)
                 Positioned.fill(
-                  child: DecoratedBox(
-                    key: DuoBoard.breachKey(index),
-                    decoration: BoxDecoration(
-                      color: colors.cellConflict,
-                      border: Border.all(
-                        color: colors.conflictLine,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
+                  child: BreachOutline(key: DuoBoard.breachKey(index)),
                 ),
               ?_symbol(colors, cell),
             ],
