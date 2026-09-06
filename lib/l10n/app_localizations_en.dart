@@ -805,4 +805,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String snakeSpeedRowLabel(String name, String description) {
     return '$name. $description';
   }
+
+  @override
+  String snakeSpeedRowLabelBest(String name, String description, int best) {
+    return '$name. $description. Best score $best.';
+  }
+
+  @override
+  String snakeBest(int score) {
+    return 'Best $score';
+  }
+
+  @override
+  String get snakeNewBest => 'New best!';
 }

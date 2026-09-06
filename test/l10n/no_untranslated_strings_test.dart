@@ -92,6 +92,7 @@ const Set<String> allowedLiterals = <String>{
   'GameStatsRow',
   'DailySolveRow',
   'DailyStreakRow',
+  'SnakeScoreRow',
   // The bundled-pack asset key, with the pack id interpolated into the middle.
   // A file path, never read by a player.
   'assets/packs/.pack.gz',
@@ -145,6 +146,8 @@ const Set<String> allowedLiterals = <String>{
   'packLibrary',
   'dailyStore',
   'dailyStreak',
+  'snakeScoreStore',
+  'snakeScores',
 
   // ---- Messages for whoever is holding the debugger ------------------------
   // `toString` output.

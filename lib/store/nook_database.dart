@@ -12,6 +12,7 @@ import '../chrome/play_clock.dart';
 import 'daily_streak.dart';
 import 'game_stats.dart';
 import 'saved_game.dart';
+import 'snake_score.dart';
 
 part 'nook_database.g.dart';
 
@@ -202,6 +203,36 @@ class DailyStreak extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
 }
 
+/// The best score reached at each Snake speed, one row per level.
+///
+/// Snake's own record, kept apart from [Statistics] on purpose. A statistic is a
+/// solved count and a *fastest* hint-free time; a Snake best is a *highest*
+/// score — measured in the opposite direction, with no clock, no tier and no
+/// hint behind it — so folding it into the statistics table would muddy what
+/// "best" means there (VIB-110). It is a table of its own, as small as the thing
+/// it holds: which speed, the best score there, and when it was last beaten.
+///
+/// The generated row class is named `SnakeScoreRow` so the noun stays free for
+/// the [SnakeScoreOutcome] the app passes around.
+@DataClassName('SnakeScoreRow')
+class SnakeScores extends Table {
+  /// The speed level, `1` upward, as the engine's `SnakeSpeed.level` numbers
+  /// them. An integer rather than a name because a Snake speed *is* an ordinal —
+  /// the store stays game-agnostic and holds no word a player reads.
+  IntColumn get level => integer()();
+
+  /// The highest score reached at this level.
+  IntColumn get best => integer()();
+
+  /// When this best was last set; kept for a future "recently beaten" cue and to
+  /// mirror the other rows, never read by v1.
+  DateTimeColumn get updatedAt => dateTime()();
+
+  /// One row per level.
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{level};
+}
+
 /// Everything Nook keeps on the device.
 ///
 /// One database for saves and statistics: they are the same data seen twice —
@@ -214,6 +245,7 @@ class DailyStreak extends Table {
     PackProgress,
     DailySolves,
     DailyStreak,
+    SnakeScores,
   ],
 )
 class NookDatabase extends _$NookDatabase {
@@ -235,7 +267,7 @@ class NookDatabase extends _$NookDatabase {
       );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   /// Version 2 added the two hint columns (VIB-76); version 3 the statistics
   /// table (VIB-77); version 4 the nullable `regions` column, which is what
@@ -248,7 +280,10 @@ class NookDatabase extends _$NookDatabase {
   /// has no badges and keeps none. Version 7 added the two daily tables — the
   /// per-date record of solved dailies and the single streak row (VIB-99); an
   /// upgrading player has solved no dailies yet, so both start empty and the
-  /// streak reads as zero, which is exactly right.
+  /// streak reads as zero, which is exactly right. Version 8 added the
+  /// `snake_scores` table — the best score reached at each Snake speed (VIB-110);
+  /// an upgrading player has played no Snake yet, so it starts empty and every
+  /// level's best reads as none until a run sets one.
   ///
   /// A save from version 1 is a puzzle nobody was helped with, which is
   /// exactly what the column defaults say. A player who arrives at version 3
@@ -282,6 +317,9 @@ class NookDatabase extends _$NookDatabase {
         if (from < 7) {
           await m.createTable(dailySolves);
           await m.createTable(dailyStreak);
+        }
+        if (from < 8) {
+          await m.createTable(snakeScores);
         }
       },
     );
@@ -634,6 +672,86 @@ class DailyStore {
   }
 }
 
+/// Reading and writing the best Snake score at each speed.
+///
+/// Its own store, like [DailyStore], because a Snake best is its own kind of
+/// thing: a highest score per speed level, with none of the solve/time semantics
+/// [GameStatsStore] carries. Written when a run ends and read on the game-over
+/// card and the speed picker.
+///
+/// It speaks in plain `int` levels rather than the engine's `SnakeSpeed`, so
+/// `lib/store/` stays free of any one game's types (the same rule that keeps a
+/// [SavedGame] a bag of integers): the app maps a speed to its level on the way
+/// in and back on the way out.
+class SnakeScoreStore {
+  const SnakeScoreStore(this._db);
+
+  final NookDatabase _db;
+
+  /// The best score at [level], or `null` if that speed has never been played.
+  Future<int?> bestFor(int level) async {
+    final SnakeScoreRow? row = await (_db.select(
+      _db.snakeScores,
+    )..where(($SnakeScoresTable r) => r.level.equals(level))).getSingleOrNull();
+    return row?.best;
+  }
+
+  /// Records [score] at [level] and says what it did to the record.
+  ///
+  /// The read and the write are one transaction, the way a solve is: the number
+  /// a player has just beaten stops existing the instant the new best is stored,
+  /// so the only honest place to report it is here. A run that fails to beat the
+  /// stored best writes nothing — the row keeps the higher number and its
+  /// timestamp — and a run at a speed never played before always sets a best,
+  /// because any score beats none.
+  Future<SnakeScoreOutcome> record({
+    required int level,
+    required int score,
+    required DateTime at,
+  }) {
+    return _db.transaction(() async {
+      final int? previousBest = await bestFor(level);
+      final bool isNewBest = previousBest == null || score > previousBest;
+      if (isNewBest) {
+        await _db
+            .into(_db.snakeScores)
+            .insertOnConflictUpdate(
+              SnakeScoresCompanion.insert(
+                // An integer primary key is SQLite's rowid, so the companion
+                // takes it as an explicit value rather than a bare argument;
+                // it is always the level, never left to auto-increment.
+                level: Value<int>(level),
+                best: score,
+                updatedAt: at,
+              ),
+            );
+      }
+      return SnakeScoreOutcome(
+        score: score,
+        best: isNewBest ? score : previousBest,
+        previousBest: previousBest,
+        isNewBest: isNewBest,
+      );
+    });
+  }
+
+  /// The best score at every level that has one, keyed by level.
+  ///
+  /// One stream for the whole set, like the other stores and for the same
+  /// reason: there is a row per speed at most and a handful of speeds, so the
+  /// picker fills every row from one query rather than one query per row.
+  Stream<Map<int, int>> watchBests() {
+    return _db
+        .select(_db.snakeScores)
+        .watch()
+        .map(
+          (List<SnakeScoreRow> rows) => <int, int>{
+            for (final SnakeScoreRow row in rows) row.level: row.best,
+          },
+        );
+  }
+}
+
 /// A calendar date as `yyyy-MM-dd`, from its day fields alone.
 ///
 /// Only the year, month and day are read, so the same key comes out whether the
@@ -726,6 +844,24 @@ final StreamProvider<List<GameStats>> gameStatsProvider =
     StreamProvider<List<GameStats>>(
       (Ref ref) => ref.watch(gameStatsStoreProvider).watchAll(),
       name: 'gameStats',
+    );
+
+/// The best Snake score at each speed, read and written.
+final Provider<SnakeScoreStore> snakeScoreStoreProvider =
+    Provider<SnakeScoreStore>(
+      (Ref ref) => SnakeScoreStore(ref.watch(nookDatabaseProvider)),
+      name: 'snakeScoreStore',
+    );
+
+/// The best Snake score at every level that has one, keyed by level.
+///
+/// The speed picker reads its per-level bests out of this; the game-over card is
+/// told its number by the write that produced it instead, the way the finished
+/// screen is, because it needs the best as it was the moment before this run.
+final StreamProvider<Map<int, int>> snakeScoresProvider =
+    StreamProvider<Map<int, int>>(
+      (Ref ref) => ref.watch(snakeScoreStoreProvider).watchBests(),
+      name: 'snakeScores',
     );
 
 /// A list of small integers, as one text column.
