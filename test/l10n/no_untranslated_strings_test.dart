@@ -41,6 +41,7 @@ const Set<String> allowedLiterals = <String>{
   'snake-head',
   'snake-food',
   'snake-game-over',
+  'snake-speed-',
   'board-action-',
   'board-pace-',
   'difficulty-',

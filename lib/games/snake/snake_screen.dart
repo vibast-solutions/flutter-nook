@@ -13,45 +13,55 @@ import 'snake_naming.dart';
 import 'snake_rules.dart';
 import 'snake_variant.dart';
 
-/// How often the snake takes a step, in this story a single fixed pace.
-///
-/// Choosing a pace — and letting the player choose — is VIB-109; here it is one
-/// constant so the game is playable while that story is still to come.
-const Duration kSnakeTick = Duration(milliseconds: 180);
-
-/// The screen a player lands on after choosing Snake.
+/// The screen a player lands on after choosing a Snake speed.
 ///
 /// Unlike the puzzle games, Snake keeps no clock, no difficulty and no save, so
 /// it opens none of the `GameSession`/`ProviderScope` machinery they do: it is a
-/// self-contained arcade run that lives entirely in [_SnakeScreen]'s state.
+/// self-contained arcade run that lives entirely in [_SnakeScreen]'s state. The
+/// one thing chosen before it opens is the [speed], which sets the constant pace
+/// of the loop (VIB-109).
 class SnakeGamePage extends StatelessWidget {
-  const SnakeGamePage({required this.variant, this.seed, super.key});
+  const SnakeGamePage({
+    required this.variant,
+    required this.speed,
+    this.seed,
+    super.key,
+  });
 
   /// Which Snake board to play.
   final SnakeVariant variant;
+
+  /// The pace the run is played at, chosen on the speed picker. Its
+  /// `SnakeSpeed.tick` is the interval between the snake's steps.
+  final SnakeSpeed speed;
 
   /// The seed the run starts from, or `null` to take a fresh one from the clock
   /// on each start. A test passes a seed so a run is reproducible.
   final int? seed;
 
-  /// Builds a route to a new run.
-  static Route<void> route(SnakeVariant variant, {int? seed}) {
+  /// Builds a route to a new run at [speed].
+  static Route<void> route(
+    SnakeVariant variant, {
+    required SnakeSpeed speed,
+    int? seed,
+  }) {
     return MaterialPageRoute<void>(
       builder: (BuildContext context) =>
-          SnakeGamePage(variant: variant, seed: seed),
+          SnakeGamePage(variant: variant, speed: speed, seed: seed),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return _SnakeScreen(variant: variant, seed: seed);
+    return _SnakeScreen(variant: variant, speed: speed, seed: seed);
   }
 }
 
 class _SnakeScreen extends StatefulWidget {
-  const _SnakeScreen({required this.variant, this.seed});
+  const _SnakeScreen({required this.variant, required this.speed, this.seed});
 
   final SnakeVariant variant;
+  final SnakeSpeed speed;
   final int? seed;
 
   @override
@@ -111,7 +121,7 @@ class _SnakeScreenState extends State<_SnakeScreen> {
       _inputs.clear();
     });
     _ticker?.cancel();
-    _ticker = Timer.periodic(kSnakeTick, _onTick);
+    _ticker = Timer.periodic(widget.speed.tick, _onTick);
     _focus.requestFocus();
   }
 

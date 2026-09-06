@@ -758,4 +758,51 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get snakeRulesInteraction =>
       'Swipe in the direction you want to go, or use the arrow keys or W, A, S and D. The snake cannot turn straight back on itself.';
+
+  @override
+  String get snakeSpeedTitle => 'Snake';
+
+  @override
+  String get snakeSpeedHeading => 'CHOOSE A SPEED';
+
+  @override
+  String get snakeSpeedBlurb =>
+      'The snake keeps this pace for the whole run — it never speeds up as it grows. Faster is a shorter fuse, not a harder puzzle.';
+
+  @override
+  String get snakeSpeedRelaxed => 'Relaxed';
+
+  @override
+  String get snakeSpeedSteady => 'Steady';
+
+  @override
+  String get snakeSpeedBrisk => 'Brisk';
+
+  @override
+  String get snakeSpeedSwift => 'Swift';
+
+  @override
+  String get snakeSpeedFrantic => 'Frantic';
+
+  @override
+  String get snakeSpeedRelaxedBlurb =>
+      'An unhurried amble, with all the time in the world to think.';
+
+  @override
+  String get snakeSpeedSteadyBlurb => 'A gentle, even pace.';
+
+  @override
+  String get snakeSpeedBriskBlurb => 'Lively, with room to react.';
+
+  @override
+  String get snakeSpeedSwiftBlurb => 'Fast enough to keep you honest.';
+
+  @override
+  String get snakeSpeedFranticBlurb =>
+      'All-out speed — blink and you\'ll meet a wall.';
+
+  @override
+  String snakeSpeedRowLabel(String name, String description) {
+    return '$name. $description';
+  }
 }

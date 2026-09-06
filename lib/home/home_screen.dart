@@ -16,7 +16,7 @@ import '../games/duo/duo_save.dart';
 import '../games/duo/duo_screen.dart';
 import '../games/duo/duo_variant.dart';
 import '../games/snake/snake_rules.dart';
-import '../games/snake/snake_screen.dart';
+import '../games/snake/snake_speed.dart';
 import '../games/snake/snake_variant.dart';
 import '../games/stars/stars_difficulty.dart';
 import '../games/stars/stars_naming.dart';
@@ -108,7 +108,7 @@ class HomeScreen extends ConsumerWidget {
       accent: true,
       open: (BuildContext context) =>
           Navigator.of(context)
-              .push(SnakeGamePage.route(SnakeVariant.standard)),
+              .push(SnakeSpeedPage.route(SnakeVariant.standard)),
       rules: (AppLocalizations l10n) => snakeRules(l10n, SnakeVariant.standard),
     ),
   ];

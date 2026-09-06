@@ -11,12 +11,17 @@ import 'package:nook/games/snake/snake_variant.dart';
 import 'package:nook/home/home_screen.dart';
 import 'package:nook/l10n/app_localizations.dart';
 import 'package:nook/store/nook_database.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../support/duo_fixture.dart';
 
 /// The key the game-over card carries, matched by value so the test does not
 /// reach into a private widget.
 const Key gameOverKey = ValueKey<String>('snake-game-over');
+
+/// The speed a run is pumped at. The default pace; its `tick` is the interval a
+/// test advances the clock by, so any level would do.
+const SnakeSpeed testSpeed = SnakeSpeed.standard;
 
 void main() {
   group('the home screen', () {
@@ -49,7 +54,7 @@ void main() {
 
       await _start(tester);
       final Offset before = _head(tester);
-      await tester.pump(kSnakeTick);
+      await tester.pump(testSpeed.tick);
       final Offset after = _head(tester);
 
       // The snake starts heading right, so one tick moves the head one cell to
@@ -66,7 +71,7 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       final Offset before = _head(tester);
-      await tester.pump(kSnakeTick);
+      await tester.pump(testSpeed.tick);
       final Offset after = _head(tester);
 
       expect(after.dy, lessThan(before.dy));
@@ -82,7 +87,7 @@ void main() {
       // A swipe up over the board.
       await tester.drag(find.byType(SnakeBoard), const Offset(0, -80));
       final Offset before = _head(tester);
-      await tester.pump(kSnakeTick);
+      await tester.pump(testSpeed.tick);
       final Offset after = _head(tester);
 
       expect(after.dy, lessThan(before.dy));
@@ -99,7 +104,7 @@ void main() {
       // Heading right; asking to go left is a straight reversal.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       final Offset before = _head(tester);
-      await tester.pump(kSnakeTick);
+      await tester.pump(testSpeed.tick);
       final Offset after = _head(tester);
 
       // Still alive, still going right.
@@ -119,7 +124,7 @@ void main() {
       // Turn into the top wall and run until the snake dies.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       for (int i = 0; i < 40 && !tester.any(find.byKey(gameOverKey)); i++) {
-        await tester.pump(kSnakeTick);
+        await tester.pump(testSpeed.tick);
       }
 
       final Finder card = find.byKey(gameOverKey);
@@ -145,7 +150,7 @@ void main() {
       expect(_head(tester), startHead);
 
       // And it is a live run again: the next tick advances the snake.
-      await tester.pump(kSnakeTick);
+      await tester.pump(testSpeed.tick);
       expect(_head(tester).dx, greaterThan(startHead.dx));
 
       await _teardown(tester);
@@ -161,7 +166,11 @@ Future<void> _pumpSnake(WidgetTester tester, {int seed = 123}) async {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: buildNookTheme(NookColors.softClay),
-      home: SnakeGamePage(variant: SnakeVariant.standard, seed: seed),
+      home: SnakeGamePage(
+        variant: SnakeVariant.standard,
+        speed: testSpeed,
+        seed: seed,
+      ),
     ),
   );
   // Let autofocus take, so the keyboard tests reach the Focus node.
